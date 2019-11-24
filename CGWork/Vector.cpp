@@ -105,6 +105,7 @@ Vector Vector::operator+(const Vector &vec) const
     }
 
     // W isn't affected;
+	return new_vec;
 }
 
 // Vector addition
@@ -129,6 +130,7 @@ Vector Vector::operator-(const Vector &vec) const
     }
 
     // W isn't affected;
+	return new_vec;
 }
 
 // Vector subtraction

@@ -203,6 +203,7 @@
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</BrowseInformation>
     </ClCompile>
     <ClCompile Include="MaterialDlg.cpp" />
+    <ClCompile Include="Matrix.cpp" />
     <ClCompile Include="PngWrapper.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
@@ -216,6 +217,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</BrowseInformation>
     </ClCompile>
+    <ClCompile Include="Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CGWork.rc" />
@@ -230,6 +232,7 @@
     <ClInclude Include="LightDialog.h" />
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="MaterialDlg.h" />
+    <ClInclude Include="Matrix.h" />
     <ClInclude Include="PngWrapper.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="StdAfx.h" />
@@ -257,6 +260,7 @@
     <ClInclude Include="..\include\triv_lib.h" />
     <ClInclude Include="..\include\trng_lib.h" />
     <ClInclude Include="..\include\user_lib.h" />
+    <ClInclude Include="Vector.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="res\CGWork.ico" />

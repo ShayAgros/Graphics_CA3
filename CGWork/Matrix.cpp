@@ -104,9 +104,9 @@ Vector Matrix::operator*(const Vector &vector) const
     {
         for (int j = 0; j < 4; j++)
         {
-            new_vec.
         }
     }
+	return new_vec;
 }
 
 // Calculate the determinant of the Matrix
@@ -186,7 +186,7 @@ Matrix Matrix::Adjoint() const
                 }
             }
             // if (i+j) is even, then sign is 1, else -1
-            sign = pow(-1, i + j);
+            sign = (int)pow(-1, i + j);
             matrix.array[i][j] = sign * SubDeterminant(temp_arr);
         }
     }
