@@ -1,14 +1,11 @@
 #pragma once
 #include <assert.h>
 #include <iritprsr.h>
-
-struct threed_point {
-	double x, y, z, w;
-};
+#include "Vector.h"
 
 struct IritPoint {
-	struct threed_point pos;
-	struct threed_point normal;
+	Vector vertex;
+	Vector normal;
 
 	struct IritPoint *next_point;
 };
@@ -58,23 +55,23 @@ public:
 	bool addPoint(double &x, double &y, double &z, double &normal_x, double &normal_y,
 				  double &normal_z) {
 		IritPoint new_point;
-		new_point.pos = { x, y, z, 1 };
-		new_point.normal = { normal_x, normal_y, normal_z, 1 };
+		new_point.vertex = Vector(x, y, z, 1);
+		new_point.normal = Vector(normal_x, normal_y, normal_z, 1);
 
 		return addPoint(new_point);
 	}
 
 	bool addPoint(IPVertexStruct *vertex) {
 		IritPoint new_point;
-		new_point.pos.x = vertex->Coord[0];
-		new_point.pos.y = vertex->Coord[1];
-		new_point.pos.z = vertex->Coord[2];
-		new_point.pos.w = 1;
 
-		new_point.normal.x = vertex->Normal[0];
-		new_point.normal.y = vertex->Normal[1];
-		new_point.normal.z = vertex->Normal[2];
-		new_point.normal.w = 1;
+		for (int i = 0; i < 3; i++) {
+			new_point.vertex[i] = vertex->Coord[i];
+			new_point.normal[i] = vertex->Coord[i];
+		}
+
+		// Homogeneous component
+		new_point.vertex[3] = 1;
+		new_point.normal[3] = 1;
 
 		return addPoint(new_point);
 	}
@@ -96,22 +93,32 @@ public:
 	//			therefore be adjusted.
 	void draw(CDC *pDCToUse) {
 		struct IritPoint *current_point = m_points;
-		struct threed_point *coor = &current_point->pos;
+		Vector vertex = current_point->vertex;
+		double x = vertex[0],
+			   y = vertex[1];
 
 		/* "Draw" first point */
-		pDCToUse->MoveTo(50 + 10 * coor->x, 50 + 10 * coor->y);
+		pDCToUse->MoveTo(50 + 10 * x, 50 + 10 * y);
 		current_point = current_point->next_point;
 
 		/* Draw shape's lines */
 		while (current_point) {
-			coor = &current_point->pos;
-			pDCToUse->LineTo(50 + 10 * coor->x, 50 + 10 * coor->y);
+			vertex = current_point->vertex;
+			x = vertex[0];
+			y = vertex[1];
+
+			pDCToUse->LineTo(50 + 10 * x, 50 + 10 * y);
 			current_point = current_point->next_point;
 		}
 
 		/* Draw last line from last vertex to first one */
-		coor = &m_points->pos;
-		pDCToUse->LineTo(50 + 10 * coor->x, 50 + 10 * coor->y);
+		vertex = m_points->vertex;
+		x = vertex[0];
+		y = vertex[1];
+
+		pDCToUse->LineTo(50 + 10 * x, 50 + 10 * y);
+
+		// TODO: draw normals
 	}
 
 	// Operators overriding
