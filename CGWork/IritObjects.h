@@ -86,6 +86,38 @@ public:
 	void setNextPolygon(IritPolygon *polygon) {
 		m_next_polygon = polygon;
 	}
+
+	/* Draws an polygon (draw lines between each of its points)
+	 * @pDCToUse - a pointer to the the DC with which the
+					polygon is drawn
+	*/
+	// TODO: The coordinates aren't adjusted to screen view and therefore
+	//			cannot be drawn properly on screen. The drawing function needs
+	//			therefore be adjusted.
+	void draw(CDC *pDCToUse) {
+		struct IritPoint *current_point = m_points;
+		struct threed_point *coor = &current_point->pos;
+
+		/* "Draw" first point */
+		pDCToUse->MoveTo(50 + 10 * coor->x, 50 + 10 * coor->y);
+		current_point = current_point->next_point;
+
+		/* Draw shape's lines */
+		while (current_point) {
+			coor = &current_point->pos;
+			pDCToUse->LineTo(50 + 10 * coor->x, 50 + 10 * coor->y);
+			current_point = current_point->next_point;
+		}
+
+		/* Draw last line from last vertex to first one */
+		coor = &m_points->pos;
+		pDCToUse->LineTo(50 + 10 * coor->x, 50 + 10 * coor->y);
+	}
+
+	// Operators overriding
+	IritPolygon &operator++() {
+		return *m_next_polygon;
+	}
 };
 
 /* This class represents an object in the IRIT world. An object is formed from
@@ -142,6 +174,18 @@ public:
 		addPolygonP(new_polygon);
 		return new_polygon;
 	}
+
+	/* Draws an object (each of its polygons at a time)
+	 * @pDCToUse - a pointer to the the DC with which the
+					object is drawn
+	*/
+	void draw(CDC *pDCToUse) {
+		m_iterator = m_polygons;
+		while (m_iterator) {
+			m_iterator->draw(pDCToUse);
+			m_iterator = m_iterator->getNextPolygon();
+		}
+	}
 };
 
 class IritWorld {
@@ -191,5 +235,14 @@ public:
 		m_objects_nr++;
 
 		return true;
+	}
+
+	bool isEmpty() {
+		return m_objects_nr == 0;
+	}
+
+	void draw(CDC *pDCToUse) {
+		for (int i = 0; i < m_objects_nr; i++)
+			m_objects_arr[i]->draw(pDCToUse);
 	}
 };

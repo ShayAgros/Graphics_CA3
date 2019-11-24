@@ -254,6 +254,9 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	
 	pDCToUse->FillSolidRect(&r, RGB(255, 255, 0));
 	
+	if (!world.isEmpty())
+		world.draw(pDCToUse);
+/*
 	int numLines = 100;
 	double radius = r.right / 3.0;
 	
@@ -268,6 +271,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		pDCToUse->MoveTo(r.right / 2, r.bottom / 2);
 		pDCToUse->LineTo((int)(r.right / 2 + radius*cos(finalTheta)), (int)(r.bottom / 2 + radius*sin(finalTheta)));
 	}	
+	*/
 
 	if (pDCToUse != m_pDC) 
 	{
