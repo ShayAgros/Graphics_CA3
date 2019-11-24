@@ -1,0 +1,195 @@
+#pragma once
+#include <assert.h>
+#include <iritprsr.h>
+
+struct threed_point {
+	double x, y, z, w;
+};
+
+struct IritPoint {
+	struct threed_point pos;
+	struct threed_point normal;
+
+	struct IritPoint *next_point;
+};
+
+class IritPolygon {
+	int m_point_nr;
+	struct IritPoint *m_points;
+	IritPolygon *m_next_polygon;
+
+public:
+	IritPolygon() : m_point_nr(0), m_points(nullptr), m_next_polygon(nullptr) {
+	}
+
+	~IritPolygon() {
+		struct IritPoint *next_point;
+		while (m_points) {
+			next_point = m_points->next_point;
+			delete m_points;
+			m_points = next_point;
+		}
+	}
+	
+	bool addPoint(struct IritPoint &point) {
+
+		IritPoint *new_point = new IritPoint(point);
+		if (!new_point)
+			return false;
+		new_point->next_point = nullptr;
+
+		m_point_nr++;
+
+		if (!m_points) {
+			// first point
+			m_points = new_point;
+			return true;
+		}
+
+		IritPoint *last_point = m_points;
+		while (last_point->next_point)
+			last_point = last_point->next_point;
+		last_point->next_point = new_point;
+
+		return true;
+	}
+
+	/* Creates an homogenious with a normal */
+	bool addPoint(double &x, double &y, double &z, double &normal_x, double &normal_y,
+				  double &normal_z) {
+		IritPoint new_point;
+		new_point.pos = { x, y, z, 1 };
+		new_point.normal = { normal_x, normal_y, normal_z, 1 };
+
+		return addPoint(new_point);
+	}
+
+	bool addPoint(IPVertexStruct *vertex) {
+		IritPoint new_point;
+		new_point.pos.x = vertex->Coord[0];
+		new_point.pos.y = vertex->Coord[1];
+		new_point.pos.z = vertex->Coord[2];
+		new_point.pos.w = 1;
+
+		new_point.normal.x = vertex->Normal[0];
+		new_point.normal.y = vertex->Normal[1];
+		new_point.normal.z = vertex->Normal[2];
+		new_point.normal.w = 1;
+
+		return addPoint(new_point);
+	}
+
+	IritPolygon *getNextPolygon() {
+		return m_next_polygon;
+	}
+
+	void setNextPolygon(IritPolygon *polygon) {
+		m_next_polygon = polygon;
+	}
+};
+
+/* This class represents an object in the IRIT world. An object is formed from
+ * a list of polygons (each represented by its vertices)
+ */
+class IritObject {
+	int m_polygons_nr;
+	IritPolygon *m_polygons;
+	IritPolygon *m_iterator;
+
+public:
+	IritObject() : m_polygons_nr(0), m_polygons(nullptr), m_iterator(nullptr) {
+	}
+	
+	~IritObject() {
+		IritPolygon *next_polygon;
+		while (m_polygons) {
+			next_polygon = m_polygons->getNextPolygon();
+			delete m_polygons;
+			m_polygons = next_polygon;
+		}
+	}
+
+	/* Received a pointer to a new polygon, and adds this polygon to the list
+	 * of polygons in the object. The polygon is always added as the last
+	 * polygon.
+	 * @polygon - a pointer to the polygon to add
+	 */
+	void addPolygonP(IritPolygon *polygon) {
+
+		if (!m_polygons) {
+			m_polygons = polygon;
+		}
+		else {
+			if (!m_iterator)
+				m_iterator = m_polygons;
+
+			while (m_iterator->getNextPolygon())
+				m_iterator = m_iterator->getNextPolygon();
+			m_iterator->setNextPolygon(polygon);
+		}
+		m_polygons_nr++;
+	}
+
+	/* Creates an empty polygon and returns a pointer to it.
+	 * the polygon is added to the list of polygons of the object
+	 * as the last polygon.
+	 * returns null pointer on memory failure
+	 */
+	IritPolygon *createPolygon() {
+		IritPolygon *new_polygon = new IritPolygon();
+		if (!new_polygon)
+			return nullptr;
+		addPolygonP(new_polygon);
+		return new_polygon;
+	}
+};
+
+class IritWorld {
+	int m_objects_nr;
+	IritObject **m_objects_arr;
+
+public:
+	IritWorld() : m_objects_nr(0), m_objects_arr(nullptr) {}
+
+	~IritWorld() {
+		delete[] m_objects_arr;
+	}
+
+	/* Creates an empty object and returns a pointer to it.
+	 * the object is added to the list of objects in the IritWorld.
+	 * It is added as the last object
+	 * return NULL on memory allocation error
+	*/
+	IritObject *createObject() {
+		IritObject *new_object = new IritObject();
+		if (!new_object)
+			return nullptr;
+
+		if (!addObjectP(new_object))
+			return nullptr;
+		
+		return new_object;
+	}
+
+	/* Receieves a pointer to an object and adds the object
+	 * the objects' list.
+	 * @p_object - a pointer to the object that needs to be added
+	 * returns false on allocation error and true otherwise
+	*/
+	bool addObjectP(IritObject *p_object) {
+
+		IritObject **new_objects_array = new IritObject*[m_objects_nr + 1];
+		if (!new_objects_array)
+			return false;
+
+		for (int i = 0; i < m_objects_nr; i++)
+			new_objects_array[i] = m_objects_arr[i];
+		new_objects_array[m_objects_nr] = p_object;
+
+		delete m_objects_arr;
+		m_objects_arr = new_objects_array;
+		m_objects_nr++;
+
+		return true;
+	}
+};

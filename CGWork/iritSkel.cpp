@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "iritSkel.h"
+#include "IritObjects.h"
+
 /*****************************************************************************
 * Skeleton for an interface to a parser to read IRIT data files.			 *
 ******************************************************************************
@@ -31,6 +33,7 @@ IPFreeformConvStateStruct CGSkelFFCState = {
 
 //CGSkelProcessIritDataFiles(argv + 1, argc - 1);
 
+extern IritWorld world;
 
 /*****************************************************************************
 * DESCRIPTION:                                                               *
@@ -121,6 +124,9 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	IPVertexStruct *PVertex;
 	const IPAttributeStruct *Attrs =
         AttrTraceAttributes(PObj -> Attr, PObj -> Attr);
+	IritObject *irit_object = world.createObject();
+
+	assert(irit_object);
 
 	if (PObj -> ObjType != IP_OBJ_POLY) {
 		AfxMessageBox(_T("Non polygonal object detected and ignored"));
@@ -156,6 +162,9 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	}
 	for (PPolygon = PObj -> U.Pl; PPolygon != NULL;	PPolygon = PPolygon -> Pnext) 
 	{
+			IritPolygon *irit_polygon = irit_object->createPolygon();
+			assert(irit_polygon);
+
 			if (PPolygon -> PVertex == NULL) {
 				AfxMessageBox(_T("Dump: Attemp to dump empty polygon"));
 				return false;
@@ -170,12 +179,13 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			PVertex = PPolygon -> PVertex;
 			do {			     /* Assume at least one edge in polygon! */
 				/* code handeling all vertex/normal/texture coords */
+
 				if(IP_HAS_NORMAL_VRTX(PVertex)) 
 				{
 				    int x = 0;
 				    ++x;
 				}
-
+				irit_polygon->addPoint(PVertex);
 
 				PVertex = PVertex -> Pnext;
 			}

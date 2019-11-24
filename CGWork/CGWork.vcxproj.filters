@@ -157,6 +157,9 @@
     <ClInclude Include="..\include\user_lib.h">
       <Filter>Header Files\irit</Filter>
     </ClInclude>
+    <ClInclude Include="IritObjects.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\CGWork.ico">

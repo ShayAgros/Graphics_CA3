@@ -21,6 +21,8 @@ static char THIS_FILE[] = __FILE__;
 #include "PngWrapper.h"
 #include "iritSkel.h"
 
+#include "IritObjects.h"
+
 
 // For Status Bar access
 #include "MainFrm.h"
@@ -28,6 +30,7 @@ static char THIS_FILE[] = __FILE__;
 // Use this macro to display text messages in the status bar.
 #define STATUS_BAR_TEXT(str) (((CMainFrame*)GetParentFrame())->getStatusBar().SetWindowText(str))
 
+IritWorld world;
 
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView
