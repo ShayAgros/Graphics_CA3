@@ -114,13 +114,15 @@ Matrix Matrix::operator*(const Matrix &matrix) const
 }
 
 // Multiply a Matrix and a vector
-Vector Matrix::operator*(const Vector &vector) const
+Vector Matrix::operator*(Vector &vector) const
 {
     Vector new_vec;
+
     for (int i = 0; i < 4; i++)
     {
         for (int j = 0; j < 4; j++)
         {
+			new_vec[i] += vector[j] * array[i][j];
         }
     }
 	return new_vec;

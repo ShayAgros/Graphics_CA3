@@ -162,9 +162,6 @@ int CCGWorkView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 // This method initialized the CGWork system.
 BOOL CCGWorkView::InitializeCGWork()
 {
-	Vector axes[AXES_NUM];
-	Vector origin;
-
 	m_pDC = new CClientDC(this);
 	
 	if ( NULL == m_pDC ) { // failure to get DC
@@ -180,13 +177,6 @@ BOOL CCGWorkView::InitializeCGWork()
 	m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);	
 	m_pDbDC->SelectObject(m_pDbBitMap);
 
-// Initialize world object (scene) with window properties
-	origin = Vector(floor(r.right / 2), floor(r.bottom / 2), 0, 1); // x, y, z, w
-	axes[X_AXIS] = Vector(1, 0, 0, 0);
-	axes[Y_AXIS] = Vector(0, -1, 0, 0);
-	axes[Z_AXIS] = Vector(0, 0, 1, 0);
-
-	world = IritWorld(axes, origin);
 	return TRUE;
 }
 
@@ -197,6 +187,9 @@ BOOL CCGWorkView::InitializeCGWork()
 
 void CCGWorkView::OnSize(UINT nType, int cx, int cy) 
 {
+	Vector axes[AXES_NUM];
+	Vector origin;
+
 	CView::OnSize(nType, cx, cy);
 
 	if ( 0 >= cx || 0 >= cy ) {
@@ -216,6 +209,14 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 	DeleteObject(m_pDbBitMap);
 	m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);	
 	m_pDbDC->SelectObject(m_pDbBitMap);
+
+	// Initialize world object (scene) with window properties
+	origin = Vector(floor(r.right / 2), floor(r.bottom / 2), 0, 1); // x, y, z, w
+	axes[X_AXIS] = Vector(1, 0, 0, 0);
+	axes[Y_AXIS] = Vector(0, -1, 0, 0);
+	axes[Z_AXIS] = Vector(0, 0, 1, 0);
+
+	world.setSceneCoordinateSystem(axes, origin);
 }
 
 

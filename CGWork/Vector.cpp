@@ -7,6 +7,13 @@
 using std::cout;
 using std::endl;
 
+Vector::Vector() {
+	for (int i = 0; i < 4; i++)
+	{
+		this->coordinates[i] = 0;
+	}
+}
+
 // Ctor an init value
 Vector::Vector(double value)
 {
@@ -22,7 +29,7 @@ Vector::Vector(double value)
 // Ctor with another vector as parameter
 Vector::Vector(const Vector &vec)
 {
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
         this->coordinates[i] = vec.coordinates[i];
     }
@@ -45,7 +52,7 @@ Vector::~Vector()
 // Multiply each part of the vector with a constant
 Vector Vector::operator*(double param) const
 {
-    Vector vec = Vector();
+    Vector vec = Vector(1);
 
     vec.coordinates[0] = this->coordinates[0] * param;
     vec.coordinates[1] = this->coordinates[1] * param;

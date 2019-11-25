@@ -46,7 +46,7 @@ public:
     Matrix operator*(const Matrix &matrix) const;
 
     // Multiply a Matrix and a vector
-    Vector operator*(const Vector &vector) const;
+    Vector operator*(Vector &vector) const;
 
     // Calculate the determinant of the Matrix
     double Determinant() const;

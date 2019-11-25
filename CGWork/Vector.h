@@ -8,8 +8,11 @@ class Vector
 public:
     double coordinates[4];
 
+	// default vector. all zeros
+	Vector();
+
     // Ctor an init value
-    Vector(double value = 0);
+    Vector(double value);
 
     // Copy Ctor
     Vector(const Vector &vec);

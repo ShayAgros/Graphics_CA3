@@ -101,36 +101,29 @@ public:
 	// TODO: The coordinates aren't adjusted to screen view and therefore
 	//			cannot be drawn properly on screen. The drawing function needs
 	//			therefore be adjusted.
-	void draw(CDC *pDCToUse, Matrix transformation) {
+	void draw(CDC *pDCToUse, Matrix &transformation) {
 		struct IritPoint *current_point = m_points;
-		Vector vertex = current_point->vertex;
-		double x = vertex[0],
-			   y = vertex[1];
+		Vector vertex = current_point->vertex * 30;
 
 		/* "Draw" first point */
 		vertex = transformation * vertex;
-		pDCToUse->MoveTo((int)floor(10 * x), (int)floor(10 * y));
+		pDCToUse->MoveTo((int)floor(vertex[0]), (int)floor(vertex[1]));
 		current_point = current_point->next_point;
 
 		/* Draw shape's lines */
 		while (current_point) {
-			vertex = current_point->vertex;
+			vertex = current_point->vertex * 30;
 			vertex = transformation * vertex;
 
-			x = vertex[0];
-			y = vertex[1];
-
-			pDCToUse->LineTo((int)floor(10 * x), (int)floor(10 * y));
+			pDCToUse->LineTo((int)floor(vertex[0]), (int)floor(vertex[1]));
 			current_point = current_point->next_point;
 		}
 
 		/* Draw last line from last vertex to first one */
-		vertex = m_points->vertex;
+		vertex = m_points->vertex * 30;
 		vertex = transformation * vertex;
-		x = vertex[0];
-		y = vertex[1];
 
-		pDCToUse->LineTo((int)floor(10 * x), (int)floor(10 * y));
+		pDCToUse->LineTo((int)floor(vertex[0]), (int)floor(vertex[1]));
 
 		// TODO: draw normals
 	}
@@ -203,7 +196,7 @@ public:
 	 *				object is drawn
 	 * @transformation - the transformation matrix, by default the identity
 	*/
-	void draw(CDC *pDCToUse, Matrix transformation = Matrix::Identity()) {
+	void draw(CDC *pDCToUse, Matrix &transformation = Matrix::Identity()) {
 		m_iterator = m_polygons;
 		while (m_iterator) {
 			m_iterator->draw(pDCToUse, transformation);
@@ -232,6 +225,16 @@ public:
 
 	~IritWorld() {
 		delete[] m_objects_arr;
+	}
+
+	/* Sets a coordinate system (with axes and origin point)
+	 * @axes[3] - three orthonormal vectors in world space
+	 * @axes_origin - origin point in world space
+	*/
+	void setSceneCoordinateSystem(Vector axes[AXES_NUM], Vector &axes_origin) {
+		for (int i = 0; i < 3; i++)
+			m_axes[i] = axes[i];
+		m_axes_origin = axes_origin;
 	}
 
 	/* Creates an empty object and returns a pointer to it.
