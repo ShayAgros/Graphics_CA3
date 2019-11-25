@@ -190,6 +190,7 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</BrowseInformation>
     </ClCompile>
+    <ClCompile Include="IritObjects.cpp" />
     <ClCompile Include="iritSkel.cpp" />
     <ClCompile Include="LightDialog.cpp" />
     <ClCompile Include="MainFrm.cpp">

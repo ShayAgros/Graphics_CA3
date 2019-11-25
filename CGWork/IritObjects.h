@@ -1,8 +1,16 @@
 #pragma once
+#include <afxwin.h>
 #include <assert.h>
 #include <iritprsr.h>
 #include "Vector.h"
+#include "Matrix.h"
 
+enum {
+	X_AXIS,
+	Y_AXIS,
+	Z_AXIS,
+	AXES_NUM,
+};
 struct IritPoint {
 	Vector vertex;
 	Vector normal;
@@ -84,39 +92,45 @@ public:
 		m_next_polygon = polygon;
 	}
 
-	/* Draws an polygon (draw lines between each of its points)
+	/* Draws an polygon (draw lines between each of its points).
+	 * Each of the points is multiplied by a transformation matrix.
 	 * @pDCToUse - a pointer to the the DC with which the
-					polygon is drawn
+	 *				polygon is drawn
+	 * @transformation - the matrix which multiplies each point
 	*/
 	// TODO: The coordinates aren't adjusted to screen view and therefore
 	//			cannot be drawn properly on screen. The drawing function needs
 	//			therefore be adjusted.
-	void draw(CDC *pDCToUse) {
+	void draw(CDC *pDCToUse, Matrix transformation) {
 		struct IritPoint *current_point = m_points;
 		Vector vertex = current_point->vertex;
 		double x = vertex[0],
 			   y = vertex[1];
 
 		/* "Draw" first point */
-		pDCToUse->MoveTo(50 + 10 * x, 50 + 10 * y);
+		vertex = transformation * vertex;
+		pDCToUse->MoveTo((int)floor(10 * x), (int)floor(10 * y));
 		current_point = current_point->next_point;
 
 		/* Draw shape's lines */
 		while (current_point) {
 			vertex = current_point->vertex;
+			vertex = transformation * vertex;
+
 			x = vertex[0];
 			y = vertex[1];
 
-			pDCToUse->LineTo(50 + 10 * x, 50 + 10 * y);
+			pDCToUse->LineTo((int)floor(10 * x), (int)floor(10 * y));
 			current_point = current_point->next_point;
 		}
 
 		/* Draw last line from last vertex to first one */
 		vertex = m_points->vertex;
+		vertex = transformation * vertex;
 		x = vertex[0];
 		y = vertex[1];
 
-		pDCToUse->LineTo(50 + 10 * x, 50 + 10 * y);
+		pDCToUse->LineTo((int)floor(10 * x), (int)floor(10 * y));
 
 		// TODO: draw normals
 	}
@@ -182,14 +196,17 @@ public:
 		return new_polygon;
 	}
 
-	/* Draws an object (each of its polygons at a time)
+	/* Draws an object (each of its polygons at a time). Each
+	 * of the points of the object are multiplied by a transformation
+	 * matrix.
 	 * @pDCToUse - a pointer to the the DC with which the
-					object is drawn
+	 *				object is drawn
+	 * @transformation - the transformation matrix, by default the identity
 	*/
-	void draw(CDC *pDCToUse) {
+	void draw(CDC *pDCToUse, Matrix transformation = Matrix::Identity()) {
 		m_iterator = m_polygons;
 		while (m_iterator) {
-			m_iterator->draw(pDCToUse);
+			m_iterator->draw(pDCToUse, transformation);
 			m_iterator = m_iterator->getNextPolygon();
 		}
 	}
@@ -199,8 +216,19 @@ class IritWorld {
 	int m_objects_nr;
 	IritObject **m_objects_arr;
 
+	/* Scene arguments */
+	Vector m_axes[3];
+	Vector m_axes_origin;
+
 public:
-	IritWorld() : m_objects_nr(0), m_objects_arr(nullptr) {}
+	IritWorld() : m_objects_nr(0), m_objects_arr(nullptr) {
+	}
+
+	IritWorld(Vector axes[AXES_NUM], Vector &axes_origin) : m_objects_nr(0), m_objects_arr(nullptr) {
+		for (int i = 0; i < 3; i++)
+			m_axes[i] = axes[i];
+		m_axes_origin = axes_origin;
+	}
 
 	~IritWorld() {
 		delete[] m_objects_arr;
@@ -248,8 +276,5 @@ public:
 		return m_objects_nr == 0;
 	}
 
-	void draw(CDC *pDCToUse) {
-		for (int i = 0; i < m_objects_nr; i++)
-			m_objects_arr[i]->draw(pDCToUse);
-	}
+	void draw(CDC *pDCToUse);
 };

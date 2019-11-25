@@ -162,6 +162,9 @@ int CCGWorkView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 // This method initialized the CGWork system.
 BOOL CCGWorkView::InitializeCGWork()
 {
+	Vector axes[AXES_NUM];
+	Vector origin;
+
 	m_pDC = new CClientDC(this);
 	
 	if ( NULL == m_pDC ) { // failure to get DC
@@ -176,6 +179,14 @@ BOOL CCGWorkView::InitializeCGWork()
 	SetTimer(1, 1000, NULL);
 	m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);	
 	m_pDbDC->SelectObject(m_pDbBitMap);
+
+// Initialize world object (scene) with window properties
+	origin = Vector(floor(r.right / 2), floor(r.bottom / 2), 0, 1); // x, y, z, w
+	axes[X_AXIS] = Vector(1, 0, 0, 0);
+	axes[Y_AXIS] = Vector(0, -1, 0, 0);
+	axes[Z_AXIS] = Vector(0, 0, 1, 0);
+
+	world = IritWorld(axes, origin);
 	return TRUE;
 }
 
