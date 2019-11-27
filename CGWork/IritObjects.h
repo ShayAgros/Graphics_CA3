@@ -108,6 +108,7 @@ public:
 	// TODO: set matrices to private and create setting methods
 	Matrix world_matrix;
 	Matrix object_matrix;
+	Matrix* current_matrix;
 
 	IritWorld();
 

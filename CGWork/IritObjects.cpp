@@ -201,8 +201,8 @@ bool IritWorld::isEmpty() {
 };
 
 void IritWorld::draw(CDC *pDCToUse) {
-	Matrix transformation = createTranslationMatrix(m_axes_origin);
-	transformation = object_matrix * transformation;
+	Matrix center_screen = createTranslationMatrix(m_axes_origin);
+	Matrix transformation = center_screen * world_matrix * object_matrix;
 	for (int i = 0; i < m_objects_nr; i++)
 		m_objects_arr[i]->draw(pDCToUse, transformation);
 }
@@ -217,7 +217,7 @@ Matrix createTranslationMatrix(double &x, double &y, double z) {
 	return translation;
 }
 
-/* This function creates a matrix which traslates a point by a vector
+/* This function creates a matrix which translates a point by a vector
  * @v - the vector by which to translate
  */
 Matrix createTranslationMatrix(Vector &v) {

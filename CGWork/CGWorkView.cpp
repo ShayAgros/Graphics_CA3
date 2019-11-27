@@ -277,22 +277,6 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	
 	if (!world.isEmpty())
 		world.draw(pDCToUse);
-/*
-	int numLines = 100;
-	double radius = r.right / 3.0;
-	
-	if (r.right > r.bottom) {
-		radius = r.bottom / 3.0;
-	}
-	
-	for (int i = 0; i < numLines; ++i)
-	{
-		double finalTheta = 2 * M_PI / numLines*i + theta*M_PI/180.0f;
-		
-		pDCToUse->MoveTo(r.right / 2, r.bottom / 2);
-		pDCToUse->LineTo((int)(r.right / 2 + radius*cos(finalTheta)), (int)(r.bottom / 2 + radius*sin(finalTheta)));
-	}	
-	*/
 
 	if (pDCToUse != m_pDC) 
 	{
@@ -556,7 +540,8 @@ Matrix createRotateMatrix(int axis, int shift) {
 Matrix createScaleMatrix(int axis, int shift) {
 	Matrix transform = Matrix::Identity();
 
-	transform.array[axis][axis] = 1.01;
+	if (shift != 0)
+		transform.array[axis][axis] = (1 + 1/shift);
 
 	return transform;
 }
