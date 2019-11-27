@@ -23,13 +23,13 @@ public:
     Matrix(double matrix[4][4]);
 
 	/* Create a matrix out of four vector.
-	 * The fourh vector is (0 0 0 1)
+	 * The fourth vector is (0 0 0 1)
 	 * @vi - the vector in row i
 	 */
 	Matrix(Vector &v1, Vector &v2, Vector &v3, Vector &v4);
 
 	/* Create a matrix out of three vector.
-	 * The fourh vector is (0 0 0 1)
+	 * The fourth vector is (0 0 0 1)
 	 * @vi - the vector in row i
 	 */
 	Matrix(Vector &v1, Vector &v2, Vector &v3);

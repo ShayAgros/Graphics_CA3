@@ -6,6 +6,8 @@
 #include "CGWorkDoc.h"
 #include "CGWorkView.h"
 
+#include <math.h>
+
 #include <iostream>
 using std::cout;
 using std::endl;
@@ -31,6 +33,10 @@ static char THIS_FILE[] = __FILE__;
 #define STATUS_BAR_TEXT(str) (((CMainFrame*)GetParentFrame())->getStatusBar().SetWindowText(str))
 
 IritWorld world;
+
+static CPoint mouse_location;
+
+static bool is_mouse_down;;
 
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView
@@ -67,6 +73,9 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_COMMAND(ID_LIGHT_CONSTANTS, OnLightConstants)
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
+	ON_WM_LBUTTONDOWN()
+	ON_WM_MOUSEMOVE()
+	ON_WM_LBUTTONUP()
 END_MESSAGE_MAP()
 
 
@@ -187,7 +196,7 @@ BOOL CCGWorkView::InitializeCGWork()
 
 void CCGWorkView::OnSize(UINT nType, int cx, int cy) 
 {
-	Vector axes[AXES_NUM];
+	Vector axes[NUM_OF_AXES];
 	Vector origin;
 
 	CView::OnSize(nType, cx, cy);
@@ -340,10 +349,6 @@ void CCGWorkView::OnFileLoad()
 	} 
 
 }
-
-
-
-
 
 // VIEW HANDLERS ///////////////////////////////////////////
 
@@ -515,4 +520,93 @@ void CCGWorkView::OnTimer(UINT_PTR nIDEvent)
 	CView::OnTimer(nIDEvent);
 	if (nIDEvent == 1)
 		Invalidate();
+}
+
+// TODO: tweak sensitivity
+Matrix createRotateMatrix(int axis, int shift) {
+	Matrix transform = Matrix::Identity();
+	double sin_val = sin(shift / (2 * M_PI));
+	double cos_val = cos(shift / (2 * M_PI));
+
+	switch (axis) {
+	case 0: // X axis
+		transform.array[1][1] = cos_val;
+		transform.array[2][2] = cos_val;
+		transform.array[1][2] = -sin_val;
+		transform.array[2][1] = sin_val;
+		break;
+	case 1: // Y axis
+		transform.array[0][0] = cos_val;
+		transform.array[2][2] = cos_val;
+		transform.array[0][2] = sin_val;
+		transform.array[2][0] = -sin_val;
+		break;
+	case 2: // Z axis
+		transform.array[0][0] = cos_val;
+		transform.array[1][1] = cos_val;
+		transform.array[0][1] = -sin_val;
+		transform.array[1][0] = sin_val;
+		break;
+	}
+
+	return transform;
+}
+
+// TODO: find a better solution to this, cause this one sucks.
+Matrix createScaleMatrix(int axis, int shift) {
+	Matrix transform = Matrix::Identity();
+
+	transform.array[axis][axis] = 1.01;
+
+	return transform;
+}
+
+Matrix createTranslateMatrix(int axis, int shift) {
+	Matrix transform = Matrix::Identity();
+
+	transform.array[axis][3] = shift;
+	
+	return transform;
+}
+
+void CCGWorkView::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	is_mouse_down = true;
+	mouse_location = point;
+
+	CView::OnLButtonDown(nFlags, point);
+}
+
+void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
+{
+	if (is_mouse_down) {
+		int shift = mouse_location.x - point.x;
+		int axis = m_nAxis - ID_AXIS_X;
+		Matrix transform = Matrix::Identity();
+		switch (m_nAction) {
+		case ID_ACTION_ROTATE :
+			transform = createRotateMatrix(axis, shift);
+			break;
+		case ID_ACTION_SCALE :
+			transform = createScaleMatrix(axis, shift);
+			break;
+		case ID_ACTION_TRANSLATE :
+			transform = createTranslateMatrix(axis, shift);
+		default:
+			break;
+	}		
+		world.object_matrix = transform * world.object_matrix;
+
+		mouse_location = point;
+		Invalidate();
+	}
+
+	CView::OnMouseMove(nFlags, point);
+}
+
+void CCGWorkView::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	is_mouse_down = false;
+
+	CView::OnLButtonUp(nFlags, point);
 }

@@ -49,6 +49,8 @@ public:
 	// Vector array index
 	double &operator[](const int index);
 
+	double operator[](int index) const;
+
     // Normalize the vector
     void Normalize();
 

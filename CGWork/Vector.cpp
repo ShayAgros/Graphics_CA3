@@ -92,9 +92,12 @@ Vector Vector::operator^(const Vector &vec) const
 {
     Vector cross = Vector();
 
-    cross.coordinates[0] = (this->coordinates[1] * vec.coordinates[2]) - (this->coordinates[2] * vec.coordinates[1]);
-    cross.coordinates[1] = (this->coordinates[2] * vec.coordinates[0]) - (this->coordinates[0] * vec.coordinates[2]);
-    cross.coordinates[2] = (this->coordinates[0] * vec.coordinates[1]) - (this->coordinates[1] * vec.coordinates[0]);
+    cross.coordinates[0] = (this->coordinates[1] * vec.coordinates[2])
+						 - (this->coordinates[2] * vec.coordinates[1]);
+    cross.coordinates[1] = (this->coordinates[2] * vec.coordinates[0])
+						 - (this->coordinates[0] * vec.coordinates[2]);
+    cross.coordinates[2] = (this->coordinates[0] * vec.coordinates[1])
+						 - (this->coordinates[1] * vec.coordinates[0]);
 
     // W is 1 by default, and doesn't affect cross product
 
@@ -153,6 +156,11 @@ void Vector::operator-=(const Vector &vec)
 
 // Vector array index
 double &Vector::operator[](const int index) {
+	return coordinates[index];
+}
+
+// Vector array index const
+double Vector::operator[](int index) const {
 	return coordinates[index];
 }
 

@@ -105,7 +105,8 @@ Matrix Matrix::operator*(const Matrix &matrix) const
         {
             for (int k = 0; k < 4; k++)
             {
-                new_matrix.array[i][j] += this->array[i][k] * matrix.array[k][j];
+                new_matrix.array[i][j] += this->array[i][k] * 
+										 matrix.array[k][j];
             }
         }
     }
@@ -116,7 +117,7 @@ Matrix Matrix::operator*(const Matrix &matrix) const
 // Multiply a Matrix and a vector
 Vector Matrix::operator*(Vector &vector) const
 {
-    Vector new_vec;
+	Vector new_vec = Vector();
 
     for (int i = 0; i < 4; i++)
     {
