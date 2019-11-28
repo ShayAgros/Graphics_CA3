@@ -21,6 +21,18 @@ struct IritPoint {
 	struct IritPoint *next_point;
 };
 
+struct State {
+	bool VertexNormals;
+	bool PolygonNormals;
+	bool ObjectFrame;
+	bool Perspective;
+	bool ObjectTransform;
+
+	Matrix screen_mat;
+	Matrix world_mat;
+	Matrix object_mat;
+};
+
 class IritPolygon {
 	int m_point_nr;
 	struct IritPoint *m_points;
@@ -52,7 +64,7 @@ public:
 	// TODO: The coordinates aren't adjusted to screen view and therefore
 	//			cannot be drawn properly on screen. The drawing function needs
 	//			therefore be adjusted.
-	void draw(CDC *pDCToUse, Matrix &transformation);
+	void draw(CDC *pDCToUse, struct State state);
 
 	// Operators overriding
 	IritPolygon &operator++();
@@ -92,12 +104,14 @@ public:
 	 *				object is drawn
 	 * @transformation - the transformation matrix, by default the identity
 	*/
-	void draw(CDC *pDCToUse, Matrix &transformation = Matrix::Identity());
+	void draw(CDC *pDCToUse, struct State state);
 };
 
 class IritWorld {
 	int m_objects_nr;
 	IritObject **m_objects_arr;
+
+	struct State world_state;
 
 	/* Scene arguments */
 	Vector m_axes[3];
@@ -105,10 +119,8 @@ class IritWorld {
 
 public:
 
-	// TODO: set matrices to private and create setting methods
-	Matrix world_matrix;
-	Matrix object_matrix;
-	Matrix* current_matrix;
+	// World state
+	struct State state;
 
 	IritWorld();
 
@@ -120,7 +132,7 @@ public:
 	 * @axes[3] - three orthonormal vectors in world space
 	 * @axes_origin - origin point in world space
 	*/
-	void setSceneCoordinateSystem(Vector axes[NUM_OF_AXES], Vector &axes_origin);
+	void setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin);
 
 	/* Creates an empty object and returns a pointer to it.
 	 * the object is added to the list of objects in the IritWorld.

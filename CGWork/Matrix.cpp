@@ -47,19 +47,16 @@ Matrix::Matrix(double matrix[4][4])
 
 Matrix::Matrix(Vector &v1, Vector &v2, Vector &v3, Vector &v4)
 {
-	double coordinates[4][4] = {
-			{v1.coordinates[0], v1.coordinates[1], v1.coordinates[2], v1.coordinates[3]},
-			{v2.coordinates[0], v2.coordinates[1], v2.coordinates[2], v2.coordinates[3]},
-			{v3.coordinates[0], v3.coordinates[1], v3.coordinates[2], v3.coordinates[3]},
-			{v4.coordinates[0], v4.coordinates[1], v4.coordinates[2], v4.coordinates[3]}
-	};
-	Matrix::Matrix(coordinates);
+	for (int i = 0; i < 4; i++) {
+		array[0][i] = v1[i];
+		array[1][i] = v2[i];
+		array[2][i] = v3[i];
+		array[3][i] = v4[i];
+	}
 }
 
-Matrix::Matrix(Vector &v1, Vector &v2, Vector &v3) {
-	Vector v4(0, 0, 0, 1);
-
-	Matrix(v1, v2, v3, v4);
+Matrix::Matrix(Vector &v1, Vector &v2, Vector &v3) : Matrix(v1, v2, v3, Vector(0, 0, 0, 1))
+{
 }
 
 // Dtor

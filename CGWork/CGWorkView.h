@@ -33,7 +33,8 @@ private:
 	int m_nAxis;				// Axis of Action, X Y or Z
 	int m_nAction;				// Rotate, Translate, Scale
 	int m_nView;				// Orthographic, perspective
-	bool m_bIsPerspective;			// is the view perspective
+
+	bool m_bIsObjectTransform;      // Are we transforming the object or the world view
 	
 	CString m_strItdFileName;		// file name of IRIT data
 
@@ -118,6 +119,18 @@ public:
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnPolygonNormals();
+	afx_msg void OnUpdatePolygonNormals(CCmdUI* pCmdUI);
+	afx_msg void OnVertexNormals();
+	afx_msg void OnUpdateVertexNormals(CCmdUI* pCmdUI);
+	afx_msg void OnObjectFrame();
+	afx_msg void OnUpdateObjectFrame(CCmdUI* pCmdUI);
+	afx_msg void OnObjectTransform();
+	afx_msg void OnUpdateObjectTransform(CCmdUI* pCmdUI);
+	afx_msg void OnWorldTransform();
+	afx_msg void OnUpdateWorldTransform(CCmdUI* pCmdUI);
+	afx_msg void OnObjectColor();
+	afx_msg void OnBGColor();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

@@ -36,7 +36,7 @@ IritWorld world;
 
 static CPoint mouse_location;
 
-static bool is_mouse_down;;
+static bool is_mouse_down;
 
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView
@@ -66,6 +66,18 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(ID_AXIS_Y, OnUpdateAxisY)
 	ON_COMMAND(ID_AXIS_Z, OnAxisZ)
 	ON_UPDATE_COMMAND_UI(ID_AXIS_Z, OnUpdateAxisZ)
+	ON_COMMAND(ID_POLYGON_NORMAL, OnPolygonNormals)
+	ON_UPDATE_COMMAND_UI(ID_POLYGON_NORMAL, OnUpdatePolygonNormals)
+	ON_COMMAND(ID_VERTEX_NORMAL, OnVertexNormals)
+	ON_UPDATE_COMMAND_UI(ID_VERTEX_NORMAL, OnUpdateVertexNormals)
+	ON_COMMAND(ID_OBJECT_FRAME, OnObjectFrame)
+	ON_UPDATE_COMMAND_UI(ID_OBJECT_FRAME, OnUpdateObjectFrame)
+	ON_COMMAND(ID_WORLD_TRANSFORM, OnWorldTransform)
+	ON_COMMAND(ID_OBJECT_COLOR, OnObjectColor)
+	ON_COMMAND(ID_BG_COLOR, OnBGColor)
+	ON_UPDATE_COMMAND_UI(ID_WORLD_TRANSFORM, OnUpdateWorldTransform)
+	ON_COMMAND(ID_OBJECT_TRANSFORM, OnObjectTransform)
+	ON_UPDATE_COMMAND_UI(ID_OBJECT_TRANSFORM, OnUpdateObjectTransform)
 	ON_COMMAND(ID_LIGHT_SHADING_FLAT, OnLightShadingFlat)
 	ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_FLAT, OnUpdateLightShadingFlat)
 	ON_COMMAND(ID_LIGHT_SHADING_GOURAUD, OnLightShadingGouraud)
@@ -95,8 +107,19 @@ CCGWorkView::CCGWorkView()
 	// Set default values
 	m_nAxis = ID_AXIS_X;
 	m_nAction = ID_ACTION_ROTATE;
-	m_nView = ID_VIEW_ORTHOGRAPHIC;	
-	m_bIsPerspective = false;
+
+	// Init the state machine
+	world.state.VertexNormals = false;
+	world.state.PolygonNormals = false;
+	world.state.ObjectFrame = false;
+	world.state.Perspective = false;
+	world.state.ObjectTransform = true;
+
+	world.state.screen_mat = Matrix::Identity();
+	world.state.world_mat = Matrix::Identity();
+	world.state.object_mat = Matrix::Identity();
+
+	m_bIsObjectTransform = true;
 
 	m_nLightShading = ID_LIGHT_SHADING_FLAT;
 
@@ -225,7 +248,7 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 	axes[Y_AXIS] = Vector(0, -1, 0, 0);
 	axes[Z_AXIS] = Vector(0, 0, 1, 0);
 
-	world.setSceneCoordinateSystem(axes, origin);
+	world.setScreenMat(axes, origin);
 }
 
 
@@ -263,7 +286,6 @@ BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC)
 
 void CCGWorkView::OnDraw(CDC* pDC)
 {
-	static float theta = 0.0f;
 	CCGWorkDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
@@ -278,12 +300,11 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	if (!world.isEmpty())
 		world.draw(pDCToUse);
 
+
 	if (pDCToUse != m_pDC) 
 	{
 		m_pDC->BitBlt(r.left, r.top, r.Width(), r.Height(), pDCToUse, r.left, r.top, SRCCOPY);
 	}
-	
-	theta += 5;	
 }
 
 
@@ -342,7 +363,7 @@ void CCGWorkView::OnFileLoad()
 void CCGWorkView::OnViewOrthographic() 
 {
 	m_nView = ID_VIEW_ORTHOGRAPHIC;
-	m_bIsPerspective = false;
+	world.state.Perspective = false;
 	Invalidate();		// redraw using the new view.
 }
 
@@ -354,7 +375,7 @@ void CCGWorkView::OnUpdateViewOrthographic(CCmdUI* pCmdUI)
 void CCGWorkView::OnViewPerspective() 
 {
 	m_nView = ID_VIEW_PERSPECTIVE;
-	m_bIsPerspective = true;
+	world.state.Perspective = true;
 	Invalidate();
 }
 
@@ -567,6 +588,14 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 	if (is_mouse_down) {
 		int shift = mouse_location.x - point.x;
 		int axis = m_nAxis - ID_AXIS_X;
+		Matrix* mat_to_transform;
+
+		if (m_bIsObjectTransform) {
+			mat_to_transform = &world.state.object_mat;
+		} else {
+			mat_to_transform = &world.state.world_mat;
+		}
+
 		Matrix transform = Matrix::Identity();
 		switch (m_nAction) {
 		case ID_ACTION_ROTATE :
@@ -580,7 +609,7 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 		default:
 			break;
 	}		
-		world.object_matrix = transform * world.object_matrix;
+		*mat_to_transform = transform * *mat_to_transform;
 
 		mouse_location = point;
 		Invalidate();
@@ -594,4 +623,65 @@ void CCGWorkView::OnLButtonUp(UINT nFlags, CPoint point)
 	is_mouse_down = false;
 
 	CView::OnLButtonUp(nFlags, point);
+}
+
+void CCGWorkView::OnPolygonNormals() {
+	world.state.PolygonNormals = !world.state.PolygonNormals;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdatePolygonNormals(CCmdUI* pCmdUI) 
+{
+	pCmdUI->SetCheck(world.state.PolygonNormals);
+}
+
+void CCGWorkView::OnVertexNormals() {
+	world.state.VertexNormals = !world.state.VertexNormals;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdateVertexNormals(CCmdUI* pCmdUI) 
+{
+	pCmdUI->SetCheck(world.state.VertexNormals);
+}
+
+void CCGWorkView::OnObjectFrame()
+{
+	world.state.ObjectFrame = !world.state.ObjectFrame;
+}
+
+void CCGWorkView::OnUpdateObjectFrame(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(world.state.ObjectFrame);
+}
+
+void CCGWorkView::OnObjectTransform()
+{
+	m_bIsObjectTransform = true;
+}
+
+void CCGWorkView::OnUpdateObjectTransform(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(world.state.ObjectFrame);
+}
+
+void CCGWorkView::OnWorldTransform()
+{
+	m_bIsObjectTransform = false;
+}
+
+void CCGWorkView::OnUpdateWorldTransform(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(!world.state.ObjectFrame);
+}
+
+void CCGWorkView::OnObjectColor()
+{
+	// TODO: Insert color dialog and logic here
+}
+
+void CCGWorkView::OnBGColor()
+{
+	// TODO: Insert color dialog and logic here
+
 }

@@ -71,19 +71,20 @@ void IritPolygon::setNextPolygon(IritPolygon *polygon) {
 }
 
 
-void IritPolygon::draw(CDC *pDCToUse, Matrix &transformation) {
+void IritPolygon::draw(CDC *pDCToUse, struct State state) {
 	struct IritPoint *current_point = m_points;
 	Vector vertex = current_point->vertex * 30;
+	Matrix transform = state.screen_mat * state.world_mat * state.object_mat;
 
 	/* "Draw" first point */
-	vertex = transformation * vertex;
+	vertex = transform * vertex;
 	pDCToUse->MoveTo((int)floor(vertex[0]), (int)floor(vertex[1]));
 	current_point = current_point->next_point;
 
 	/* Draw shape's lines */
 	while (current_point) {
 		vertex = current_point->vertex * 30;
-		vertex = transformation * vertex;
+		vertex = transform * vertex;
 
 		pDCToUse->LineTo((int)floor(vertex[0]), (int)floor(vertex[1]));
 		current_point = current_point->next_point;
@@ -91,7 +92,7 @@ void IritPolygon::draw(CDC *pDCToUse, Matrix &transformation) {
 
 	/* Draw last line from last vertex to first one */
 	vertex = m_points->vertex * 30;
-	vertex = transformation * vertex;
+	vertex = transform * vertex;
 
 	pDCToUse->LineTo((int)floor(vertex[0]), (int)floor(vertex[1]));
 
@@ -137,36 +138,44 @@ IritPolygon *IritObject::createPolygon() {
 	return new_polygon;
 }
 
-void IritObject::draw(CDC *pDCToUse, Matrix &transformation) {
+void IritObject::draw(CDC *pDCToUse, struct State state) {
 	m_iterator = m_polygons;
 	while (m_iterator) {
-		m_iterator->draw(pDCToUse, transformation);
+		m_iterator->draw(pDCToUse, state);
 		m_iterator = m_iterator->getNextPolygon();
 	}
 }
 
 IritWorld::IritWorld() : m_objects_nr(0), m_objects_arr(nullptr) {
-	world_matrix = Matrix::Identity();
-	object_matrix = Matrix::Identity();
+	state.world_mat = Matrix::Identity();
+	state.object_mat = Matrix::Identity();
 }
 
 IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_objects_nr(0), m_objects_arr(nullptr) {
 	for (int i = 0; i < 3; i++)
 		m_axes[i] = axes[i];
 	m_axes_origin = axes_origin;
-	world_matrix = Matrix::Identity();
-	object_matrix = Matrix::Identity();
+	state.world_mat = Matrix::Identity();
+	state.object_mat = Matrix::Identity();
 }
 
 IritWorld::~IritWorld() {
 	delete[] m_objects_arr;
 }
 
-void IritWorld::setSceneCoordinateSystem(Vector axes[NUM_OF_AXES], Vector &axes_origin) {
-	for (int i = 0; i < 3; i++)
-		m_axes[i] = axes[i];
-	m_axes_origin = axes_origin;
+void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin) {
+	Matrix coor_mat;
+	Matrix center_mat;
+	
+	// Set to correct coordinate system
+	coor_mat = Matrix(axes[0], axes[1], axes[2]);
+
+	// Center to screen
+	center_mat = createTranslationMatrix(axes_origin);
+
+	state.screen_mat = center_mat * coor_mat;
 }
+
 
 IritObject *IritWorld::createObject() {
 	IritObject *new_object = new IritObject();
@@ -201,10 +210,8 @@ bool IritWorld::isEmpty() {
 };
 
 void IritWorld::draw(CDC *pDCToUse) {
-	Matrix center_screen = createTranslationMatrix(m_axes_origin);
-	Matrix transformation = center_screen * world_matrix * object_matrix;
 	for (int i = 0; i < m_objects_nr; i++)
-		m_objects_arr[i]->draw(pDCToUse, transformation);
+		m_objects_arr[i]->draw(pDCToUse, state);
 }
 
 Matrix createTranslationMatrix(double &x, double &y, double z) {
