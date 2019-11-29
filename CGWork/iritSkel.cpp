@@ -162,6 +162,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	}
 	for (PPolygon = PObj -> U.Pl; PPolygon != NULL;	PPolygon = PPolygon -> Pnext) 
 	{
+			bool has_normal;
 			IritPolygon *irit_polygon = irit_object->createPolygon();
 			assert(irit_polygon);
 
@@ -176,16 +177,20 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 				PVertex = PVertex -> Pnext, i++);
 			/* use if(IP_HAS_PLANE_POLY(PPolygon)) to know whether a normal is defined for the polygon
 			   access the normal by the first 3 components of PPolygon->Plane */
+			if (IP_HAS_PLANE_POLY(PPolygon)) {
+				irit_polygon->has_normal = true;
+				for (int i = 0; i < 3; i++) {
+					irit_polygon->normal[i] = PPolygon->Plane[i];
+				}
+			}
 			PVertex = PPolygon -> PVertex;
 			do {			     /* Assume at least one edge in polygon! */
 				/* code handeling all vertex/normal/texture coords */
 
+				has_normal = false;
 				if(IP_HAS_NORMAL_VRTX(PVertex)) 
-				{
-				    int x = 0;
-				    ++x;
-				}
-				irit_polygon->addPoint(PVertex);
+					has_normal = true;
+				irit_polygon->addPoint(PVertex, has_normal);
 
 				PVertex = PVertex -> Pnext;
 			}

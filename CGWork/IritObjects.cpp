@@ -3,7 +3,8 @@
 Matrix createTranslationMatrix(double &x, double &y, double z = 0);
 Matrix createTranslationMatrix(Vector &v);
 
-IritPolygon::IritPolygon() : m_point_nr(0), m_points(nullptr), m_next_polygon(nullptr) {
+IritPolygon::IritPolygon() : m_point_nr(0), m_points(nullptr),
+			normal(Vector(0, 0, 0, 1)), has_normal(false), m_next_polygon(nullptr) {
 }
 
 IritPolygon::~IritPolygon() {
@@ -47,17 +48,23 @@ bool IritPolygon::addPoint(double &x, double &y, double &z, double &normal_x, do
 	return addPoint(new_point);
 }
 
-bool IritPolygon::addPoint(IPVertexStruct *vertex) {
+bool IritPolygon::addPoint(IPVertexStruct *vertex, bool has_normal) {
 	IritPoint new_point;
+	new_point.has_normal = false;
 
 	for (int i = 0; i < 3; i++) {
 		new_point.vertex[i] = vertex->Coord[i];
-		new_point.normal[i] = vertex->Coord[i];
+
+		if (has_normal)
+			new_point.normal[i] = vertex->Normal[i];
 	}
 
 	// Homogeneous component
 	new_point.vertex[3] = 1;
-	new_point.normal[3] = 1;
+	if (has_normal) {
+		new_point.normal[3] = 1;
+		new_point.has_normal = true;
+	}
 
 	return addPoint(new_point);
 }
@@ -73,30 +80,75 @@ void IritPolygon::setNextPolygon(IritPolygon *polygon) {
 
 void IritPolygon::draw(CDC *pDCToUse, struct State state) {
 	struct IritPoint *current_point = m_points;
-	Vector vertex = current_point->vertex * 30;
-	Matrix transform = state.screen_mat * state.world_mat * state.object_mat;
+	Vector vertex = current_point->vertex;
+
+	// For vertex normal drawing
+	Vector normal;
+	double normal_end_x, normal_end_y;
+
+	// For polygon normal drawing
+	double x_sum = 0, y_sum = 0, num_of_vertices = 0;
+
+	// Normal doesnt need to be centered to screen
+	Matrix normal_transform = state.coord_mat * state.ratio_mat * state.world_mat * state.object_mat;
+	Matrix vertex_transform = state.center_mat * normal_transform;
+
+	// Normal ended being a BIT too big. Lets divide them by 3
+	Matrix shrink = Matrix::Identity() * (1.0 / 3.0);
+	normal_transform = shrink * normal_transform;
 
 	/* "Draw" first point */
-	vertex = transform * vertex;
+	vertex = vertex_transform * vertex;
+	x_sum += vertex[0];
+	y_sum += vertex[1];
+	++num_of_vertices;
+
 	pDCToUse->MoveTo((int)floor(vertex[0]), (int)floor(vertex[1]));
+
+	if (state.vertex_normals && current_point->has_normal) {
+		normal = normal_transform * current_point->normal;
+		normal_end_x = vertex[0] + normal[0];
+		normal_end_y = vertex[1] + normal[1];
+		pDCToUse->LineTo((int)floor(normal_end_x), (int)floor(normal_end_y));
+		pDCToUse->MoveTo((int)floor(vertex[0]), (int)floor(vertex[1]));
+	}
+
 	current_point = current_point->next_point;
 
 	/* Draw shape's lines */
 	while (current_point) {
-		vertex = current_point->vertex * 30;
-		vertex = transform * vertex;
+		vertex = current_point->vertex;
+		vertex = vertex_transform * vertex;
+		x_sum += vertex[0];
+		y_sum += vertex[1];
+		++num_of_vertices;
 
 		pDCToUse->LineTo((int)floor(vertex[0]), (int)floor(vertex[1]));
+
+		if (state.vertex_normals && current_point->has_normal) {
+			normal = normal_transform * current_point->normal;
+			normal_end_x = vertex[0] + normal[0];
+			normal_end_y = vertex[1] + normal[1];
+			pDCToUse->LineTo((int)floor(normal_end_x), (int)floor(normal_end_y));
+			pDCToUse->MoveTo((int)floor(vertex[0]), (int)floor(vertex[1]));
+		}
+
 		current_point = current_point->next_point;
 	}
 
 	/* Draw last line from last vertex to first one */
-	vertex = m_points->vertex * 30;
-	vertex = transform * vertex;
+	vertex = m_points->vertex;
+	vertex = vertex_transform * vertex;
 
 	pDCToUse->LineTo((int)floor(vertex[0]), (int)floor(vertex[1]));
 
-	// TODO: draw normals
+	if (state.polygon_normals && this->has_normal) {
+		// TODO: add z value to normals
+		Vector polygon_center = Vector(x_sum / num_of_vertices, y_sum / num_of_vertices, 0, 1);
+		normal = normal_transform * this->normal;
+		pDCToUse->MoveTo((int)floor(polygon_center[0]), (int)floor(polygon_center[1]));
+		pDCToUse->LineTo((int)floor(polygon_center[0] + normal[0]), (int)floor(polygon_center[1] + normal[1]));
+	}
 }
 
 IritPolygon &IritPolygon::operator++() {
@@ -163,17 +215,26 @@ IritWorld::~IritWorld() {
 	delete[] m_objects_arr;
 }
 
-void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin) {
+void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int screen_width, int screen_height) {
 	Matrix coor_mat;
 	Matrix center_mat;
+	Matrix ratio_mat;
+
+	// Expand to ratio
+
+	// TODO: the ratio here shouldn't be 15, but used with ortho normalization
+	ratio_mat = Matrix::Identity();
+	ratio_mat.array[0][0] = screen_width / 15;
+	ratio_mat.array[1][1] = screen_height / 15;
+	state.ratio_mat = ratio_mat;
 	
 	// Set to correct coordinate system
 	coor_mat = Matrix(axes[0], axes[1], axes[2]);
+	state.coord_mat = coor_mat;
 
 	// Center to screen
 	center_mat = createTranslationMatrix(axes_origin);
-
-	state.screen_mat = center_mat * coor_mat;
+	state.center_mat = center_mat;
 }
 
 

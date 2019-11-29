@@ -18,17 +18,21 @@ struct IritPoint {
 	Vector vertex;
 	Vector normal;
 
+	bool has_normal;
+
 	struct IritPoint *next_point;
 };
 
 struct State {
-	bool VertexNormals;
-	bool PolygonNormals;
-	bool ObjectFrame;
-	bool Perspective;
-	bool ObjectTransform;
+	bool vertex_normals;
+	bool polygon_normals;
+	bool object_frame;
+	bool perspective;
+	bool object_transform;
 
-	Matrix screen_mat;
+	Matrix ratio_mat;
+	Matrix coord_mat;
+	Matrix center_mat;
 	Matrix world_mat;
 	Matrix object_mat;
 };
@@ -36,9 +40,13 @@ struct State {
 class IritPolygon {
 	int m_point_nr;
 	struct IritPoint *m_points;
+
 	IritPolygon *m_next_polygon;
 
 public:
+	Vector normal;
+	bool has_normal;
+
 	IritPolygon();
 
 	~IritPolygon();
@@ -49,7 +57,7 @@ public:
 	bool addPoint(double &x, double &y, double &z, double &normal_x, double &normal_y,
 		double &normal_z);
 
-	bool addPoint(IPVertexStruct *vertex);
+	bool addPoint(IPVertexStruct *vertex, bool has_normal);
 
 	IritPolygon *getNextPolygon();
 
@@ -132,7 +140,7 @@ public:
 	 * @axes[3] - three orthonormal vectors in world space
 	 * @axes_origin - origin point in world space
 	*/
-	void setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin);
+	void setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int screen_widht, int screen_height);
 
 	/* Creates an empty object and returns a pointer to it.
 	 * the object is added to the list of objects in the IritWorld.

@@ -34,8 +34,6 @@ private:
 	int m_nAction;				// Rotate, Translate, Scale
 	int m_nView;				// Orthographic, perspective
 
-	bool m_bIsObjectTransform;      // Are we transforming the object or the world view
-	
 	CString m_strItdFileName;		// file name of IRIT data
 
 	int m_nLightShading;			// shading: Flat, Gouraud.

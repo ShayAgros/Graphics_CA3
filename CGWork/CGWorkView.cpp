@@ -72,9 +72,9 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(ID_VERTEX_NORMAL, OnUpdateVertexNormals)
 	ON_COMMAND(ID_OBJECT_FRAME, OnObjectFrame)
 	ON_UPDATE_COMMAND_UI(ID_OBJECT_FRAME, OnUpdateObjectFrame)
-	ON_COMMAND(ID_WORLD_TRANSFORM, OnWorldTransform)
 	ON_COMMAND(ID_OBJECT_COLOR, OnObjectColor)
 	ON_COMMAND(ID_BG_COLOR, OnBGColor)
+	ON_COMMAND(ID_WORLD_TRANSFORM, OnWorldTransform)
 	ON_UPDATE_COMMAND_UI(ID_WORLD_TRANSFORM, OnUpdateWorldTransform)
 	ON_COMMAND(ID_OBJECT_TRANSFORM, OnObjectTransform)
 	ON_UPDATE_COMMAND_UI(ID_OBJECT_TRANSFORM, OnUpdateObjectTransform)
@@ -109,17 +109,17 @@ CCGWorkView::CCGWorkView()
 	m_nAction = ID_ACTION_ROTATE;
 
 	// Init the state machine
-	world.state.VertexNormals = false;
-	world.state.PolygonNormals = false;
-	world.state.ObjectFrame = false;
-	world.state.Perspective = false;
-	world.state.ObjectTransform = true;
+	world.state.vertex_normals = false;
+	world.state.polygon_normals = false;
+	world.state.object_frame = false;
+	world.state.perspective = false;
+	world.state.object_transform = true;
 
-	world.state.screen_mat = Matrix::Identity();
+	world.state.coord_mat = Matrix::Identity();
+	world.state.center_mat = Matrix::Identity();
+	world.state.ratio_mat = Matrix::Identity();
 	world.state.world_mat = Matrix::Identity();
 	world.state.object_mat = Matrix::Identity();
-
-	m_bIsObjectTransform = true;
 
 	m_nLightShading = ID_LIGHT_SHADING_FLAT;
 
@@ -248,7 +248,7 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 	axes[Y_AXIS] = Vector(0, -1, 0, 0);
 	axes[Z_AXIS] = Vector(0, 0, 1, 0);
 
-	world.setScreenMat(axes, origin);
+	world.setScreenMat(axes, origin, cx, cy);
 }
 
 
@@ -363,7 +363,7 @@ void CCGWorkView::OnFileLoad()
 void CCGWorkView::OnViewOrthographic() 
 {
 	m_nView = ID_VIEW_ORTHOGRAPHIC;
-	world.state.Perspective = false;
+	world.state.perspective = false;
 	Invalidate();		// redraw using the new view.
 }
 
@@ -375,7 +375,7 @@ void CCGWorkView::OnUpdateViewOrthographic(CCmdUI* pCmdUI)
 void CCGWorkView::OnViewPerspective() 
 {
 	m_nView = ID_VIEW_PERSPECTIVE;
-	world.state.Perspective = true;
+	world.state.perspective = true;
 	Invalidate();
 }
 
@@ -590,7 +590,7 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 		int axis = m_nAxis - ID_AXIS_X;
 		Matrix* mat_to_transform;
 
-		if (m_bIsObjectTransform) {
+		if (world.state.object_transform) {
 			mat_to_transform = &world.state.object_mat;
 		} else {
 			mat_to_transform = &world.state.world_mat;
@@ -626,53 +626,53 @@ void CCGWorkView::OnLButtonUp(UINT nFlags, CPoint point)
 }
 
 void CCGWorkView::OnPolygonNormals() {
-	world.state.PolygonNormals = !world.state.PolygonNormals;
+	world.state.polygon_normals = !world.state.polygon_normals;
 	Invalidate();
 }
 
 void CCGWorkView::OnUpdatePolygonNormals(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(world.state.PolygonNormals);
+	pCmdUI->SetCheck(world.state.polygon_normals);
 }
 
 void CCGWorkView::OnVertexNormals() {
-	world.state.VertexNormals = !world.state.VertexNormals;
+	world.state.vertex_normals = !world.state.vertex_normals;
 	Invalidate();
 }
 
 void CCGWorkView::OnUpdateVertexNormals(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(world.state.VertexNormals);
+	pCmdUI->SetCheck(world.state.vertex_normals);
 }
 
 void CCGWorkView::OnObjectFrame()
 {
-	world.state.ObjectFrame = !world.state.ObjectFrame;
+	world.state.object_frame = !world.state.object_frame;
 }
 
 void CCGWorkView::OnUpdateObjectFrame(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(world.state.ObjectFrame);
+	pCmdUI->SetCheck(world.state.object_frame);
 }
 
 void CCGWorkView::OnObjectTransform()
 {
-	m_bIsObjectTransform = true;
+	world.state.object_transform = true;
 }
 
 void CCGWorkView::OnUpdateObjectTransform(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(world.state.ObjectFrame);
+	pCmdUI->SetCheck(world.state.object_transform);
 }
 
 void CCGWorkView::OnWorldTransform()
 {
-	m_bIsObjectTransform = false;
+	world.state.object_transform = false;
 }
 
 void CCGWorkView::OnUpdateWorldTransform(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(!world.state.ObjectFrame);
+	pCmdUI->SetCheck(!world.state.object_transform);
 }
 
 void CCGWorkView::OnObjectColor()
