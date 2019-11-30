@@ -80,7 +80,8 @@ void IritPolygon::setNextPolygon(IritPolygon *polygon) {
 }
 
 
-void IritPolygon::draw(CDC *pDCToUse, struct State state) {
+void IritPolygon::draw(CDC *pDCToUse, struct State state, Matrix &normal_transform,
+					   Matrix &vertex_transform) {
 	struct IritPoint *current_point = m_points;
 	Vector vertex = current_point->vertex;
 
@@ -91,14 +92,6 @@ void IritPolygon::draw(CDC *pDCToUse, struct State state) {
 	// For polygon normal drawing
 	double x_sum = 0, y_sum = 0, num_of_vertices = 0;
 
-	// Normal doesnt need to be centered to screen
-	Matrix normal_transform = state.coord_mat * state.ratio_mat * state.world_mat * state.object_mat;
-	Matrix vertex_transform = state.center_mat * normal_transform;
-
-	// Normals ended being a BIT too big. Lets divide them by 3
-	Matrix shrink = Matrix::Identity() * (1.0 / 3.0);
-	normal_transform = shrink * normal_transform;
-
 	/* "Draw" first point */
 	vertex = vertex_transform * vertex;
 	x_sum += vertex[0];
@@ -107,7 +100,7 @@ void IritPolygon::draw(CDC *pDCToUse, struct State state) {
 
 	pDCToUse->MoveTo((int)floor(vertex[0]), (int)floor(vertex[1]));
 
-	if (state.vertex_normals && current_point->has_normal) {
+	if (state.show_vertex_normal && current_point->has_normal) {
 		normal = normal_transform * current_point->normal;
 		normal_end_x = vertex[0] + normal[0];
 		normal_end_y = vertex[1] + normal[1];
@@ -127,7 +120,7 @@ void IritPolygon::draw(CDC *pDCToUse, struct State state) {
 
 		pDCToUse->LineTo((int)floor(vertex[0]), (int)floor(vertex[1]));
 
-		if (state.vertex_normals && current_point->has_normal) {
+		if (state.show_vertex_normal && current_point->has_normal) {
 			normal = normal_transform * current_point->normal;
 			normal_end_x = vertex[0] + normal[0];
 			normal_end_y = vertex[1] + normal[1];
@@ -144,7 +137,7 @@ void IritPolygon::draw(CDC *pDCToUse, struct State state) {
 
 	pDCToUse->LineTo((int)floor(vertex[0]), (int)floor(vertex[1]));
 
-	if (state.polygon_normals && this->has_normal) {
+	if (state.show_polygon_normal && this->has_normal) {
 		// TODO: add z value to normals
 		Vector polygon_center = Vector(x_sum / num_of_vertices, y_sum / num_of_vertices, 0, 1);
 		normal = normal_transform * this->normal;
@@ -192,23 +185,24 @@ IritPolygon *IritObject::createPolygon() {
 	return new_polygon;
 }
 
-void IritObject::draw(CDC *pDCToUse, struct State state) {
+void IritObject::draw(CDC *pDCToUse, struct State state, Matrix &normal_transform,
+					  Matrix &vertex_transform) {
 	m_iterator = m_polygons;
 	while (m_iterator) {
-		m_iterator->draw(pDCToUse, state);
+		m_iterator->draw(pDCToUse, state, normal_transform, vertex_transform);
 		m_iterator = m_iterator->getNextPolygon();
 	}
 }
 
 IritWorld::IritWorld() : m_objects_nr(0), m_objects_arr(nullptr) {
-	state.vertex_normals = false;
-	state.polygon_normals = false;
+	state.show_vertex_normal = false;
+	state.show_polygon_normal = false;
 	state.object_frame = false;
 	state.perspective = false;
 	state.object_transform = true;
 
-	bg_color    = BG_DEFAULT_COLOR;
-	wire_color  = WIRE_DEFAULT_COLOR;
+	bg_color = BG_DEFAULT_COLOR;
+	wire_color = WIRE_DEFAULT_COLOR;
 	frame_color = FRAME_DEFULAT_COLOR;
 
 	max_bound_coord = Vector();
@@ -222,14 +216,14 @@ IritWorld::IritWorld() : m_objects_nr(0), m_objects_arr(nullptr) {
 }
 
 IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_objects_nr(0), m_objects_arr(nullptr) {
-	state.vertex_normals = false;
-	state.polygon_normals = false;
+	state.show_vertex_normal = false;
+	state.show_polygon_normal = false;
 	state.object_frame = false;
 	state.perspective = false;
 	state.object_transform = true;
 
-	bg_color    = BG_DEFAULT_COLOR;
-	wire_color  = WIRE_DEFAULT_COLOR;
+	bg_color = BG_DEFAULT_COLOR;
+	wire_color = WIRE_DEFAULT_COLOR;
 	frame_color = FRAME_DEFULAT_COLOR;
 
 	max_bound_coord = Vector();
@@ -251,9 +245,9 @@ void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int 
 	Matrix center_mat;
 	Matrix ratio_mat;
 
+	// Expand to ratio
 
 	// TODO: the ratio here shouldn't be 15, but used with ortho normalization
-	// Expand to ratio
 	ratio_mat = Matrix::Identity();
 	ratio_mat.array[0][0] = screen_width / 15;
 	ratio_mat.array[1][1] = screen_height / 15;
@@ -303,13 +297,20 @@ bool IritWorld::isEmpty() {
 
 void IritWorld::draw(CDC *pDCToUse) {
 	CPen *object_pen = new CPen(PS_SOLID, 0, wire_color),
-	   	 *frame_pen  = new CPen(PS_SOLID, FRAME_WIDTH, frame_color);
+		 *frame_pen = new CPen(PS_SOLID, FRAME_WIDTH, frame_color);
+
+	// Normal doesnt need to be centered to screen
+	Matrix normal_transform = state.coord_mat * state.ratio_mat * state.world_mat * state.object_mat;
+	Matrix vertex_transform = state.center_mat * normal_transform;
+
+	// Normal ended being a BIT too big. Lets divide them by 3
+	Matrix shrink = Matrix::Identity() * (1.0 / 3.0);
+	normal_transform = shrink * normal_transform;
 
 	// Draw all objects
 	pDCToUse->SelectObject(object_pen);
 	for (int i = 0; i < m_objects_nr; i++)
-		m_objects_arr[i]->draw(pDCToUse, state);
-
+		m_objects_arr[i]->draw(pDCToUse, state, normal_transform, vertex_transform);
 
 	// Draw a frame around all objects
 	pDCToUse->SelectObject(frame_pen);

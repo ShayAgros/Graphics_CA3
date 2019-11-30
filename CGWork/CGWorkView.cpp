@@ -38,8 +38,6 @@ static CPoint mouse_location;
 
 static bool is_mouse_down;
 
-void resetWorld(void);
-
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView
 
@@ -111,7 +109,17 @@ CCGWorkView::CCGWorkView()
 	m_nAction = ID_ACTION_ROTATE;
 
 	// Init the state machine
-	resetWorld();
+	world.state.show_vertex_normal = false;
+	world.state.show_polygon_normal = false;
+	world.state.object_frame = false;
+	world.state.perspective = false;
+	world.state.object_transform = true;
+
+	world.state.coord_mat = Matrix::Identity();
+	world.state.center_mat = Matrix::Identity();
+	world.state.ratio_mat = Matrix::Identity();
+	world.state.world_mat = Matrix::Identity();
+	world.state.object_mat = Matrix::Identity();
 
 	m_nLightShading = ID_LIGHT_SHADING_FLAT;
 
@@ -338,11 +346,9 @@ void CCGWorkView::OnFileLoad()
 	if (dlg.DoModal () == IDOK) {
 		m_strItdFileName = dlg.GetPathName();		// Full path and filename
 		PngWrapper p;
-
-		// Reset the world before loading a new file.
-		resetWorld();
-
 		CGSkelProcessIritDataFiles(m_strItdFileName, 1);
+		// Open the file and read it.
+		// Your code here...
 
 		Invalidate();	// force a WM_PAINT for drawing.
 	} 
@@ -521,20 +527,6 @@ void CCGWorkView::OnTimer(UINT_PTR nIDEvent)
 		Invalidate();
 }
 
-void resetWorld() {
-	world.state.vertex_normals = false;
-	world.state.polygon_normals = false;
-	world.state.object_frame = false;
-	world.state.perspective = false;
-	world.state.object_transform = true;
-
-	world.bg_color   = BG_DEFAULT_COLOR;
-	world.wire_color = WIRE_DEFAULT_COLOR;
-
-	world.state.world_mat = Matrix::Identity();
-	world.state.object_mat = Matrix::Identity();
-}
-
 // TODO: tweak sensitivity
 Matrix createRotateMatrix(int axis, int shift) {
 	Matrix transform = Matrix::Identity();
@@ -542,19 +534,19 @@ Matrix createRotateMatrix(int axis, int shift) {
 	double cos_val = cos(shift / (2 * M_PI));
 
 	switch (axis) {
-	case 0: // X axis
+	case X_AXIS: // X axis
 		transform.array[1][1] = cos_val;
 		transform.array[2][2] = cos_val;
 		transform.array[1][2] = -sin_val;
 		transform.array[2][1] = sin_val;
 		break;
-	case 1: // Y axis
+	case Y_AXIS: // Y axis
 		transform.array[0][0] = cos_val;
 		transform.array[2][2] = cos_val;
 		transform.array[0][2] = sin_val;
 		transform.array[2][0] = -sin_val;
 		break;
-	case 2: // Z axis
+	case Z_AXIS: // Z axis
 		transform.array[0][0] = cos_val;
 		transform.array[1][1] = cos_val;
 		transform.array[0][1] = -sin_val;
@@ -565,11 +557,11 @@ Matrix createRotateMatrix(int axis, int shift) {
 	return transform;
 }
 
+// TODO: find a better solution to this, cause this one sucks.
 Matrix createScaleMatrix(int axis, int shift) {
 	Matrix transform = Matrix::Identity();
 
 	if (shift != 0)
-		// TODO: find a better solution to this, cause this one sucks.
 		transform.array[axis][axis] = (1 + 1/shift);
 
 	return transform;
@@ -634,23 +626,23 @@ void CCGWorkView::OnLButtonUp(UINT nFlags, CPoint point)
 }
 
 void CCGWorkView::OnPolygonNormals() {
-	world.state.polygon_normals = !world.state.polygon_normals;
+	world.state.show_polygon_normal = !world.state.show_polygon_normal;
 	Invalidate();
 }
 
 void CCGWorkView::OnUpdatePolygonNormals(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(world.state.polygon_normals);
+	pCmdUI->SetCheck(world.state.show_polygon_normal);
 }
 
 void CCGWorkView::OnVertexNormals() {
-	world.state.vertex_normals = !world.state.vertex_normals;
+	world.state.show_vertex_normal = !world.state.show_vertex_normal;
 	Invalidate();
 }
 
 void CCGWorkView::OnUpdateVertexNormals(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(world.state.vertex_normals);
+	pCmdUI->SetCheck(world.state.show_vertex_normal);
 }
 
 void CCGWorkView::OnObjectFrame()
@@ -702,5 +694,4 @@ void CCGWorkView::OnBGColor()
 		world.bg_color = diag.GetColor();
 		Invalidate();
 	}
-
 }

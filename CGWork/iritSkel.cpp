@@ -71,7 +71,6 @@ bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
 		IRIT_GEN_COPY(CrntViewMat, IPViewMat, sizeof(IrtHmgnMatType));
 
 	/* Here some useful parameters to play with in tesselating freeforms: */
-	// TODO: play with tesselation here
 	CGSkelFFCState.FineNess = 20;   /* Res. of tesselation, larger is finer. */
 	CGSkelFFCState.ComputeUV = TRUE;   /* Wants UV coordinates for textures. */
 	CGSkelFFCState.FourPerFlat = TRUE;/* 4 poly per ~flat patch, 2 otherwise.*/

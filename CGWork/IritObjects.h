@@ -5,20 +5,18 @@
 #include "Vector.h"
 #include "Matrix.h"
 
-#define NUM_OF_AXES 3
-
 #define BG_DEFAULT_COLOR	RGB(0, 0, 0)
 #define WIRE_DEFAULT_COLOR	RGB(255, 255, 255)
 #define FRAME_DEFULAT_COLOR	RGB(255, 0, 0,)
 
 #define FRAME_WIDTH 2
 
-// TODO: combine all CCGview and IRitworld shared parameters
-// such as this one and m_nAxis
+// this enum prob isnt needed, beacuse of built in axis info - m_nAxis
 enum Axis {
 	X_AXIS,
 	Y_AXIS,
-	Z_AXIS
+	Z_AXIS,
+	NUM_OF_AXES
 };
 
 struct IritPoint {
@@ -31,8 +29,8 @@ struct IritPoint {
 };
 
 struct State {
-	bool vertex_normals;
-	bool polygon_normals;
+	bool show_vertex_normal;
+	bool show_polygon_normal;
 	bool object_frame;
 	bool perspective;
 	bool object_transform;
@@ -74,12 +72,14 @@ public:
 	 * Each of the points is multiplied by a transformation matrix.
 	 * @pDCToUse - a pointer to the the DC with which the
 	 *				polygon is drawn
-	 * @transformation - the matrix which multiplies each point
+	 * @state - world state (current coordinate system, scaling function
+	 *					 etc.)
+	 * @normal_transform - a transformation matrix for the normal vectors
+	 * @vertex_transform - a transformation matrix for the the vertices (each
+	 *						vertex is multiplied by this matrix before being drawn
 	*/
-	// TODO: The coordinates aren't adjusted to screen view and therefore
-	//			cannot be drawn properly on screen. The drawing function needs
-	//			therefore be adjusted.
-	void draw(CDC *pDCToUse, struct State state);
+	void draw(CDC *pDCToUse, struct State state, Matrix &normal_transform,
+			  Matrix &vertex_transform);
 
 	// Operators overriding
 	IritPolygon &operator++();
@@ -117,13 +117,17 @@ public:
 	 * matrix.
 	 * @pDCToUse - a pointer to the the DC with which the
 	 *				object is drawn
-	 * @transformation - the transformation matrix, by default the identity
+	 * @state - world state (current coordinate system, scaling function
+	 *					 etc.)
+	 * @normal_transform - a transformation matrix for the normal vectors
+	 * @vertex_transform - a transformation matrix for the the vertices (each
+	 *						vertex is multiplied by this matrix before being drawn
 	*/
-	void draw(CDC *pDCToUse, struct State state);
+	void draw(CDC *pDCToUse, struct State state, Matrix &normal_transform,
+			  Matrix &vertex_transform);
 };
 
 class IritWorld {
-	// TODO: rearrange public and private params.
 	int m_objects_nr;
 	IritObject **m_objects_arr;
 
@@ -138,9 +142,10 @@ public:
 	Vector max_bound_coord,
 		   min_bound_coord;
 
+	// colors
 	COLORREF bg_color,
-			 wire_color,
-			 frame_color;
+		     wire_color,
+		     frame_color;
 
 	IritWorld();
 
