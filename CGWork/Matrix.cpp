@@ -94,7 +94,7 @@ void Matrix::operator*=(double param)
 // Multiply 2 matrices
 Matrix Matrix::operator*(const Matrix &matrix) const
 {
-    Matrix new_matrix = Matrix();
+    Matrix new_matrix;
 
     for (int i = 0; i < 4; i++)
     {
@@ -114,7 +114,7 @@ Matrix Matrix::operator*(const Matrix &matrix) const
 // Multiply a Matrix and a vector
 Vector Matrix::operator*(Vector &vector) const
 {
-	Vector new_vec = Vector();
+	Vector new_vec;
 
     for (int i = 0; i < 4; i++)
     {
@@ -145,7 +145,7 @@ double Matrix::Determinant() const
 // Return the transpose the matrix
 Matrix Matrix::Transpose() const
 {
-    Matrix matrix = Matrix();
+    Matrix matrix;
 
     for (int i = 0; i < 4; i++)
     {
@@ -180,7 +180,7 @@ Matrix Matrix::Inverse() const
 
 Matrix Matrix::Adjoint() const
 {
-    Matrix matrix = Matrix();
+    Matrix matrix;
     double temp_arr[3][3];
     int index, sign;
 
@@ -231,7 +231,7 @@ double SubDeterminant(double array[3][3])
 // Return an identity matrix
 Matrix Matrix::Identity()
 {
-    Matrix matrix = Matrix();
+    Matrix matrix;
 
     for (int i = 0; i < 4; i++)
     {

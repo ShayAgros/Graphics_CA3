@@ -109,7 +109,7 @@ CCGWorkView::CCGWorkView()
 	m_nAction = ID_ACTION_ROTATE;
 
 	// Init the state machine
-	world.state.vertex_normals = false;
+	world.state.show_vertex_normal = false;
 	world.state.polygon_normals = false;
 	world.state.object_frame = false;
 	world.state.perspective = false;
@@ -534,19 +534,19 @@ Matrix createRotateMatrix(int axis, int shift) {
 	double cos_val = cos(shift / (2 * M_PI));
 
 	switch (axis) {
-	case 0: // X axis
+	case X_AXIS: // X axis
 		transform.array[1][1] = cos_val;
 		transform.array[2][2] = cos_val;
 		transform.array[1][2] = -sin_val;
 		transform.array[2][1] = sin_val;
 		break;
-	case 1: // Y axis
+	case Y_AXIS: // Y axis
 		transform.array[0][0] = cos_val;
 		transform.array[2][2] = cos_val;
 		transform.array[0][2] = sin_val;
 		transform.array[2][0] = -sin_val;
 		break;
-	case 2: // Z axis
+	case Z_AXIS: // Z axis
 		transform.array[0][0] = cos_val;
 		transform.array[1][1] = cos_val;
 		transform.array[0][1] = -sin_val;
@@ -636,13 +636,13 @@ void CCGWorkView::OnUpdatePolygonNormals(CCmdUI* pCmdUI)
 }
 
 void CCGWorkView::OnVertexNormals() {
-	world.state.vertex_normals = !world.state.vertex_normals;
+	world.state.show_vertex_normal = !world.state.show_vertex_normal;
 	Invalidate();
 }
 
 void CCGWorkView::OnUpdateVertexNormals(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(world.state.vertex_normals);
+	pCmdUI->SetCheck(world.state.show_vertex_normal);
 }
 
 void CCGWorkView::OnObjectFrame()

@@ -5,13 +5,12 @@
 #include "Vector.h"
 #include "Matrix.h"
 
-#define NUM_OF_AXES 3
-
 // this enum prob isnt needed, beacuse of built in axis info - m_nAxis
 enum Axis {
 	X_AXIS,
 	Y_AXIS,
-	Z_AXIS
+	Z_AXIS,
+	NUM_OF_AXES
 };
 
 struct IritPoint {
@@ -24,7 +23,7 @@ struct IritPoint {
 };
 
 struct State {
-	bool vertex_normals;
+	bool show_vertex_normal;
 	bool polygon_normals;
 	bool object_frame;
 	bool perspective;

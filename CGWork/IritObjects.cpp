@@ -105,7 +105,7 @@ void IritPolygon::draw(CDC *pDCToUse, struct State state) {
 
 	pDCToUse->MoveTo((int)floor(vertex[0]), (int)floor(vertex[1]));
 
-	if (state.vertex_normals && current_point->has_normal) {
+	if (state.show_vertex_normal && current_point->has_normal) {
 		normal = normal_transform * current_point->normal;
 		normal_end_x = vertex[0] + normal[0];
 		normal_end_y = vertex[1] + normal[1];
@@ -125,7 +125,7 @@ void IritPolygon::draw(CDC *pDCToUse, struct State state) {
 
 		pDCToUse->LineTo((int)floor(vertex[0]), (int)floor(vertex[1]));
 
-		if (state.vertex_normals && current_point->has_normal) {
+		if (state.show_vertex_normal && current_point->has_normal) {
 			normal = normal_transform * current_point->normal;
 			normal_end_x = vertex[0] + normal[0];
 			normal_end_y = vertex[1] + normal[1];
