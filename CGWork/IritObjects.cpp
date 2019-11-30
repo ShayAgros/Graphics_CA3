@@ -203,7 +203,7 @@ IritWorld::IritWorld() : m_objects_nr(0), m_objects_arr(nullptr) {
 
 	bg_color = BG_DEFAULT_COLOR;
 	wire_color = WIRE_DEFAULT_COLOR;
-	frame_color = FRAME_DEFULAT_COLOR;
+	frame_color = FRAME_DEFAULT_COLOR;
 
 	max_bound_coord = Vector();
 	min_bound_coord = Vector();
@@ -224,7 +224,7 @@ IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_objects_
 
 	bg_color = BG_DEFAULT_COLOR;
 	wire_color = WIRE_DEFAULT_COLOR;
-	frame_color = FRAME_DEFULAT_COLOR;
+	frame_color = FRAME_DEFAULT_COLOR;
 
 	max_bound_coord = Vector();
 	min_bound_coord = Vector();

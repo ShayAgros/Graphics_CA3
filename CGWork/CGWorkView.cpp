@@ -38,6 +38,8 @@ static CPoint mouse_location;
 
 static bool is_mouse_down;
 
+void resetWorld(void);
+
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView
 
@@ -109,17 +111,7 @@ CCGWorkView::CCGWorkView()
 	m_nAction = ID_ACTION_ROTATE;
 
 	// Init the state machine
-	world.state.show_vertex_normal = false;
-	world.state.show_polygon_normal = false;
-	world.state.object_frame = false;
-	world.state.perspective = false;
-	world.state.object_transform = true;
-
-	world.state.coord_mat = Matrix::Identity();
-	world.state.center_mat = Matrix::Identity();
-	world.state.ratio_mat = Matrix::Identity();
-	world.state.world_mat = Matrix::Identity();
-	world.state.object_mat = Matrix::Identity();
+	resetWorld();
 
 	m_nLightShading = ID_LIGHT_SHADING_FLAT;
 
@@ -346,6 +338,8 @@ void CCGWorkView::OnFileLoad()
 	if (dlg.DoModal () == IDOK) {
 		m_strItdFileName = dlg.GetPathName();		// Full path and filename
 		PngWrapper p;
+
+		// Reset the world before loading a new file
 		CGSkelProcessIritDataFiles(m_strItdFileName, 1);
 		// Open the file and read it.
 		// Your code here...
@@ -525,6 +519,20 @@ void CCGWorkView::OnTimer(UINT_PTR nIDEvent)
 	CView::OnTimer(nIDEvent);
 	if (nIDEvent == 1)
 		Invalidate();
+}
+
+void resetWorld() {
+	world.state.show_vertex_normal = false;
+	world.state.show_polygon_normal = false;
+	world.state.object_frame = false;
+	world.state.perspective = false;
+	world.state.object_transform = true;
+
+	world.bg_color = BG_DEFAULT_COLOR;
+	world.wire_color = WIRE_DEFAULT_COLOR;
+
+	world.state.world_mat = Matrix::Identity();
+	world.state.object_mat = Matrix::Identity();
 }
 
 // TODO: tweak sensitivity
