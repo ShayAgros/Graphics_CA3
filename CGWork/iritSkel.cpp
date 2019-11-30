@@ -11,6 +11,11 @@
 * Minimal changes made by Amit Mano			November 2008					 *
 ******************************************************************************/
 
+#define MIN(x, y) ((x) < (y)) ? (x) : (y)
+#define MAX(x, y) ((x) > (y)) ? (x) : (y)
+
+void updateBoundingFrameLimits(IPVertexStruct *vertex);
+
 IPFreeformConvStateStruct CGSkelFFCState = {
 	FALSE,          /* Talkative */
 	FALSE,          /* DumpObjsAsPolylines */
@@ -34,6 +39,8 @@ IPFreeformConvStateStruct CGSkelFFCState = {
 //CGSkelProcessIritDataFiles(argv + 1, argc - 1);
 
 extern IritWorld world;
+
+bool is_first_polygon;
 
 /*****************************************************************************
 * DESCRIPTION:                                                               *
@@ -64,10 +71,14 @@ bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
 		IRIT_GEN_COPY(CrntViewMat, IPViewMat, sizeof(IrtHmgnMatType));
 
 	/* Here some useful parameters to play with in tesselating freeforms: */
+	// TODO: play with tesselation here
 	CGSkelFFCState.FineNess = 20;   /* Res. of tesselation, larger is finer. */
 	CGSkelFFCState.ComputeUV = TRUE;   /* Wants UV coordinates for textures. */
 	CGSkelFFCState.FourPerFlat = TRUE;/* 4 poly per ~flat patch, 2 otherwise.*/
 	CGSkelFFCState.LinearOnePolyFlag = TRUE;    /* Linear srf gen. one poly. */
+
+	// Need to be initialized before any object is proccesed;
+	is_first_polygon = true;
 
 	/* Traverse ALL the parsed data, recursively. */
 	IPTraverseObjListHierarchy(PObjects, CrntViewMat,
@@ -192,6 +203,19 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 					has_normal = true;
 				irit_polygon->addPoint(PVertex, has_normal);
 
+				// Update the bounding frame
+				if (is_first_polygon) {
+					is_first_polygon = false;
+					world.max_bound_coord[0] = PVertex->Coord[0];
+					world.min_bound_coord[0] = PVertex->Coord[0];
+					world.max_bound_coord[1] = PVertex->Coord[1];
+					world.min_bound_coord[1] = PVertex->Coord[1];
+					world.max_bound_coord[2] = PVertex->Coord[2];
+					world.min_bound_coord[2] = PVertex->Coord[2];
+				} else {
+					updateBoundingFrameLimits(PVertex);
+				}
+
 				PVertex = PVertex -> Pnext;
 			}
 			while (PVertex != PPolygon -> PVertex && PVertex != NULL);
@@ -199,6 +223,16 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	}
 	/* Close the object. */
 	return true;
+}
+
+void updateBoundingFrameLimits(IPVertexStruct *vertex)
+{
+	world.min_bound_coord[0] = MIN(world.min_bound_coord[0], vertex->Coord[0]);
+	world.max_bound_coord[0] = MAX(world.max_bound_coord[0], vertex->Coord[0]);
+	world.min_bound_coord[1] = MIN(world.min_bound_coord[1], vertex->Coord[1]);
+	world.max_bound_coord[1] = MAX(world.max_bound_coord[1], vertex->Coord[1]);
+	world.min_bound_coord[2] = MIN(world.min_bound_coord[2], vertex->Coord[2]);
+	world.max_bound_coord[2] = MAX(world.max_bound_coord[2], vertex->Coord[2]);
 }
 
 /*****************************************************************************
