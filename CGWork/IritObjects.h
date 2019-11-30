@@ -66,12 +66,14 @@ public:
 	 * Each of the points is multiplied by a transformation matrix.
 	 * @pDCToUse - a pointer to the the DC with which the
 	 *				polygon is drawn
-	 * @transformation - the matrix which multiplies each point
+	 * @state - world state (current coordinate system, scaling function
+	 *					 etc.)
+	 * @normal_transform - a transformation matrix for the normal vectors
+	 * @vertex_transform - a transformation matrix for the the vertices (each
+	 *						vertex is multiplied by this matrix before being drawn
 	*/
-	// TODO: The coordinates aren't adjusted to screen view and therefore
-	//			cannot be drawn properly on screen. The drawing function needs
-	//			therefore be adjusted.
-	void draw(CDC *pDCToUse, struct State state);
+	void draw(CDC *pDCToUse, struct State state, Matrix &normal_transform,
+			  Matrix &vertex_transform);
 
 	// Operators overriding
 	IritPolygon &operator++();
@@ -109,9 +111,14 @@ public:
 	 * matrix.
 	 * @pDCToUse - a pointer to the the DC with which the
 	 *				object is drawn
-	 * @transformation - the transformation matrix, by default the identity
+	 * @state - world state (current coordinate system, scaling function
+	 *					 etc.)
+	 * @normal_transform - a transformation matrix for the normal vectors
+	 * @vertex_transform - a transformation matrix for the the vertices (each
+	 *						vertex is multiplied by this matrix before being drawn
 	*/
-	void draw(CDC *pDCToUse, struct State state);
+	void draw(CDC *pDCToUse, struct State state, Matrix &normal_transform,
+			  Matrix &vertex_transform);
 };
 
 class IritWorld {

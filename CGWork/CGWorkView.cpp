@@ -295,7 +295,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	GetClientRect(&r);
 	CDC *pDCToUse = /*m_pDC*/m_pDbDC;
 	
-	pDCToUse->FillSolidRect(&r, RGB(255, 255, 0));
+	pDCToUse->FillSolidRect(&r, RGB(224, 224, 224));
 	
 	if (!world.isEmpty())
 		world.draw(pDCToUse);

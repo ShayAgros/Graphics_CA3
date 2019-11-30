@@ -78,7 +78,8 @@ void IritPolygon::setNextPolygon(IritPolygon *polygon) {
 }
 
 
-void IritPolygon::draw(CDC *pDCToUse, struct State state) {
+void IritPolygon::draw(CDC *pDCToUse, struct State state, Matrix &normal_transform,
+					   Matrix &vertex_transform) {
 	struct IritPoint *current_point = m_points;
 	Vector vertex = current_point->vertex;
 
@@ -88,14 +89,6 @@ void IritPolygon::draw(CDC *pDCToUse, struct State state) {
 
 	// For polygon normal drawing
 	double x_sum = 0, y_sum = 0, num_of_vertices = 0;
-
-	// Normal doesnt need to be centered to screen
-	Matrix normal_transform = state.coord_mat * state.ratio_mat * state.world_mat * state.object_mat;
-	Matrix vertex_transform = state.center_mat * normal_transform;
-
-	// Normal ended being a BIT too big. Lets divide them by 3
-	Matrix shrink = Matrix::Identity() * (1.0 / 3.0);
-	normal_transform = shrink * normal_transform;
 
 	/* "Draw" first point */
 	vertex = vertex_transform * vertex;
@@ -190,10 +183,11 @@ IritPolygon *IritObject::createPolygon() {
 	return new_polygon;
 }
 
-void IritObject::draw(CDC *pDCToUse, struct State state) {
+void IritObject::draw(CDC *pDCToUse, struct State state, Matrix &normal_transform,
+					  Matrix &vertex_transform) {
 	m_iterator = m_polygons;
 	while (m_iterator) {
-		m_iterator->draw(pDCToUse, state);
+		m_iterator->draw(pDCToUse, state, normal_transform, vertex_transform);
 		m_iterator = m_iterator->getNextPolygon();
 	}
 }
@@ -271,8 +265,17 @@ bool IritWorld::isEmpty() {
 };
 
 void IritWorld::draw(CDC *pDCToUse) {
+
+	// Normal doesnt need to be centered to screen
+	Matrix normal_transform = state.coord_mat * state.ratio_mat * state.world_mat * state.object_mat;
+	Matrix vertex_transform = state.center_mat * normal_transform;
+
+	// Normal ended being a BIT too big. Lets divide them by 3
+	Matrix shrink = Matrix::Identity() * (1.0 / 3.0);
+	normal_transform = shrink * normal_transform;
+
 	for (int i = 0; i < m_objects_nr; i++)
-		m_objects_arr[i]->draw(pDCToUse, state);
+		m_objects_arr[i]->draw(pDCToUse, state, normal_transform, vertex_transform);
 }
 
 Matrix createTranslationMatrix(double &x, double &y, double z) {
