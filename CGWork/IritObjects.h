@@ -40,6 +40,7 @@ struct State {
 	Matrix center_mat;
 	Matrix world_mat;
 	Matrix object_mat;
+	Matrix ortho_mat;
 };
 
 class IritPolygon {
@@ -158,6 +159,9 @@ public:
 	 * @axes_origin - origin point in world space
 	*/
 	void setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int screen_widht, int screen_height);
+
+	void setOrthoMat(void);
+
 
 	/* Creates an empty object and returns a pointer to it.
 	 * the object is added to the list of objects in the IritWorld.

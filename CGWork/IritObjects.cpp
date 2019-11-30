@@ -213,6 +213,7 @@ IritWorld::IritWorld() : m_objects_nr(0), m_objects_arr(nullptr) {
 	state.ratio_mat = Matrix::Identity();
 	state.world_mat = Matrix::Identity();
 	state.object_mat = Matrix::Identity();
+	state.ortho_mat = Matrix::Identity();
 }
 
 IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_objects_nr(0), m_objects_arr(nullptr) {
@@ -234,6 +235,7 @@ IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_objects_
 	state.ratio_mat = Matrix::Identity();
 	state.world_mat = Matrix::Identity();
 	state.object_mat = Matrix::Identity();
+	state.ortho_mat = Matrix::Identity();
 }
 
 IritWorld::~IritWorld() {
@@ -247,10 +249,10 @@ void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int 
 
 	// Expand to ratio
 
-	// TODO: the ratio here shouldn't be 15, but used with ortho normalization
+	// Ratio should be about a fifth of the screen.
 	ratio_mat = Matrix::Identity();
-	ratio_mat.array[0][0] = screen_width / 15;
-	ratio_mat.array[1][1] = screen_height / 15;
+	ratio_mat.array[0][0] = screen_width / 5.0;
+	ratio_mat.array[1][1] = screen_height / 5.0;
 	state.ratio_mat = ratio_mat;
 	
 	// Set to correct coordinate system
@@ -262,6 +264,23 @@ void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int 
 	state.center_mat = center_mat;
 }
 
+void IritWorld::setOrthoMat()
+{
+	double max_x = max_bound_coord[0],
+	   	   min_x = min_bound_coord[0],
+		   max_y = max_bound_coord[1],
+		   min_y = min_bound_coord[1],
+		   max_z = max_bound_coord[2],
+		   min_z = min_bound_coord[2];
+
+	state.ortho_mat.array[X_AXIS][0] = 2 / (max_x - min_x);
+	state.ortho_mat.array[Y_AXIS][1] = 2 / (max_y - min_y);
+	state.ortho_mat.array[Z_AXIS][2] = 2 / (max_z - min_z);
+
+	state.ortho_mat.array[X_AXIS][3] = -(max_x + min_x) / (max_x - min_x);
+	state.ortho_mat.array[Y_AXIS][3] = -(max_y + min_y) / (max_y - min_y);
+	state.ortho_mat.array[Z_AXIS][3] =  (max_z + min_z) / (max_z - min_z);
+}
 
 IritObject *IritWorld::createObject() {
 	IritObject *new_object = new IritObject();
@@ -301,10 +320,10 @@ void IritWorld::draw(CDC *pDCToUse) {
 
 	// Normal doesnt need to be centered to screen
 	Matrix normal_transform = state.coord_mat * state.ratio_mat * state.world_mat * state.object_mat;
-	Matrix vertex_transform = state.center_mat * normal_transform;
+	Matrix vertex_transform = state.center_mat * state.coord_mat * state.ratio_mat * state.ortho_mat * state.world_mat * state.object_mat;
 
-	// Normal ended being a BIT too big. Lets divide them by 3
-	Matrix shrink = Matrix::Identity() * (1.0 / 3.0);
+	// Normal ended being a BIT too big. Lets divide them by 10
+	Matrix shrink = Matrix::Identity() * (1.0 / 10.0);
 	normal_transform = shrink * normal_transform;
 
 	// Draw all objects
@@ -322,7 +341,7 @@ void IritWorld::draw(CDC *pDCToUse) {
 }
 
 void IritWorld::drawFrame(CDC *pDCToUse) {
-	Matrix transform = state.center_mat * state.coord_mat * state.ratio_mat * state.world_mat * state.object_mat;
+	Matrix transform = state.center_mat * state.coord_mat * state.ratio_mat * state.ortho_mat * state.world_mat * state.object_mat;
 
 	double frame_max_x = max_bound_coord[0],
 		   frame_max_y = max_bound_coord[1],

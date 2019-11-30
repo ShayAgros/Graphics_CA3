@@ -82,6 +82,9 @@ bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
 	/* Traverse ALL the parsed data, recursively. */
 	IPTraverseObjListHierarchy(PObjects, CrntViewMat,
         CGSkelDumpOneTraversedObject);
+
+	world.setOrthoMat();
+
 	return true;
 }
 

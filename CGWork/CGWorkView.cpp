@@ -533,6 +533,7 @@ void resetWorld() {
 
 	world.state.world_mat = Matrix::Identity();
 	world.state.object_mat = Matrix::Identity();
+	world.state.ortho_mat = Matrix::Identity();
 }
 
 // TODO: tweak sensitivity
