@@ -189,7 +189,7 @@ void Vector::Homogenize()
         coordinates[2] /= coordinates[3];
 
         coordinates[3] = 1;
-    }
+	}
 }
 
 // Print the vector - for debug purposes

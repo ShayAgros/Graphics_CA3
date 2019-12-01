@@ -109,6 +109,7 @@ CCGWorkView::CCGWorkView()
 	// Set default values
 	m_nAxis = ID_AXIS_X;
 	m_nAction = ID_ACTION_ROTATE;
+	m_nView = ID_VIEW_ORTHOGRAPHIC;
 
 	// Init the state machine
 	resetWorld();
@@ -258,9 +259,6 @@ BOOL CCGWorkView::SetupViewingOrthoConstAspect(void)
 }
 
 
-
-
-
 BOOL CCGWorkView::OnEraseBkgnd(CDC* pDC) 
 {
 	// Windows will clear the window with the background color every time your window 
@@ -357,7 +355,7 @@ void CCGWorkView::OnFileLoad()
 void CCGWorkView::OnViewOrthographic() 
 {
 	m_nView = ID_VIEW_ORTHOGRAPHIC;
-	world.state.perspective = false;
+	world.state.is_perspective_view = false;
 	Invalidate();		// redraw using the new view.
 }
 
@@ -369,7 +367,7 @@ void CCGWorkView::OnUpdateViewOrthographic(CCmdUI* pCmdUI)
 void CCGWorkView::OnViewPerspective() 
 {
 	m_nView = ID_VIEW_PERSPECTIVE;
-	world.state.perspective = true;
+	world.state.is_perspective_view = true;
 	Invalidate();
 }
 
@@ -525,7 +523,7 @@ void resetWorld() {
 	world.state.show_vertex_normal = false;
 	world.state.show_polygon_normal = false;
 	world.state.object_frame = false;
-	world.state.perspective = false;
+	world.state.is_perspective_view = false;
 	world.state.object_transform = true;
 
 	world.bg_color = BG_DEFAULT_COLOR;
@@ -534,6 +532,9 @@ void resetWorld() {
 	world.state.world_mat = Matrix::Identity();
 	world.state.object_mat = Matrix::Identity();
 	world.state.ortho_mat = Matrix::Identity();
+	world.state.view_mat = createViewMatrix(DEAULT_VIEW_PARAMETERS);
+
+	world.state.projection_plane_distance = DEFAULT_PROJECTION_PLANE_DISTANCE;
 }
 
 // TODO: tweak sensitivity

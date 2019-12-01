@@ -6,10 +6,20 @@
 #include "Matrix.h"
 
 #define BG_DEFAULT_COLOR	RGB(0, 0, 0)
-#define WIRE_DEFAULT_COLOR	RGB(255, 255, 255)
-#define FRAME_DEFAULT_COLOR	RGB(255, 0, 0,)
+#define WIRE_DEFAULT_COLOR	RGB(128, 128, 128)
+#define FRAME_DEFAULT_COLOR	RGB(255, 0, 0)
 
 #define FRAME_WIDTH 2
+
+#define DEFAULT_PROJECTION_PLANE_DISTANCE 20
+#define DEAULT_VIEW_PARAMETERS 0, 0, -20
+
+// Declerations
+/* Creates a view matrix which simulates changing the position of the camera
+ * @x,y,z - camera coordinates in *world* view system
+ * returns a matrix which maps every object to view space
+*/
+Matrix createViewMatrix(double x, double y, double z);
 
 // this enum prob isnt needed, beacuse of built in axis info - m_nAxis
 enum Axis {
@@ -32,8 +42,10 @@ struct State {
 	bool show_vertex_normal;
 	bool show_polygon_normal;
 	bool object_frame;
-	bool perspective;
+	bool is_perspective_view;
 	bool object_transform;
+
+	double projection_plane_distance;
 
 	Matrix ratio_mat;
 	Matrix coord_mat;
@@ -41,6 +53,10 @@ struct State {
 	Matrix world_mat;
 	Matrix object_mat;
 	Matrix ortho_mat;
+	Matrix view_mat;
+
+	Matrix perspective_mat;
+	Matrix screen_mat;
 };
 
 class IritPolygon {
@@ -132,7 +148,7 @@ class IritWorld {
 	int m_objects_nr;
 	IritObject **m_objects_arr;
 
-	void drawFrame(CDC *pDCToUse);
+	void drawFrame(CDC *pDCToUse, Matrix &transform);
 
 public:
 

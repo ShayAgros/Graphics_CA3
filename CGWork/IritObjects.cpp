@@ -94,6 +94,12 @@ void IritPolygon::draw(CDC *pDCToUse, struct State state, Matrix &normal_transfo
 
 	/* "Draw" first point */
 	vertex = vertex_transform * vertex;
+
+	if (state.is_perspective_view)
+		vertex.Homogenize();
+
+	vertex = state.screen_mat * vertex;
+
 	x_sum += vertex[0];
 	y_sum += vertex[1];
 	++num_of_vertices;
@@ -102,6 +108,9 @@ void IritPolygon::draw(CDC *pDCToUse, struct State state, Matrix &normal_transfo
 
 	if (state.show_vertex_normal && current_point->has_normal) {
 		normal = normal_transform * current_point->normal;
+		if (state.is_perspective_view)
+			normal.Homogenize();
+		normal = state.ratio_mat * normal;
 		normal_end_x = vertex[0] + normal[0];
 		normal_end_y = vertex[1] + normal[1];
 		pDCToUse->LineTo((int)floor(normal_end_x), (int)floor(normal_end_y));
@@ -114,6 +123,12 @@ void IritPolygon::draw(CDC *pDCToUse, struct State state, Matrix &normal_transfo
 	while (current_point) {
 		vertex = current_point->vertex;
 		vertex = vertex_transform * vertex;
+
+		if (state.is_perspective_view)
+			vertex.Homogenize();
+
+		vertex = state.screen_mat * vertex;
+
 		x_sum += vertex[0];
 		y_sum += vertex[1];
 		++num_of_vertices;
@@ -122,6 +137,10 @@ void IritPolygon::draw(CDC *pDCToUse, struct State state, Matrix &normal_transfo
 
 		if (state.show_vertex_normal && current_point->has_normal) {
 			normal = normal_transform * current_point->normal;
+			if (state.is_perspective_view)
+				normal.Homogenize();
+			normal = state.ratio_mat * normal;
+
 			normal_end_x = vertex[0] + normal[0];
 			normal_end_y = vertex[1] + normal[1];
 			pDCToUse->LineTo((int)floor(normal_end_x), (int)floor(normal_end_y));
@@ -135,12 +154,21 @@ void IritPolygon::draw(CDC *pDCToUse, struct State state, Matrix &normal_transfo
 	vertex = m_points->vertex;
 	vertex = vertex_transform * vertex;
 
+	if (state.is_perspective_view)
+		vertex.Homogenize();
+
+	vertex = state.screen_mat * vertex;
+
 	pDCToUse->LineTo((int)floor(vertex[0]), (int)floor(vertex[1]));
 
 	if (state.show_polygon_normal && this->has_normal) {
 		// TODO: add z value to normals
 		Vector polygon_center = Vector(x_sum / num_of_vertices, y_sum / num_of_vertices, 0, 1);
 		normal = normal_transform * this->normal;
+		if (state.is_perspective_view)
+			normal.Homogenize();
+		normal = state.ratio_mat * normal;
+
 		pDCToUse->MoveTo((int)floor(polygon_center[0]), (int)floor(polygon_center[1]));
 		pDCToUse->LineTo((int)floor(polygon_center[0] + normal[0]), (int)floor(polygon_center[1] + normal[1]));
 	}
@@ -198,7 +226,7 @@ IritWorld::IritWorld() : m_objects_nr(0), m_objects_arr(nullptr) {
 	state.show_vertex_normal = false;
 	state.show_polygon_normal = false;
 	state.object_frame = false;
-	state.perspective = false;
+	state.is_perspective_view = false;
 	state.object_transform = true;
 
 	bg_color = BG_DEFAULT_COLOR;
@@ -214,13 +242,17 @@ IritWorld::IritWorld() : m_objects_nr(0), m_objects_arr(nullptr) {
 	state.world_mat = Matrix::Identity();
 	state.object_mat = Matrix::Identity();
 	state.ortho_mat = Matrix::Identity();
+
+	state.view_mat = createViewMatrix(DEAULT_VIEW_PARAMETERS);
+
+	state.projection_plane_distance = DEFAULT_PROJECTION_PLANE_DISTANCE;
 }
 
 IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_objects_nr(0), m_objects_arr(nullptr) {
 	state.show_vertex_normal = false;
 	state.show_polygon_normal = false;
 	state.object_frame = false;
-	state.perspective = false;
+	state.is_perspective_view = false;
 	state.object_transform = true;
 
 	bg_color = BG_DEFAULT_COLOR;
@@ -236,6 +268,8 @@ IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_objects_
 	state.world_mat = Matrix::Identity();
 	state.object_mat = Matrix::Identity();
 	state.ortho_mat = Matrix::Identity();
+	state.view_mat = createViewMatrix(DEAULT_VIEW_PARAMETERS);
+	state.projection_plane_distance = DEFAULT_PROJECTION_PLANE_DISTANCE;
 }
 
 IritWorld::~IritWorld() {
@@ -255,7 +289,7 @@ void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int 
 	ratio_mat.array[1][1] = screen_height / 5.0;
 	state.ratio_mat = ratio_mat;
 	
-	// Set to correct coordinate system
+	// Set world coordinate system
 	coor_mat = Matrix(axes[0], axes[1], axes[2]);
 	state.coord_mat = coor_mat;
 
@@ -314,17 +348,48 @@ bool IritWorld::isEmpty() {
 	return m_objects_nr == 0;
 };
 
+Matrix createProjectionMatrix(const float &angleOfView, const float &near_z, const float &far_z)
+{
+	Matrix projection_mat(Matrix::Identity());
+	// set the basic projection matrix
+	float scale = 1 / tan(angleOfView * 0.5 * M_PI / 180);
+	projection_mat.array[0][0] = -scale; // scale the x coordinates of the projected point
+	projection_mat.array[1][1] = -scale; // scale the y coordinates of the projected point
+	projection_mat.array[2][2] = -far_z / (far_z - near_z); // used to remap z to [0,1]
+	projection_mat.array[3][2] = -far_z * near_z / (far_z - near_z); // used to remap z [0,1]
+	projection_mat.array[2][3] = -1; // set w = -z
+	projection_mat.array[3][3] = 0;
+
+	return projection_mat;
+}
+
 void IritWorld::draw(CDC *pDCToUse) {
 	CPen *object_pen = new CPen(PS_SOLID, 0, wire_color),
 		 *frame_pen = new CPen(PS_SOLID, FRAME_WIDTH, frame_color);
-
-	// Normal doesnt need to be centered to screen
-	Matrix normal_transform = state.coord_mat * state.ratio_mat * state.world_mat * state.object_mat;
-	Matrix vertex_transform = state.center_mat * state.coord_mat * state.ratio_mat * state.ortho_mat * state.world_mat * state.object_mat;
-
-	// Normal ended being a BIT too big. Lets divide them by 10
+	Matrix projection_mat;
 	Matrix shrink = Matrix::Identity() * (1.0 / 10.0);
-	normal_transform = shrink * normal_transform;
+
+	Matrix model_mat =  state.world_mat * state.coord_mat;
+
+	if (state.is_perspective_view) {
+		Matrix perspective_matrix = Matrix::Identity();
+		perspective_matrix.array[3][2] = 1 / state.projection_plane_distance;
+		perspective_matrix.array[3][3] = 0;
+
+		/* Use frustum perpective view */
+		//projection_mat = createProjectionMatrix(45, 0.5, 30) * state.view_mat;
+
+		/* Use Gershon's perpective matrix */
+		projection_mat = perspective_matrix * state.view_mat * state.ortho_mat;
+	} else {
+		projection_mat = state.view_mat * state.ortho_mat;
+	}
+
+	this->state.screen_mat = state.center_mat * state.ratio_mat;
+
+	Matrix vertex_transform = projection_mat * model_mat * state.object_mat;
+	// Normal ended being a BIT too big. Lets divide them by 10
+	Matrix normal_transform = shrink *  vertex_transform;
 
 	// Draw all objects
 	pDCToUse->SelectObject(object_pen);
@@ -334,14 +399,13 @@ void IritWorld::draw(CDC *pDCToUse) {
 	// Draw a frame around all objects
 	pDCToUse->SelectObject(frame_pen);
 	if (state.object_frame)
-		drawFrame(pDCToUse);
-
+		drawFrame(pDCToUse,  vertex_transform);
 	delete object_pen;
 	delete frame_pen;
 }
 
-void IritWorld::drawFrame(CDC *pDCToUse) {
-	Matrix transform = state.center_mat * state.coord_mat * state.ratio_mat * state.ortho_mat * state.world_mat * state.object_mat;
+void IritWorld::drawFrame(CDC *pDCToUse, Matrix &transform) {
+//	Matrix transform = state.center_mat * state.coord_mat * state.ratio_mat * state.ortho_mat * state.world_mat * state.object_mat;
 
 	double frame_max_x = max_bound_coord[0],
 		   frame_max_y = max_bound_coord[1],
@@ -364,6 +428,12 @@ void IritWorld::drawFrame(CDC *pDCToUse) {
 	// Update box to current transformation
 	for (int i = 0; i < BOX_NUM_OF_VERTICES; i++) {
 		coords[i] = transform * coords[i];
+
+		if (state.is_perspective_view)
+			coords[i].Homogenize();
+
+		coords[i] = state.screen_mat * coords[i];
+
 	}
 
 	// Draw "front side"
@@ -416,4 +486,11 @@ Matrix createTranslationMatrix(Vector &v) {
 	return createTranslationMatrix(v.coordinates[0],
 		v.coordinates[1],
 		v.coordinates[2]);
+}
+
+Matrix createViewMatrix(double x, double y, double z)
+{
+	Matrix camera_translation = createTranslationMatrix(x, y, z);
+
+	return camera_translation.Inverse();
 }
