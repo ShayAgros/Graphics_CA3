@@ -5,14 +5,17 @@
 #include "Vector.h"
 #include "Matrix.h"
 
-#define BG_DEFAULT_COLOR	RGB(0, 0, 0)
-#define WIRE_DEFAULT_COLOR	RGB(128, 128, 128)
-#define FRAME_DEFAULT_COLOR	RGB(255, 0, 0)
+// The color scheme here is    <B G R *reserved*>
+#define BG_DEFAULT_COLOR	{0, 0, 0, 0}
+#define WIRE_DEFAULT_COLOR	{128, 128, 128, 0}
+#define FRAME_DEFAULT_COLOR	{0, 0, 255, 0}
 
 #define FRAME_WIDTH 2
 
 #define DEFAULT_PROJECTION_PLANE_DISTANCE 20
 #define DEAULT_VIEW_PARAMETERS 0, 0, -20
+
+#define RGB_TO_RGBQUAD(x) {(BYTE)((x & 0xff0000) >> 16), (BYTE)((x & 0xff00) >> 8), (BYTE)(x & 0xff), 0}
 
 // Declerations
 /* Creates a view matrix which simulates changing the position of the camera
@@ -57,6 +60,10 @@ struct State {
 
 	Matrix perspective_mat;
 	Matrix screen_mat;
+
+	RGBQUAD wire_color;
+	RGBQUAD frame_color;
+	RGBQUAD bg_color;
 };
 
 class IritPolygon {
@@ -95,7 +102,7 @@ public:
 	 * @vertex_transform - a transformation matrix for the the vertices (each
 	 *						vertex is multiplied by this matrix before being drawn
 	*/
-	void draw(CDC *pDCToUse, struct State state, Matrix &normal_transform,
+	void draw(int *bitmap, int width, int height, struct State state, Matrix &normal_transform,
 			  Matrix &vertex_transform);
 
 	// Operators overriding
@@ -140,7 +147,7 @@ public:
 	 * @vertex_transform - a transformation matrix for the the vertices (each
 	 *						vertex is multiplied by this matrix before being drawn
 	*/
-	void draw(CDC *pDCToUse, struct State state, Matrix &normal_transform,
+	void draw(int *bitmap, int width, int height, struct State state, Matrix &normal_transform,
 			  Matrix &vertex_transform);
 };
 
@@ -148,7 +155,7 @@ class IritWorld {
 	int m_objects_nr;
 	IritObject **m_objects_arr;
 
-	void drawFrame(CDC *pDCToUse, Matrix &transform);
+	void drawFrame(int *bitmap, int width, int height,struct State state, Matrix &transform);
 
 public:
 
@@ -158,11 +165,6 @@ public:
 	// Bounding frame params
 	Vector max_bound_coord,
 		   min_bound_coord;
-
-	// colors
-	COLORREF bg_color,
-		     wire_color,
-		     frame_color;
 
 	IritWorld();
 
@@ -195,5 +197,5 @@ public:
 
 	bool isEmpty();
 
-	void draw(CDC *pDCToUse);
+	void draw(int *bitmap, int width, int height);
 };

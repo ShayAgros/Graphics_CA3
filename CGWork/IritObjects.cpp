@@ -2,6 +2,7 @@
 
 Matrix createTranslationMatrix(double &x, double &y, double z = 0);
 Matrix createTranslationMatrix(Vector &v);
+void lineDraw(int *bits, int width, int height, RGBQUAD color, Vector first, Vector second);
 
 #define BOX_NUM_OF_VERTICES 8
 
@@ -80,10 +81,11 @@ void IritPolygon::setNextPolygon(IritPolygon *polygon) {
 }
 
 
-void IritPolygon::draw(CDC *pDCToUse, struct State state, Matrix &normal_transform,
+void IritPolygon::draw(int *bitmap, int width, int height, struct State state, Matrix &normal_transform,
 					   Matrix &vertex_transform) {
 	struct IritPoint *current_point = m_points;
-	Vector vertex = current_point->vertex;
+	Vector current_vertex = current_point->vertex;
+	Vector next_vertex;
 
 	// For vertex normal drawing
 	Vector normal;
@@ -92,85 +94,62 @@ void IritPolygon::draw(CDC *pDCToUse, struct State state, Matrix &normal_transfo
 	// For polygon normal drawing
 	double x_sum = 0, y_sum = 0, num_of_vertices = 0;
 
-	/* "Draw" first point */
-	vertex = vertex_transform * vertex;
-
-	if (state.is_perspective_view)
-		vertex.Homogenize();
-
-	vertex = state.screen_mat * vertex;
-
-	x_sum += vertex[0];
-	y_sum += vertex[1];
+	x_sum += current_vertex[0];
+	y_sum += current_vertex[1];
 	++num_of_vertices;
 
-	pDCToUse->MoveTo((int)floor(vertex[0]), (int)floor(vertex[1]));
-
-	if (state.show_vertex_normal && current_point->has_normal) {
-		normal = normal_transform * current_point->normal;
-		if (state.is_perspective_view)
-			normal.Homogenize();
-		normal = state.ratio_mat * normal;
-		normal_end_x = vertex[0] + normal[0];
-		normal_end_y = vertex[1] + normal[1];
-		pDCToUse->LineTo((int)floor(normal_end_x), (int)floor(normal_end_y));
-		pDCToUse->MoveTo((int)floor(vertex[0]), (int)floor(vertex[1]));
+	if (state.show_vertex_normal && current_point->has_normal && 0) {
+		//normal = normal_transform * current_point->normal;
+		//if (state.is_perspective_view)
+		//	normal.Homogenize();
+		//normal = state.ratio_mat * normal;
+		//normal_end_x = vertex[0] + normal[0];
+		//normal_end_y = vertex[1] + normal[1];
 	}
 
-	current_point = current_point->next_point;
-
 	/* Draw shape's lines */
-	while (current_point) {
-		vertex = current_point->vertex;
-		vertex = vertex_transform * vertex;
+	while (current_point->next_point != nullptr) {
+		current_vertex = current_point->vertex;
+		next_vertex = current_point->next_point->vertex;
+		current_vertex = vertex_transform * current_vertex;
+		next_vertex = vertex_transform * next_vertex;
 
-		if (state.is_perspective_view)
-			vertex.Homogenize();
+		if (state.is_perspective_view) {
+			current_vertex.Homogenize();
+			next_vertex.Homogenize();
+		}
+		current_vertex = state.screen_mat * current_vertex;
+		next_vertex = state.screen_mat * next_vertex;
 
-		vertex = state.screen_mat * vertex;
-
-		x_sum += vertex[0];
-		y_sum += vertex[1];
+		x_sum += next_vertex[0];
+		y_sum += next_vertex[1];
 		++num_of_vertices;
 
-		pDCToUse->LineTo((int)floor(vertex[0]), (int)floor(vertex[1]));
+		lineDraw(bitmap, width, height, state.wire_color, current_vertex, next_vertex);
 
 		if (state.show_vertex_normal && current_point->has_normal) {
-			normal = normal_transform * current_point->normal;
-			if (state.is_perspective_view)
-				normal.Homogenize();
-			normal = state.ratio_mat * normal;
+			//normal = normal_transform * current_point->normal;
+			//if (state.is_perspective_view)
+			//	normal.Homogenize();
+			//normal = state.ratio_mat * normal;
 
-			normal_end_x = vertex[0] + normal[0];
-			normal_end_y = vertex[1] + normal[1];
-			pDCToUse->LineTo((int)floor(normal_end_x), (int)floor(normal_end_y));
-			pDCToUse->MoveTo((int)floor(vertex[0]), (int)floor(vertex[1]));
+			//normal_end_x = vertex[0] + normal[0];
+			//normal_end_y = vertex[1] + normal[1];
 		}
 
 		current_point = current_point->next_point;
 	}
 
-	/* Draw last line from last vertex to first one */
-	vertex = m_points->vertex;
-	vertex = vertex_transform * vertex;
-
-	if (state.is_perspective_view)
-		vertex.Homogenize();
-
-	vertex = state.screen_mat * vertex;
-
-	pDCToUse->LineTo((int)floor(vertex[0]), (int)floor(vertex[1]));
-
 	if (state.show_polygon_normal && this->has_normal) {
 		// TODO: add z value to normals
-		Vector polygon_center = Vector(x_sum / num_of_vertices, y_sum / num_of_vertices, 0, 1);
-		normal = normal_transform * this->normal;
-		if (state.is_perspective_view)
-			normal.Homogenize();
-		normal = state.ratio_mat * normal;
+		//Vector polygon_center = Vector(x_sum / num_of_vertices, y_sum / num_of_vertices, 0, 1);
+		//normal = normal_transform * this->normal;
+		//if (state.is_perspective_view)
+		//	normal.Homogenize();
+		//normal = state.ratio_mat * normal;
 
-		pDCToUse->MoveTo((int)floor(polygon_center[0]), (int)floor(polygon_center[1]));
-		pDCToUse->LineTo((int)floor(polygon_center[0] + normal[0]), (int)floor(polygon_center[1] + normal[1]));
+		//pDCToUse->MoveTo((int)floor(polygon_center[0]), (int)floor(polygon_center[1]));
+		//pDCToUse->LineTo((int)floor(polygon_center[0] + normal[0]), (int)floor(polygon_center[1] + normal[1]));
 	}
 }
 
@@ -213,11 +192,11 @@ IritPolygon *IritObject::createPolygon() {
 	return new_polygon;
 }
 
-void IritObject::draw(CDC *pDCToUse, struct State state, Matrix &normal_transform,
+void IritObject::draw(int *bitmap, int width, int height, struct State state, Matrix &normal_transform,
 					  Matrix &vertex_transform) {
 	m_iterator = m_polygons;
 	while (m_iterator) {
-		m_iterator->draw(pDCToUse, state, normal_transform, vertex_transform);
+		m_iterator->draw(bitmap, width, height, state, normal_transform, vertex_transform);
 		m_iterator = m_iterator->getNextPolygon();
 	}
 }
@@ -229,10 +208,6 @@ IritWorld::IritWorld() : m_objects_nr(0), m_objects_arr(nullptr) {
 	state.is_perspective_view = false;
 	state.object_transform = true;
 
-	bg_color = BG_DEFAULT_COLOR;
-	wire_color = WIRE_DEFAULT_COLOR;
-	frame_color = FRAME_DEFAULT_COLOR;
-
 	max_bound_coord = Vector();
 	min_bound_coord = Vector();
 
@@ -244,8 +219,11 @@ IritWorld::IritWorld() : m_objects_nr(0), m_objects_arr(nullptr) {
 	state.ortho_mat = Matrix::Identity();
 
 	state.view_mat = createViewMatrix(DEAULT_VIEW_PARAMETERS);
-
 	state.projection_plane_distance = DEFAULT_PROJECTION_PLANE_DISTANCE;
+
+	state.bg_color = BG_DEFAULT_COLOR;
+	state.wire_color = WIRE_DEFAULT_COLOR;
+	state.frame_color = FRAME_DEFAULT_COLOR;
 }
 
 IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_objects_nr(0), m_objects_arr(nullptr) {
@@ -255,10 +233,6 @@ IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_objects_
 	state.is_perspective_view = false;
 	state.object_transform = true;
 
-	bg_color = BG_DEFAULT_COLOR;
-	wire_color = WIRE_DEFAULT_COLOR;
-	frame_color = FRAME_DEFAULT_COLOR;
-
 	max_bound_coord = Vector();
 	min_bound_coord = Vector();
 
@@ -268,8 +242,13 @@ IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_objects_
 	state.world_mat = Matrix::Identity();
 	state.object_mat = Matrix::Identity();
 	state.ortho_mat = Matrix::Identity();
+
 	state.view_mat = createViewMatrix(DEAULT_VIEW_PARAMETERS);
 	state.projection_plane_distance = DEFAULT_PROJECTION_PLANE_DISTANCE;
+
+	state.bg_color = BG_DEFAULT_COLOR;
+	state.wire_color = WIRE_DEFAULT_COLOR;
+	state.frame_color = FRAME_DEFAULT_COLOR;
 }
 
 IritWorld::~IritWorld() {
@@ -352,7 +331,7 @@ Matrix createProjectionMatrix(const float &angleOfView, const float &near_z, con
 {
 	Matrix projection_mat(Matrix::Identity());
 	// set the basic projection matrix
-	float scale = 1 / tan(angleOfView * 0.5 * M_PI / 180);
+	double scale = 1 / tan(angleOfView * 0.5 * M_PI / 180);
 	projection_mat.array[0][0] = -scale; // scale the x coordinates of the projected point
 	projection_mat.array[1][1] = -scale; // scale the y coordinates of the projected point
 	projection_mat.array[2][2] = -far_z / (far_z - near_z); // used to remap z to [0,1]
@@ -363,50 +342,43 @@ Matrix createProjectionMatrix(const float &angleOfView, const float &near_z, con
 	return projection_mat;
 }
 
-void IritWorld::draw(CDC *pDCToUse) {
-	CPen *object_pen = new CPen(PS_SOLID, 0, wire_color),
-		 *frame_pen = new CPen(PS_SOLID, FRAME_WIDTH, frame_color);
-	Matrix projection_mat;
-	Matrix shrink = Matrix::Identity() * (1.0 / 10.0);
+void IritWorld::draw(int *bitmap, int width, int height) {
+		Matrix projection_mat;
+		Matrix shrink = Matrix::Identity() * (1.0 / 10.0);
 
-	Matrix model_mat =  state.world_mat * state.coord_mat;
+		Matrix model_mat = state.world_mat * state.coord_mat;
 
-	if (state.is_perspective_view) {
-		Matrix perspective_matrix = Matrix::Identity();
-		perspective_matrix.array[3][2] = 1 / state.projection_plane_distance;
-		perspective_matrix.array[3][3] = 0;
+		if (state.is_perspective_view) {
+			Matrix perspective_matrix = Matrix::Identity();
+			perspective_matrix.array[3][2] = 1 / state.projection_plane_distance;
+			perspective_matrix.array[3][3] = 0;
 
-		/* Use frustum perpective view */
-		//projection_mat = createProjectionMatrix(45, 0.5, 30) * state.view_mat;
+			/* Use frustum perpective view */
+			//projection_mat = createProjectionMatrix(45, 0.5, 30) * state.view_mat;
 
-		/* Use Gershon's perpective matrix */
-		projection_mat = perspective_matrix * state.view_mat * state.ortho_mat;
-	} else {
-		projection_mat = state.view_mat * state.ortho_mat;
-	}
+			/* Use Gershon's perpective matrix */
+			projection_mat = perspective_matrix * state.view_mat * state.ortho_mat;
+		} else {
+			projection_mat = state.view_mat * state.ortho_mat;
+		}
 
-	this->state.screen_mat = state.center_mat * state.ratio_mat;
+		this->state.screen_mat = state.center_mat * state.ratio_mat;
 
-	Matrix vertex_transform = projection_mat * model_mat * state.object_mat;
-	// Normal ended being a BIT too big. Lets divide them by 10
-	Matrix normal_transform = shrink *  vertex_transform;
+		Matrix vertex_transform = projection_mat * model_mat * state.object_mat;
+		// Normal ended being a BIT too big. Lets divide them by 10
+		Matrix normal_transform = shrink * vertex_transform;
 
-	// Draw all objects
-	pDCToUse->SelectObject(object_pen);
-	for (int i = 0; i < m_objects_nr; i++)
-		m_objects_arr[i]->draw(pDCToUse, state, normal_transform, vertex_transform);
+		// Draw all objects
+		for (int i = 0; i < m_objects_nr; i++)
+			m_objects_arr[i]->draw(bitmap, width, height, state, normal_transform, vertex_transform);
 
-	// Draw a frame around all objects
-	pDCToUse->SelectObject(frame_pen);
-	if (state.object_frame)
-		drawFrame(pDCToUse,  vertex_transform);
-	delete object_pen;
-	delete frame_pen;
+		// Draw a frame around all objects
+		if (state.object_frame)
+			drawFrame(bitmap, width, height, state, vertex_transform);
 }
 
-void IritWorld::drawFrame(CDC *pDCToUse, Matrix &transform) {
-//	Matrix transform = state.center_mat * state.coord_mat * state.ratio_mat * state.ortho_mat * state.world_mat * state.object_mat;
-
+void IritWorld::drawFrame(int *bitmap, int width, int height, struct State state, Matrix &transform) {
+	//Matrix transform = state.center_mat * state.coord_mat * state.ratio_mat * state.ortho_mat * state.world_mat * state.object_mat;
 	double frame_max_x = max_bound_coord[0],
 		   frame_max_y = max_bound_coord[1],
 		   frame_max_z = max_bound_coord[2],
@@ -433,39 +405,32 @@ void IritWorld::drawFrame(CDC *pDCToUse, Matrix &transform) {
 			coords[i].Homogenize();
 
 		coords[i] = state.screen_mat * coords[i];
-
 	}
 
 	// Draw "front side"
 
-	pDCToUse->MoveTo((int)floor((coords[0])[0]), (int)floor((coords[0])[1]));
-	pDCToUse->LineTo((int)floor((coords[1])[0]), (int)floor((coords[1])[1]));
-	pDCToUse->LineTo((int)floor((coords[3])[0]), (int)floor((coords[3])[1]));
-	pDCToUse->LineTo((int)floor((coords[2])[0]), (int)floor((coords[2])[1]));
-	pDCToUse->LineTo((int)floor((coords[0])[0]), (int)floor((coords[0])[1]));
+	lineDraw(bitmap, width, height, state.frame_color, coords[0], coords[1]);
+	lineDraw(bitmap, width, height, state.frame_color, coords[1], coords[3]);
+	lineDraw(bitmap, width, height, state.frame_color, coords[3], coords[2]);
+	lineDraw(bitmap, width, height, state.frame_color, coords[2], coords[0]);
 
 	// Draw "back side"
 
-	pDCToUse->MoveTo((int)floor((coords[4])[0]), (int)floor((coords[4])[1]));
-	pDCToUse->LineTo((int)floor((coords[5])[0]), (int)floor((coords[5])[1]));
-	pDCToUse->LineTo((int)floor((coords[7])[0]), (int)floor((coords[7])[1]));
-	pDCToUse->LineTo((int)floor((coords[6])[0]), (int)floor((coords[6])[1]));
-	pDCToUse->LineTo((int)floor((coords[4])[0]), (int)floor((coords[4])[1]));
+	lineDraw(bitmap, width, height, state.frame_color, coords[4], coords[5]);
+	lineDraw(bitmap, width, height, state.frame_color, coords[5], coords[7]);
+	lineDraw(bitmap, width, height, state.frame_color, coords[7], coords[6]);
+	lineDraw(bitmap, width, height, state.frame_color, coords[6], coords[4]);
 
 	// Draw "sides"
 
 	// Top right
-	pDCToUse->MoveTo((int)floor((coords[0])[0]), (int)floor((coords[0])[1]));
-	pDCToUse->LineTo((int)floor((coords[4])[0]), (int)floor((coords[4])[1]));
+	lineDraw(bitmap, width, height, state.frame_color, coords[0], coords[4]);
 	// Bottom right
-	pDCToUse->MoveTo((int)floor((coords[1])[0]), (int)floor((coords[1])[1]));
-	pDCToUse->LineTo((int)floor((coords[5])[0]), (int)floor((coords[5])[1]));
+	lineDraw(bitmap, width, height, state.frame_color, coords[1], coords[5]);
 	// Top left
-	pDCToUse->MoveTo((int)floor((coords[2])[0]), (int)floor((coords[2])[1]));
-	pDCToUse->LineTo((int)floor((coords[6])[0]), (int)floor((coords[6])[1]));
+	lineDraw(bitmap, width, height, state.frame_color, coords[2], coords[6]);
 	// Bottom left
-	pDCToUse->MoveTo((int)floor((coords[3])[0]), (int)floor((coords[3])[1]));
-	pDCToUse->LineTo((int)floor((coords[7])[0]), (int)floor((coords[7])[1]));
+	lineDraw(bitmap, width, height, state.frame_color, coords[3], coords[7]);
 }
 
 Matrix createTranslationMatrix(double &x, double &y, double z) {
@@ -493,4 +458,137 @@ Matrix createViewMatrix(double x, double y, double z)
 	Matrix camera_translation = createTranslationMatrix(x, y, z);
 
 	return camera_translation.Inverse();
+}
+
+void lineDrawOct0(int *bits, int width, int height, RGBQUAD color, Vector first, Vector second) {
+	int dx = (int)(second[0] - first[0]),
+		dy = (int)(second[1] - first[1]),
+		error = (2 * dy) - dx,
+		x = (int)first[0],
+		y = (int)first[1],
+		end_x = (int)second[0],
+		end_y = (int)second[1];
+
+	while (x != end_x) {
+		if ((x >= 0) && (x < width) && (y >= 0) && (y < height)) {
+			bits[y * width + x] = *((int*)&color);
+		}			
+		if (error > 0) {
+			y++;
+			x++;
+			error += 2 * (dy -  dx); // North-East
+		} else {
+			x++;
+			error += 2 * dy;         // East
+		}
+	}
+}
+
+void lineDrawOct1(int *bits, int width, int height, RGBQUAD color, Vector first, Vector second) {
+	int dx = (int)(second[0] - first[0]),
+		dy = (int)(second[1] - first[1]),
+		error = dy - (2 * dx),
+		x = (int)first[0],
+		y = (int)first[1],
+		end_x = (int)second[0],
+		end_y = (int)second[1];
+
+	while (y != end_y) {
+		if ((x >= 0) && (x < width) && (y >= 0) && (y < height))
+			bits[y * width + x] = *((int*)&color);
+		if (error > 0) {
+			y++;
+			error += -2 * dx;       // North
+		} else {
+			y++;
+			x++;
+			error += 2 * (dy - dx); // North-East
+		}
+	}
+}
+
+void lineDrawOct6(int *bits, int width, int height, RGBQUAD color, Vector first, Vector second) {
+	int dx = (int)(second[0] - first[0]),
+		dy = (int)(second[1] - first[1]),
+		error = dy + (2 * dx),
+		x = (int)first[0],
+		y = (int)first[1],
+		end_x = (int)second[0],
+		end_y = (int)second[1];
+
+	while (y != end_y) {
+		if ((x >= 0) && (x < width) && (y >= 0) && (y < height))
+			bits[y * width + x] = *((int*)&color);
+		if (error > 0) {
+			y--;
+			x++;
+			error += 2 * (dy + dx); // South-East
+		} else {
+			y--;
+			error += 2 * dx;        // South
+		}
+	}
+}
+
+void lineDrawOct7(int *bits, int width, int height, RGBQUAD color, Vector first, Vector second) {
+	int dx = (int)(second[0] - first[0]),
+		dy = (int)(second[1] - first[1]),
+		error = (2 * dy) + dx,
+		x = (int)first[0],
+		y = (int)first[1],
+		end_x = (int)second[0],
+		end_y = (int)second[1];
+
+	while (x != end_x) {
+		if ((x >= 0) && (x < width) && (y >= 0) && (y < height))
+			bits[y * width + x] = *((int*)&color);
+		if (error > 0) {
+			x++;
+			error += 2 * dy; // East
+		} else {
+			x++;
+			y--;
+			error += 2 * (dx + dy); // South-East
+		}
+	}
+}
+
+void lineDraw(int *bits, int width, int height, RGBQUAD color, Vector first, Vector second) {
+	double delta_x, delta_y, ratio;
+
+	// Handle case where they are vertical
+	if (first[0] == second[0]) {
+		if (first[1] < second[1]) {
+			lineDrawOct1(bits, width, height, color, first, second);
+		} else {
+			if (first[1] > second[2]) {
+				lineDrawOct6(bits, width, height, color, first, second);
+			} else {
+				return; // They are the same point
+			}
+		}
+	}
+
+	if (first[0] > second[0]) { // Octants 2 3 4 5
+		// Just draw the lines the opposite direction, this way we need only 4 drawing functions
+		Vector temp = first;
+		first = second;
+		second = temp;
+	}
+
+	// Now we should be in octants 0 1 6 7
+
+	delta_x = second[0] - first[0];
+	delta_y = second[1] - first[1];
+	ratio = delta_y / delta_x;
+
+	if (ratio >= 1.0) {							   // Octant 1
+		lineDrawOct1(bits, width, height, color, first, second);
+	} else if ((ratio >= 0.0) && (ratio < 1.0)) {  // Octant 0
+		lineDrawOct0(bits, width, height, color, first, second);
+	} else if ((ratio >= -1.0) && (ratio < 0.0)) { // Octant 7
+		lineDrawOct7(bits, width, height, color, first, second);
+	} else {									   // Octant 6
+		lineDrawOct6(bits, width, height, color, first, second);
+	}
 }

@@ -280,21 +280,49 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
 	    return;
-	CRect r;
 
-	GetClientRect(&r);
-	CDC *pDCToUse = /*m_pDC*/m_pDbDC;
-	
-	pDCToUse->FillSolidRect(&r, world.bg_color);
-	
-	if (!world.isEmpty())
-		world.draw(pDCToUse);
+	BITMAPINFO bminfo;
+	CRect rect;
+	GetClientRect(&rect);
 
+	RGBQUAD background = world.state.bg_color;
 
-	if (pDCToUse != m_pDC) 
-	{
-		m_pDC->BitBlt(r.left, r.top, r.Width(), r.Height(), pDCToUse, r.left, r.top, SRCCOPY);
+	int h = rect.bottom - rect.top,
+		w = rect.right - rect.left;
+	int *bitmap = new int[w * h];
+
+	HDC hdcMem = CreateCompatibleDC(pDC->m_hDC);
+	HBITMAP bm = CreateCompatibleBitmap(pDC->m_hDC, w, h);
+
+	HGDIOBJ hOld = SelectObject(hdcMem, bm);
+
+	bminfo.bmiHeader.biSize = sizeof(bminfo.bmiHeader);
+	bminfo.bmiHeader.biWidth = w;
+	bminfo.bmiHeader.biHeight = h;
+	bminfo.bmiHeader.biPlanes = 1;
+	bminfo.bmiHeader.biBitCount = 32;
+	bminfo.bmiHeader.biCompression = BI_RGB;
+	bminfo.bmiHeader.biSizeImage = 0;
+	bminfo.bmiHeader.biXPelsPerMeter = 1;
+	bminfo.bmiHeader.biYPelsPerMeter = 1;
+	bminfo.bmiHeader.biClrUsed = 0;
+	bminfo.bmiHeader.biClrImportant = 0;
+
+	for (int i = 0; i < w * h; i++) {
+		bitmap[i] = *((int*)&background);
 	}
+
+	if (!world.isEmpty())
+		world.draw(bitmap, w, h);
+
+	SetDIBits(hdcMem, bm, 0, h, bitmap, &bminfo, DIB_RGB_COLORS);
+
+	BitBlt(pDC->m_hDC, rect.left, rect.top, w, h, hdcMem, rect.left, rect.top, SRCCOPY);
+
+	SelectObject(hdcMem, hOld);
+	DeleteDC(hdcMem);
+	DeleteObject(bm);
+	delete[] bitmap;
 }
 
 
@@ -526,8 +554,9 @@ void resetWorld() {
 	world.state.is_perspective_view = false;
 	world.state.object_transform = true;
 
-	world.bg_color = BG_DEFAULT_COLOR;
-	world.wire_color = WIRE_DEFAULT_COLOR;
+	world.state.bg_color = BG_DEFAULT_COLOR;
+	world.state.wire_color = WIRE_DEFAULT_COLOR;
+	world.state.frame_color = FRAME_DEFAULT_COLOR;
 
 	world.state.world_mat = Matrix::Identity();
 	world.state.object_mat = Matrix::Identity();
@@ -689,9 +718,11 @@ void CCGWorkView::OnUpdateWorldTransform(CCmdUI* pCmdUI)
 void CCGWorkView::OnObjectColor()
 {
 	CColorDialog diag;
+	COLORREF color;
 
 	if (diag.DoModal() == IDOK) {
-		world.wire_color = diag.GetColor();
+		color = diag.GetColor();
+		world.state.wire_color = RGB_TO_RGBQUAD(color);
 		Invalidate();
 	}
 }
@@ -699,9 +730,11 @@ void CCGWorkView::OnObjectColor()
 void CCGWorkView::OnBGColor()
 {
 	CColorDialog diag;
+	COLORREF color;
 
 	if (diag.DoModal() == IDOK) {
-		world.bg_color = diag.GetColor();
+		color = diag.GetColor();
+		world.state.bg_color = RGB_TO_RGBQUAD(color);
 		Invalidate();
 	}
 }
