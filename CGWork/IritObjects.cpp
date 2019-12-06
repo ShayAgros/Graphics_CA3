@@ -89,7 +89,6 @@ void IritPolygon::draw(int *bitmap, int width, int height, struct State state, M
 
 	// For vertex normal drawing
 	Vector normal;
-	double normal_end_x, normal_end_y;
 
 	// For polygon normal drawing
 	double x_sum = 0, y_sum = 0, num_of_vertices = 0;
@@ -201,101 +200,22 @@ void IritObject::draw(int *bitmap, int width, int height, struct State state, Ma
 	}
 }
 
-IritWorld::IritWorld() : m_objects_nr(0), m_objects_arr(nullptr) {
-	state.show_vertex_normal = false;
-	state.show_polygon_normal = false;
-	state.object_frame = false;
-	state.is_perspective_view = false;
-	state.object_transform = true;
+IritFigure::IritFigure() : m_objects_nr(0), m_objects_arr(nullptr) {
 
 	max_bound_coord = Vector();
+	max_bound_coord[3] = 1;
 	min_bound_coord = Vector();
+	min_bound_coord[3] = 1;
 
-	state.coord_mat = Matrix::Identity();
-	state.center_mat = Matrix::Identity();
-	state.ratio_mat = Matrix::Identity();
-	state.world_mat = Matrix::Identity();
-	state.object_mat = Matrix::Identity();
-	state.ortho_mat = Matrix::Identity();
-
-	state.view_mat = createViewMatrix(DEAULT_VIEW_PARAMETERS);
-	state.projection_plane_distance = DEFAULT_PROJECTION_PLANE_DISTANCE;
-
-	state.bg_color = BG_DEFAULT_COLOR;
-	state.wire_color = WIRE_DEFAULT_COLOR;
-	state.frame_color = FRAME_DEFAULT_COLOR;
+	object_mat = Matrix::Identity();
+	world_mat = Matrix::Identity();
 }
 
-IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_objects_nr(0), m_objects_arr(nullptr) {
-	state.show_vertex_normal = false;
-	state.show_polygon_normal = false;
-	state.object_frame = false;
-	state.is_perspective_view = false;
-	state.object_transform = true;
-
-	max_bound_coord = Vector();
-	min_bound_coord = Vector();
-
-	state.coord_mat = Matrix::Identity();
-	state.center_mat = Matrix::Identity();
-	state.ratio_mat = Matrix::Identity();
-	state.world_mat = Matrix::Identity();
-	state.object_mat = Matrix::Identity();
-	state.ortho_mat = Matrix::Identity();
-
-	state.view_mat = createViewMatrix(DEAULT_VIEW_PARAMETERS);
-	state.projection_plane_distance = DEFAULT_PROJECTION_PLANE_DISTANCE;
-
-	state.bg_color = BG_DEFAULT_COLOR;
-	state.wire_color = WIRE_DEFAULT_COLOR;
-	state.frame_color = FRAME_DEFAULT_COLOR;
-}
-
-IritWorld::~IritWorld() {
+IritFigure::~IritFigure() {
 	delete[] m_objects_arr;
 }
 
-void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int screen_width, int screen_height) {
-	Matrix coor_mat;
-	Matrix center_mat;
-	Matrix ratio_mat;
-
-	// Expand to ratio
-
-	// Ratio should be about a fifth of the screen.
-	ratio_mat = Matrix::Identity();
-	ratio_mat.array[0][0] = screen_width / 5.0;
-	ratio_mat.array[1][1] = screen_height / 5.0;
-	state.ratio_mat = ratio_mat;
-	
-	// Set world coordinate system
-	coor_mat = Matrix(axes[0], axes[1], axes[2]);
-	state.coord_mat = coor_mat;
-
-	// Center to screen
-	center_mat = createTranslationMatrix(axes_origin);
-	state.center_mat = center_mat;
-}
-
-void IritWorld::setOrthoMat()
-{
-	double max_x = max_bound_coord[0],
-	   	   min_x = min_bound_coord[0],
-		   max_y = max_bound_coord[1],
-		   min_y = min_bound_coord[1],
-		   max_z = max_bound_coord[2],
-		   min_z = min_bound_coord[2];
-
-	state.ortho_mat.array[X_AXIS][0] = 2 / (max_x - min_x);
-	state.ortho_mat.array[Y_AXIS][1] = 2 / (max_y - min_y);
-	state.ortho_mat.array[Z_AXIS][2] = 2 / (max_z - min_z);
-
-	state.ortho_mat.array[X_AXIS][3] = -(max_x + min_x) / (max_x - min_x);
-	state.ortho_mat.array[Y_AXIS][3] = -(max_y + min_y) / (max_y - min_y);
-	state.ortho_mat.array[Z_AXIS][3] =  (max_z + min_z) / (max_z - min_z);
-}
-
-IritObject *IritWorld::createObject() {
+IritObject *IritFigure::createObject() {
 	IritObject *new_object = new IritObject();
 	if (!new_object)
 		return nullptr;
@@ -306,7 +226,7 @@ IritObject *IritWorld::createObject() {
 	return new_object;
 }
 
-bool IritWorld::addObjectP(IritObject *p_object) {
+bool IritFigure::addObjectP(IritObject *p_object) {
 
 	IritObject **new_objects_array = new IritObject*[m_objects_nr + 1];
 	if (!new_objects_array)
@@ -323,68 +243,31 @@ bool IritWorld::addObjectP(IritObject *p_object) {
 	return true;
 }
 
-bool IritWorld::isEmpty() {
-	return m_objects_nr == 0;
-};
+void IritFigure::draw(int *bitmap, int width, int height, Matrix transform, State &state) {
+	Matrix shrink = Matrix::Identity() * (1.0 / 10.0);
 
-Matrix createProjectionMatrix(const float &angleOfView, const float &near_z, const float &far_z)
-{
-	Matrix projection_mat(Matrix::Identity());
-	// set the basic projection matrix
-	double scale = 1 / tan(angleOfView * 0.5 * M_PI / 180);
-	projection_mat.array[0][0] = -scale; // scale the x coordinates of the projected point
-	projection_mat.array[1][1] = -scale; // scale the y coordinates of the projected point
-	projection_mat.array[2][2] = -far_z / (far_z - near_z); // used to remap z to [0,1]
-	projection_mat.array[3][2] = -far_z * near_z / (far_z - near_z); // used to remap z [0,1]
-	projection_mat.array[2][3] = -1; // set w = -z
-	projection_mat.array[3][3] = 0;
+	Matrix vertex_transform = transform * world_mat * object_mat;
 
-	return projection_mat;
+	// Normal ended being a BIT too big. Lets divide them by 10
+	Matrix normal_transform = shrink * vertex_transform;
+
+	// Draw all objects
+	for (int i = 0; i < m_objects_nr; i++)
+		m_objects_arr[i]->draw(bitmap, width, height, state, normal_transform, vertex_transform);
+
+	// Draw a frame around all objects
+	if (state.object_frame)
+		drawFrame(bitmap, width, height, state, vertex_transform);
 }
 
-void IritWorld::draw(int *bitmap, int width, int height) {
-		Matrix projection_mat;
-		Matrix shrink = Matrix::Identity() * (1.0 / 10.0);
-
-		Matrix model_mat = state.world_mat * state.coord_mat;
-
-		if (state.is_perspective_view) {
-			Matrix perspective_matrix = Matrix::Identity();
-			perspective_matrix.array[3][2] = 1 / state.projection_plane_distance;
-			perspective_matrix.array[3][3] = 0;
-
-			/* Use frustum perpective view */
-			//projection_mat = createProjectionMatrix(45, 0.5, 30) * state.view_mat;
-
-			/* Use Gershon's perpective matrix */
-			projection_mat = perspective_matrix * state.view_mat * state.ortho_mat;
-		} else {
-			projection_mat = state.view_mat * state.ortho_mat;
-		}
-
-		this->state.screen_mat = state.center_mat * state.ratio_mat;
-
-		Matrix vertex_transform = projection_mat * model_mat * state.object_mat;
-		// Normal ended being a BIT too big. Lets divide them by 10
-		Matrix normal_transform = shrink * vertex_transform;
-
-		// Draw all objects
-		for (int i = 0; i < m_objects_nr; i++)
-			m_objects_arr[i]->draw(bitmap, width, height, state, normal_transform, vertex_transform);
-
-		// Draw a frame around all objects
-		if (state.object_frame)
-			drawFrame(bitmap, width, height, state, vertex_transform);
-}
-
-void IritWorld::drawFrame(int *bitmap, int width, int height, struct State state, Matrix &transform) {
+void IritFigure::drawFrame(int *bitmap, int width, int height, struct State state, Matrix &transform) {
 	//Matrix transform = state.center_mat * state.coord_mat * state.ratio_mat * state.ortho_mat * state.world_mat * state.object_mat;
 	double frame_max_x = max_bound_coord[0],
-		   frame_max_y = max_bound_coord[1],
-		   frame_max_z = max_bound_coord[2],
-		   frame_min_x = min_bound_coord[0],
-		   frame_min_y = min_bound_coord[1],
-		   frame_min_z = min_bound_coord[2];
+		frame_max_y = max_bound_coord[1],
+		frame_max_z = max_bound_coord[2],
+		frame_min_x = min_bound_coord[0],
+		frame_min_y = min_bound_coord[1],
+		frame_min_z = min_bound_coord[2];
 
 	Vector coords[BOX_NUM_OF_VERTICES] = {
 		Vector(frame_max_x, frame_max_y, frame_max_z, 1), // Front top right
@@ -431,6 +314,235 @@ void IritWorld::drawFrame(int *bitmap, int width, int height, struct State state
 	lineDraw(bitmap, width, height, state.frame_color, coords[2], coords[6]);
 	// Bottom left
 	lineDraw(bitmap, width, height, state.frame_color, coords[3], coords[7]);
+}
+
+bool IritFigure::isEmpty() {
+	return m_objects_nr == 0;
+}
+
+void IritFigure::backup_transformation(State &state) {
+	if (state.object_transform) {
+		backup_transformation_matrix = object_mat;
+	} else {
+		backup_transformation_matrix = world_mat;
+	}
+}
+
+IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
+	state.show_vertex_normal = false;
+	state.show_polygon_normal = false;
+	state.object_frame = false;
+	state.is_perspective_view = false;
+	state.object_transform = true;
+
+	max_bound_coord = Vector();
+	max_bound_coord[3] = 1;
+	min_bound_coord = Vector();
+	min_bound_coord[3] = 1;
+
+	state.coord_mat = Matrix::Identity();
+	state.center_mat = Matrix::Identity();
+	state.ratio_mat = Matrix::Identity();
+	state.world_mat = Matrix::Identity();
+	state.object_mat = Matrix::Identity();
+	state.ortho_mat = Matrix::Identity();
+
+	state.view_mat = createViewMatrix(DEAULT_VIEW_PARAMETERS);
+	state.projection_plane_distance = DEFAULT_PROJECTION_PLANE_DISTANCE;
+
+	state.bg_color = BG_DEFAULT_COLOR;
+	state.wire_color = WIRE_DEFAULT_COLOR;
+	state.frame_color = FRAME_DEFAULT_COLOR;
+}
+
+IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_figures_nr(0), m_figures_arr(nullptr) {
+	state.show_vertex_normal = false;
+	state.show_polygon_normal = false;
+	state.object_frame = false;
+	state.is_perspective_view = false;
+	state.object_transform = true;
+
+	max_bound_coord = Vector();
+	max_bound_coord[3] = 1;
+	min_bound_coord = Vector();
+	min_bound_coord[3] = 1;
+
+	state.coord_mat = Matrix::Identity();
+	state.center_mat = Matrix::Identity();
+	state.ratio_mat = Matrix::Identity();
+	state.world_mat = Matrix::Identity();
+	state.object_mat = Matrix::Identity();
+	state.ortho_mat = Matrix::Identity();
+
+	state.view_mat = createViewMatrix(DEAULT_VIEW_PARAMETERS);
+	state.projection_plane_distance = DEFAULT_PROJECTION_PLANE_DISTANCE;
+
+	state.bg_color = BG_DEFAULT_COLOR;
+	state.wire_color = WIRE_DEFAULT_COLOR;
+	state.frame_color = FRAME_DEFAULT_COLOR;
+}
+
+IritWorld::~IritWorld() {
+	delete[] m_figures_arr;
+}
+
+void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int screen_width, int screen_height) {
+	Matrix coor_mat;
+	Matrix center_mat;
+	Matrix ratio_mat;
+
+	// Expand to ratio
+
+	// Ratio should be about a fifth of the screen.
+	ratio_mat = Matrix::Identity();
+	ratio_mat.array[0][0] = screen_width / 5.0;
+	ratio_mat.array[1][1] = screen_height / 5.0;
+	state.ratio_mat = ratio_mat;
+	
+	// Set world coordinate system
+	coor_mat = Matrix(axes[0], axes[1], axes[2]);
+	state.coord_mat = coor_mat;
+
+	// Center to screen
+	center_mat = createTranslationMatrix(axes_origin);
+	state.center_mat = center_mat;
+}
+
+void IritWorld::setOrthoMat()
+{
+	double max_x = max_bound_coord[0],
+	   	   min_x = min_bound_coord[0],
+		   max_y = max_bound_coord[1],
+		   min_y = min_bound_coord[1],
+		   max_z = max_bound_coord[2],
+		   min_z = min_bound_coord[2];
+
+	state.ortho_mat.array[X_AXIS][0] = 2 / (max_x - min_x);
+	state.ortho_mat.array[Y_AXIS][1] = 2 / (max_y - min_y);
+	state.ortho_mat.array[Z_AXIS][2] = 2 / (max_z - min_z);
+
+	state.ortho_mat.array[X_AXIS][3] = -(max_x + min_x) / (max_x - min_x);
+	state.ortho_mat.array[Y_AXIS][3] = -(max_y + min_y) / (max_y - min_y);
+	state.ortho_mat.array[Z_AXIS][3] =  (max_z + min_z) / (max_z - min_z);
+}
+
+IritFigure *IritWorld::createFigure() {
+	IritFigure *new_figure = new IritFigure();
+	if (!new_figure)
+		return nullptr;
+
+	if (!addFigureP(new_figure))
+		return nullptr;
+
+	return new_figure;
+}
+
+bool IritWorld::addFigureP(IritFigure *p_figure) {
+
+	IritFigure **new_figures_array = new IritFigure*[m_figures_nr + 1];
+	if (!new_figures_array)
+		return false;
+
+	for (int i = 0; i < m_figures_nr; i++)
+		new_figures_array[i] = m_figures_arr[i];
+	new_figures_array[m_figures_nr] = p_figure;
+
+	delete m_figures_arr;
+	m_figures_arr = new_figures_array;
+	m_figures_nr++;
+
+	return true;
+}
+
+bool IritWorld::isEmpty() {
+	return m_figures_nr == 0;
+};
+
+Matrix IritWorld::getPerspectiveMatrx(const float &angleOfView, const float &near_z, const float &far_z)
+{
+	Matrix projection_mat(Matrix::Identity());
+	// set the basic projection matrix
+	double scale = 1 / tan(angleOfView * 0.5 * M_PI / 180);
+	projection_mat.array[0][0] = -scale; // scale the x coordinates of the projected point
+	projection_mat.array[1][1] = -scale; // scale the y coordinates of the projected point
+	projection_mat.array[2][2] = -far_z / (far_z - near_z); // used to remap z to [0,1]
+	projection_mat.array[3][2] = -far_z * near_z / (far_z - near_z); // used to remap z [0,1]
+	projection_mat.array[2][3] = -1; // set w = -z
+	projection_mat.array[3][3] = 0;
+
+	return projection_mat;
+}
+
+Vector IritWorld::projectPoint(Vector &td_point, Matrix &transformation) {
+	Vector transformed_point = transformation * td_point;
+	if (state.is_perspective_view) 
+		transformed_point.Homogenize();
+	return state.screen_mat * transformed_point;
+}
+
+Matrix IritWorld::createProjectionMatrix() {
+	if (state.is_perspective_view) {
+		Matrix perspective_matrix = Matrix::Identity();
+		perspective_matrix.array[3][2] = 1 / state.projection_plane_distance;
+		perspective_matrix.array[3][3] = 0;
+
+		/* Use frustum perpective view */
+		//projection_mat = createProjectionMatrix(45, 0.5, 30) * state.view_mat;
+
+		/* Use Gershon's perpective matrix */
+		return perspective_matrix * state.view_mat * state.ortho_mat;
+	}
+
+	// we're in orthogonal view
+	return state.view_mat * state.ortho_mat;
+}
+
+void IritWorld::draw(int *bitmap, int width, int height) {
+		Matrix projection_mat = createProjectionMatrix();
+
+		this->state.screen_mat = state.center_mat * state.ratio_mat;
+
+		// Draw all objects
+		for (int i = 0; i < m_figures_nr; i++)
+			m_figures_arr[i]->draw(bitmap, width, height, projection_mat, state);
+}
+
+IritFigure *IritWorld::getFigureInPoint(CPoint &point) {
+	IritFigure *figure;
+	Matrix projection_mat = createProjectionMatrix();
+	Matrix transformation_mat;
+
+	Vector min_2d_point, max_2d_point;
+
+	int max_x, min_x, max_y, min_y;
+	
+	for (int i = 0; i < m_figures_nr; i++) {
+		figure = m_figures_arr[i];
+		/* The received point assumes that the point is given in a coordinate system in which 
+		 * the y value grows down (left-upper corner is (0, 0) ). To match our coordinate system
+		   to the point's, we rotate the object by 'coord_mat' */
+		transformation_mat = projection_mat * state.coord_mat * figure->world_mat * figure->object_mat;
+
+		min_2d_point = projectPoint(figure->min_bound_coord, transformation_mat);
+		max_2d_point = projectPoint(figure->max_bound_coord, transformation_mat);
+
+		max_x = max(min_2d_point[X_AXIS], max_2d_point[X_AXIS]);
+		min_x = min(min_2d_point[X_AXIS], max_2d_point[X_AXIS]);
+		max_y = max(min_2d_point[Y_AXIS], max_2d_point[Y_AXIS]);
+		min_y = min(min_2d_point[Y_AXIS], max_2d_point[Y_AXIS]);
+
+		if (min_x <= point.x && point.x <= max_x &&
+			min_y <= point.y && point.y <= max_y) {
+			return figure;
+		}
+	}
+	return NULL;
+}
+
+IritFigure &IritWorld::getLastFigure() {
+	assert(m_figures_nr > 0);
+
+	return *m_figures_arr[m_figures_nr - 1];
 }
 
 Matrix createTranslationMatrix(double &x, double &y, double z) {
