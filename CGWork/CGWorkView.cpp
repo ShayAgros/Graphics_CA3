@@ -598,11 +598,11 @@ Matrix createRotateMatrix(int axis, int shift) {
 }
 
 // TODO: find a better solution to this, cause this one sucks.
-Matrix createScaleMatrix(int axis, int shift) {
+Matrix createScaleMatrix(int axis, double shift) {
 	Matrix transform = Matrix::Identity();
 
 	if (shift != 0)
-		transform.array[axis][axis] = (1 + 1/shift);
+		transform.array[axis][axis] = (1 + shift/10);
 
 	return transform;
 }
