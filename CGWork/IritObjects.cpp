@@ -245,7 +245,6 @@ void IritFigure::draw(int *bitmap, int width, int height, Matrix transform, Stat
 }
 
 void IritFigure::drawFrame(int *bitmap, int width, int height, struct State state, Matrix &transform) {
-	//Matrix transform = state.center_mat * state.coord_mat * state.ratio_mat * state.ortho_mat * state.world_mat * state.object_mat;
 	double frame_max_x = max_bound_coord[0],
 		frame_max_y = max_bound_coord[1],
 		frame_max_z = max_bound_coord[2],
@@ -334,6 +333,8 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 
 	state.view_mat = createViewMatrix(DEAULT_VIEW_PARAMETERS);
 	state.projection_plane_distance = DEFAULT_PROJECTION_PLANE_DISTANCE;
+	state.sensitivity = 1.0;
+	state.fineness = DEFAULT_FINENESS;
 
 	state.bg_color = BG_DEFAULT_COLOR;
 	state.wire_color = WIRE_DEFAULT_COLOR;
@@ -362,6 +363,8 @@ IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_figures_
 
 	state.view_mat = createViewMatrix(DEAULT_VIEW_PARAMETERS);
 	state.projection_plane_distance = DEFAULT_PROJECTION_PLANE_DISTANCE;
+	state.sensitivity = 1.0;
+	state.fineness = DEFAULT_FINENESS;
 
 	state.bg_color = BG_DEFAULT_COLOR;
 	state.wire_color = WIRE_DEFAULT_COLOR;

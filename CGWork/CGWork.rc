@@ -38,6 +38,49 @@ IDR_CGWorkTYPE          ICON                    "res\\CGWorkDoc.ico"
 
 IDR_MAINFRAME           BITMAP                  "res\\Toolbar.bmp"
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_SENS_DISTANCE DIALOGEX 0, 0, 309, 131
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+DEFPUSHBUTTON   "OK", IDOK, 195, 108, 50, 14
+PUSHBUTTON      "Cancel", IDCANCEL, 249, 108, 50, 14
+LTEXT           "Sensitivity:", IDC_STATIC, 50, 43, 45, 8
+LTEXT           "Distance:", IDC_STATIC, 50, 63, 45, 8
+LTEXT			"Fineness:", IDC_STATIC, 50, 83, 45, 8
+EDITTEXT        IDC_SENS, 100, 40, 56, 14, ES_AUTOHSCROLL
+EDITTEXT        IDC_DISTANCE, 100, 60, 56, 14, ES_AUTOHSCROLL
+EDITTEXT        IDC_FINENESS, 100, 80, 56, 14, ES_AUTOHSCROLL
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_PARAM_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog Info
+//
+
+IDD_PARAM_DIALOG DLGINIT
+BEGIN
+0
+END
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Toolbar
@@ -117,6 +160,10 @@ BEGIN
         END
         MENUITEM "&Parameters...",              ID_LIGHT_CONSTANTS
     END
+	POPUP "&Misc..."
+	BEGIN
+		MENUITEM "Sensitivity and distance..."	IDD_SENS_DISTANCE
+	END
     POPUP "&Help"
     BEGIN
         MENUITEM "&About CGWork...",            ID_APP_ABOUT

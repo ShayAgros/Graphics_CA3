@@ -5,6 +5,7 @@
 
 #include "CGWorkDoc.h"
 #include "CGWorkView.h"
+#include "CGDialog.h"
 
 #include <math.h>
 
@@ -86,6 +87,7 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_COMMAND(ID_LIGHT_SHADING_GOURAUD, OnLightShadingGouraud)
 	ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_GOURAUD, OnUpdateLightShadingGouraud)
 	ON_COMMAND(ID_LIGHT_CONSTANTS, OnLightConstants)
+	ON_COMMAND(IDD_SENS_DISTANCE, OnSensDistance)
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
 	ON_WM_LBUTTONDOWN()
@@ -635,7 +637,7 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 {
 	if (is_mouse_down && chosen_figure) {
 		CPoint distance = (point - mouse_location);
-		int shift = sqrt(distance.x * distance.x + distance.y * distance.y)/15;
+		int shift = (int)sqrt(distance.x * distance.x + distance.y * distance.y)/15;
 		int axis = m_nAxis - ID_AXIS_X;
 		if (axis == 0) /* X Axis */
 			shift *= sign(distance.x);
@@ -760,4 +762,15 @@ void CCGWorkView::OnBGColor()
 		world.state.bg_color = RGB_TO_RGBQUAD(color);
 		Invalidate();
 	}
+}
+
+void CCGWorkView::OnSensDistance() {
+	CEx2Dialog diag(world.state.sensitivity, world.state.projection_plane_distance, world.state.fineness);
+
+	if (diag.DoModal() == IDOK) {
+		world.state.sensitivity = diag.m_sensitivity;
+		world.state.projection_plane_distance = diag.m_distance;
+		world.state.fineness = diag.m_fineness;
+	}
+	return;
 }

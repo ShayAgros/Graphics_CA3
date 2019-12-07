@@ -7,6 +7,7 @@
 #define IDR_CGWorkTYPE                  129
 #define IDD_LIGHTS_DLG                  134
 #define IDD_MATERIAL_DLG                136
+#define IDD_SENS_DISTANCE				137
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -34,6 +35,9 @@
 #define IDC_MATERIAL_DIFFUSE            1040
 #define IDC_MATERIAL_SHININESS          1041
 #define IDC_MATERIAL_SPECULAR           1042
+#define IDC_SENS						1043
+#define IDC_DISTANCE					1044
+#define IDC_FINENESS					1045
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773

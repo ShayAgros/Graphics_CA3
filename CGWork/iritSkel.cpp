@@ -80,7 +80,7 @@ bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
 		IRIT_GEN_COPY(CrntViewMat, IPViewMat, sizeof(IrtHmgnMatType));
 
 	/* Here some useful parameters to play with in tesselating freeforms: */
-	CGSkelFFCState.FineNess = 20;   /* Res. of tesselation, larger is finer. */
+	CGSkelFFCState.FineNess = world.state.fineness;   /* Res. of tesselation, larger is finer. */
 	CGSkelFFCState.ComputeUV = TRUE;   /* Wants UV coordinates for textures. */
 	CGSkelFFCState.FourPerFlat = TRUE;/* 4 poly per ~flat patch, 2 otherwise.*/
 	CGSkelFFCState.LinearOnePolyFlag = TRUE;    /* Linear srf gen. one poly. */
@@ -147,7 +147,7 @@ void CGSkelDumpOneTraversedObject(IPObjectStruct *PObj,
 *****************************************************************************/
 bool CGSkelStoreData(IPObjectStruct *PObj)
 {
-	int i, num_of_vertices;
+	int num_of_vertices;
 	const char *Str;
 	double RGB[3], Transp,
 		center_mass_x = 0, center_mass_y = 0, center_mass_z = 0;

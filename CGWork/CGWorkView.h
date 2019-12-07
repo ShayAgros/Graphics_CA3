@@ -110,6 +110,7 @@ protected:
 	afx_msg void OnLightShadingGouraud();
 	afx_msg void OnUpdateLightShadingGouraud(CCmdUI* pCmdUI);
 	afx_msg void OnLightConstants();
+	afx_msg void OnSensDistance();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 public:

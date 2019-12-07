@@ -14,6 +14,7 @@
 
 #define DEFAULT_PROJECTION_PLANE_DISTANCE 20
 #define DEAULT_VIEW_PARAMETERS 0, 0, -20
+#define DEFAULT_FINENESS 20.0
 
 #define RGB_TO_RGBQUAD(x) {(BYTE)((x & 0xff0000) >> 16), (BYTE)((x & 0xff00) >> 8), (BYTE)(x & 0xff), 0}
 
@@ -52,6 +53,8 @@ struct State {
 	bool is_default_color;
 
 	double projection_plane_distance;
+	double sensitivity;
+	double fineness;
 
 	Matrix ratio_mat;
 	Matrix coord_mat;

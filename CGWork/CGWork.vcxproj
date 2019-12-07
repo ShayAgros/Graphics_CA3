@@ -206,6 +206,7 @@
     <ClCompile Include="MaterialDlg.cpp" />
     <ClCompile Include="Matrix.cpp" />
     <ClCompile Include="PngWrapper.cpp" />
+    <ClCompile Include="CGDialog.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -227,6 +228,7 @@
     <ClInclude Include="CGWork.h" />
     <ClInclude Include="CGWorkDoc.h" />
     <ClInclude Include="CGWorkView.h" />
+    <ClInclude Include="CGDialog.h" />
     <ClInclude Include="IritObjects.h" />
     <ClInclude Include="iritSkel.h" />
     <ClInclude Include="Light.h" />
