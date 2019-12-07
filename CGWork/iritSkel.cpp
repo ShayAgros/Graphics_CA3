@@ -179,7 +179,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 
 	if (CGSkelGetObjectColor(PObj, RGB))
 	{
-		/* color code */
+		irit_object->object_color = {(BYTE)(RGB[2] * 255.0), (BYTE)(RGB[1] * 255.0), (BYTE)(RGB[0] * 255.0), 0};
 	}
 	if (CGSkelGetObjectTransp(PObj, &Transp))
 	{

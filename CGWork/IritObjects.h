@@ -49,6 +49,7 @@ struct State {
 	bool object_frame;
 	bool is_perspective_view;
 	bool object_transform;
+	bool is_default_color;
 
 	double projection_plane_distance;
 
@@ -117,7 +118,7 @@ public:
 	 * @vertex_transform - a transformation matrix for the the vertices (each
 	 *						vertex is multiplied by this matrix before being drawn
 	*/
-	void draw(int *bitmap, int width, int height, struct State state, Matrix &normal_transform,
+	void draw(int *bitmap, int width, int height, RGBQUAD color, struct State state,
 			  Matrix &vertex_transform);
 
 	// Operators overriding
@@ -133,6 +134,8 @@ class IritObject {
 	IritPolygon *m_iterator;
 
 public:
+	RGBQUAD object_color;
+
 	IritObject();
 	
 	~IritObject();
@@ -162,7 +165,7 @@ public:
 	 * @vertex_transform - a transformation matrix for the the vertices (each
 	 *						vertex is multiplied by this matrix before being drawn
 	*/
-	void draw(int *bitmap, int width, int height, struct State state, Matrix &normal_transform,
+	void draw(int *bitmap, int width, int height, struct State state,
 			  Matrix &vertex_transform);
 };
 

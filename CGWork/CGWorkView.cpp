@@ -745,6 +745,7 @@ void CCGWorkView::OnObjectColor()
 	if (diag.DoModal() == IDOK) {
 		color = diag.GetColor();
 		world.state.wire_color = RGB_TO_RGBQUAD(color);
+		world.state.is_default_color = false;
 		Invalidate();
 	}
 }

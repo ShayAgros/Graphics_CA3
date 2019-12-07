@@ -81,12 +81,13 @@ void IritPolygon::setNextPolygon(IritPolygon *polygon) {
 }
 
 
-void IritPolygon::draw(int *bitmap, int width, int height, struct State state, Matrix &normal_transform,
+void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct State state,
 					   Matrix &vertex_transform) {
 	struct IritPoint *current_point = m_points;
 	Vector current_vertex = current_point->vertex;
 	Vector next_vertex;
 	Vector polygon_normal[2];
+	RGBQUAD current_color = (state.is_default_color) ? color : state.wire_color;
 
 	// For vertex normal drawing
 	Vector normal;
@@ -105,7 +106,7 @@ void IritPolygon::draw(int *bitmap, int width, int height, struct State state, M
 		current_vertex = state.screen_mat * current_vertex;
 		next_vertex = state.screen_mat * next_vertex;
 
-		lineDraw(bitmap, width, height, state.wire_color, current_vertex, next_vertex);
+		lineDraw(bitmap, width, height, current_color, current_vertex, next_vertex);
 
 		if (state.show_vertex_normal) {
 			normal = current_point->normal * 0.3;
@@ -115,7 +116,7 @@ void IritPolygon::draw(int *bitmap, int width, int height, struct State state, M
 				normal.Homogenize();
 			normal = state.screen_mat * normal;
 
-			lineDraw(bitmap, width, height, state.wire_color, current_vertex, normal);
+			lineDraw(bitmap, width, height, current_color, current_vertex, normal);
 		}
 
 		current_point = current_point->next_point;
@@ -133,7 +134,7 @@ void IritPolygon::draw(int *bitmap, int width, int height, struct State state, M
 		polygon_normal[0] = state.screen_mat * polygon_normal[0];
 		polygon_normal[1] = state.screen_mat * polygon_normal[1];
 		
-		lineDraw(bitmap, width, height, state.wire_color, polygon_normal[0], polygon_normal[1]);
+		lineDraw(bitmap, width, height, current_color, polygon_normal[0], polygon_normal[1]);
 	}
 }
 
@@ -142,6 +143,7 @@ IritPolygon &IritPolygon::operator++() {
 }
 
 IritObject::IritObject() : m_polygons_nr(0), m_polygons(nullptr), m_iterator(nullptr) {
+	object_color = WIRE_DEFAULT_COLOR;
 }
 
 IritObject::~IritObject() {
@@ -176,11 +178,11 @@ IritPolygon *IritObject::createPolygon() {
 	return new_polygon;
 }
 
-void IritObject::draw(int *bitmap, int width, int height, struct State state, Matrix &normal_transform,
+void IritObject::draw(int *bitmap, int width, int height, struct State state,
 					  Matrix &vertex_transform) {
 	m_iterator = m_polygons;
 	while (m_iterator) {
-		m_iterator->draw(bitmap, width, height, state, normal_transform, vertex_transform);
+		m_iterator->draw(bitmap, width, height, object_color, state, vertex_transform);
 		m_iterator = m_iterator->getNextPolygon();
 	}
 }
@@ -233,12 +235,9 @@ void IritFigure::draw(int *bitmap, int width, int height, Matrix transform, Stat
 
 	Matrix vertex_transform = transform * world_mat * object_mat;
 
-	// Normal ended being a BIT too big. Lets divide them by 10
-	Matrix normal_transform = shrink * vertex_transform;
-
 	// Draw all objects
 	for (int i = 0; i < m_objects_nr; i++)
-		m_objects_arr[i]->draw(bitmap, width, height, state, normal_transform, vertex_transform);
+		m_objects_arr[i]->draw(bitmap, width, height, state, vertex_transform);
 
 	// Draw a frame around all objects
 	if (state.object_frame)
@@ -319,6 +318,7 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.object_frame = false;
 	state.is_perspective_view = false;
 	state.object_transform = true;
+	state.is_default_color = true;
 
 	max_bound_coord = Vector();
 	max_bound_coord[3] = 1;
@@ -346,6 +346,7 @@ IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_figures_
 	state.object_frame = false;
 	state.is_perspective_view = false;
 	state.object_transform = true;
+	state.is_default_color = true;
 
 	max_bound_coord = Vector();
 	max_bound_coord[3] = 1;
@@ -511,10 +512,10 @@ IritFigure *IritWorld::getFigureInPoint(CPoint &point) {
 		min_2d_point = projectPoint(figure->min_bound_coord, transformation_mat);
 		max_2d_point = projectPoint(figure->max_bound_coord, transformation_mat);
 
-		max_x = max(min_2d_point[X_AXIS], max_2d_point[X_AXIS]);
-		min_x = min(min_2d_point[X_AXIS], max_2d_point[X_AXIS]);
-		max_y = max(min_2d_point[Y_AXIS], max_2d_point[Y_AXIS]);
-		min_y = min(min_2d_point[Y_AXIS], max_2d_point[Y_AXIS]);
+		max_x = (int)max(min_2d_point[X_AXIS], max_2d_point[X_AXIS]);
+		min_x = (int)min(min_2d_point[X_AXIS], max_2d_point[X_AXIS]);
+		max_y = (int)max(min_2d_point[Y_AXIS], max_2d_point[Y_AXIS]);
+		min_y = (int)min(min_2d_point[Y_AXIS], max_2d_point[Y_AXIS]);
 
 		if (min_x <= point.x && point.x <= max_x &&
 			min_y <= point.y && point.y <= max_y) {
