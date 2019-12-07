@@ -45,6 +45,7 @@ IPFreeformConvStateStruct CGSkelFFCState = {
 extern IritWorld world;
 
 bool is_first_polygon;
+bool is_first_figure;
 
 VertexList *connectivity;
 
@@ -87,6 +88,8 @@ bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
 	// Need to be initialized before any object is proccesed;
 	is_first_polygon = true;
 
+	is_first_figure = true;
+
 	/* Traverse ALL the parsed data, recursively. */
 	IPTraverseObjListHierarchy(PObjects, CrntViewMat,
         CGSkelDumpOneTraversedObject);
@@ -120,6 +123,12 @@ void CGSkelDumpOneTraversedObject(IPObjectStruct *PObj,
 	else
 		PObjs = PObj;
 
+	if (is_first_figure) {
+		// We don't create a new figure if it has no objects
+		world.createFigure();
+		is_first_figure = false;
+	}
+
 	for (PObj = PObjs; PObj != NULL; PObj = PObj -> Pnext)
 		if (!CGSkelStoreData(PObj)) 
 			exit(1);
@@ -152,8 +161,9 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	VertexList *current_vertex;
 
 	const IPAttributeStruct *Attrs =
-		AttrTraceAttributes(PObj->Attr, PObj->Attr);
-	IritObject *irit_object = world.createObject();
+        AttrTraceAttributes(PObj -> Attr, PObj -> Attr);
+	IritFigure &figure = world.getLastFigure();
+	IritObject *irit_object = figure.createObject();
 
 	Vector first, second, third, vertex;
 
@@ -362,12 +372,21 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 
 void updateBoundingFrameLimits(IPVertexStruct *vertex)
 {
+	IritFigure &figure = world.getLastFigure();
+
 	world.min_bound_coord[0] = MIN(world.min_bound_coord[0], vertex->Coord[0]);
 	world.max_bound_coord[0] = MAX(world.max_bound_coord[0], vertex->Coord[0]);
 	world.min_bound_coord[1] = MIN(world.min_bound_coord[1], vertex->Coord[1]);
 	world.max_bound_coord[1] = MAX(world.max_bound_coord[1], vertex->Coord[1]);
 	world.min_bound_coord[2] = MIN(world.min_bound_coord[2], vertex->Coord[2]);
 	world.max_bound_coord[2] = MAX(world.max_bound_coord[2], vertex->Coord[2]);
+
+	figure.min_bound_coord[0] = MIN(figure.min_bound_coord[0], vertex->Coord[0]);
+	figure.max_bound_coord[0] = MAX(figure.max_bound_coord[0], vertex->Coord[0]);
+	figure.min_bound_coord[1] = MIN(figure.min_bound_coord[1], vertex->Coord[1]);
+	figure.max_bound_coord[1] = MAX(figure.max_bound_coord[1], vertex->Coord[1]);
+	figure.min_bound_coord[2] = MIN(figure.min_bound_coord[2], vertex->Coord[2]);
+	figure.max_bound_coord[2] = MAX(figure.max_bound_coord[2], vertex->Coord[2]);
 }
 
 bool areVerticesEqual(IPVertexStruct *first, IPVertexStruct *second) {

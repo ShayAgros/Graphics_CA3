@@ -37,6 +37,7 @@ IritWorld world;
 static CPoint mouse_location;
 
 static bool is_mouse_down;
+IritFigure *chosen_figure;
 
 void resetWorld(void);
 
@@ -552,7 +553,7 @@ void resetWorld() {
 	world.state.show_polygon_normal = false;
 	world.state.object_frame = false;
 	world.state.is_perspective_view = false;
-	world.state.object_transform = true;
+	world.state.object_transform = false;
 
 	world.state.bg_color = BG_DEFAULT_COLOR;
 	world.state.wire_color = WIRE_DEFAULT_COLOR;
@@ -597,11 +598,11 @@ Matrix createRotateMatrix(int axis, int shift) {
 }
 
 // TODO: find a better solution to this, cause this one sucks.
-Matrix createScaleMatrix(int axis, int shift) {
+Matrix createScaleMatrix(int axis, double shift) {
 	Matrix transform = Matrix::Identity();
 
 	if (shift != 0)
-		transform.array[axis][axis] = (1 + 1/shift);
+		transform.array[axis][axis] = (1 + shift/10);
 
 	return transform;
 }
@@ -616,23 +617,39 @@ Matrix createTranslateMatrix(int axis, int shift) {
 
 void CCGWorkView::OnLButtonDown(UINT nFlags, CPoint point)
 {
+	chosen_figure = world.getFigureInPoint(point);
 	is_mouse_down = true;
 	mouse_location = point;
+
+	if (chosen_figure)
+		chosen_figure->backup_transformation(world.state);
 
 	CView::OnLButtonDown(nFlags, point);
 }
 
+int sign(int number) {
+	return (number > 0) ? 1 : -1;
+}
+
 void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 {
-	if (is_mouse_down) {
-		int shift = mouse_location.x - point.x;
+	if (is_mouse_down && chosen_figure) {
+		CPoint distance = (point - mouse_location);
+		int shift = sqrt(distance.x * distance.x + distance.y * distance.y)/15;
 		int axis = m_nAxis - ID_AXIS_X;
+		if (axis == 0) /* X Axis */
+			shift *= sign(distance.x);
+		else if(axis == 1) /* Y Axis */
+			shift *= -sign(distance.y);
+		else
+			shift *= sign(distance.y);
+
 		Matrix* mat_to_transform;
 
 		if (world.state.object_transform) {
-			mat_to_transform = &world.state.object_mat;
+			mat_to_transform = &chosen_figure->object_mat;
 		} else {
-			mat_to_transform = &world.state.world_mat;
+			mat_to_transform = &chosen_figure->world_mat;
 		}
 
 		Matrix transform = Matrix::Identity();
@@ -648,9 +665,9 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 		default:
 			break;
 	}		
-		*mat_to_transform = transform * *mat_to_transform;
+		*mat_to_transform = transform * chosen_figure->backup_transformation_matrix;
+//		mouse_location = point;
 
-		mouse_location = point;
 		Invalidate();
 	}
 
@@ -660,6 +677,11 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 void CCGWorkView::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	is_mouse_down = false;
+
+	if (chosen_figure) {
+//		chosen_figure->restore_transformation(world.state);
+		chosen_figure = NULL;
+	}
 
 	CView::OnLButtonUp(nFlags, point);
 }

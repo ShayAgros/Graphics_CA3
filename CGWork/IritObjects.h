@@ -166,11 +166,78 @@ public:
 			  Matrix &vertex_transform);
 };
 
-class IritWorld {
+/* This class represents an Irit Figure which is build from many objects, which have many
+ * polygons, which have many dots. It can be described like this:
+ *	Figure -> Object
+ *			  Object
+ *			  Object ->
+ *					Polygon
+ *					Polygon
+ *					Polygon ->
+ *						Point
+ *						Point
+*/
+class IritFigure {
 	int m_objects_nr;
 	IritObject **m_objects_arr;
 
-	void drawFrame(int *bitmap, int width, int height,struct State state, Matrix &transform);
+	void drawFrame(int *bitmap, int width, int height, struct State state, Matrix &transform);
+
+public:
+
+	Matrix world_mat;
+	Matrix object_mat;
+
+	Matrix backup_transformation_matrix;
+
+	// Bounding frame params
+	Vector max_bound_coord,
+		min_bound_coord;
+
+	IritFigure();
+
+	~IritFigure();
+
+	/* Saves the current object or world transformation matrix
+	 * (depending on what is being modified at the moment).
+	 * This is to save the original location when changing the figure's
+	 * position using the mouse
+	 */
+	void backup_transformation(State &state);
+
+	/* Receieves a pointer to an object and adds the object
+	 * the objects' list.
+	 * @p_object - a pointer to the object that needs to be added
+	 * returns false on allocation error and true otherwise
+	*/
+	bool addObjectP(IritObject *p_object);
+
+	/* Creates an empty object and returns a pointer to it.
+	 * the object is added to the list of objects in the IritWorld.
+	 * It is added as the last object
+	 * return NULL on memory allocation error
+	*/
+	IritObject *createObject();
+
+	void draw(int *bitmap, int width, int height, Matrix transform, State &state);
+
+	bool isEmpty();
+};
+
+class IritWorld {
+	int m_figures_nr;
+	IritFigure **m_figures_arr;
+
+	/* Returns the perspective matrix */
+	Matrix getPerspectiveMatrx(const float &angleOfView, const float &near_z, const float &far_z);
+
+	/* Creates a projection matrix */
+	Matrix createProjectionMatrix();
+
+	/* Project a point to screen space using the given transformation and
+	 * the world's screen matrix.
+	 */
+	Vector projectPoint(Vector &td_point, Matrix &transformation);
 
 public:
 
@@ -196,19 +263,28 @@ public:
 	void setOrthoMat(void);
 
 
-	/* Creates an empty object and returns a pointer to it.
-	 * the object is added to the list of objects in the IritWorld.
+	/* Creates an empty figure and returns a pointer to it.
+	 * the figure is added to the list of figures in the IritWorld.
 	 * It is added as the last object
 	 * return NULL on memory allocation error
 	*/
-	IritObject *createObject();
+	IritFigure *createFigure();
 
-	/* Receieves a pointer to an object and adds the object
-	 * the objects' list.
-	 * @p_object - a pointer to the object that needs to be added
+	/* Receieves a pointer to a figure and adds the figure
+	 * the figures' list.
+	 * @p_figure - a pointer to the figure that needs to be added
 	 * returns false on allocation error and true otherwise
 	*/
-	bool addObjectP(IritObject *p_object);
+	bool addFigureP(IritFigure *p_figure);
+
+	/* Returns a reference to the last figure in the figures list */
+	IritFigure &getLastFigure();
+
+	/* Checks whether the point is inside the bounding box of one of the
+	 * figures. If so, choose the first figure that matches.
+	 * If the point isn't inside a figure's bounding box, return NULL
+	 */
+	IritFigure *getFigureInPoint(CPoint &point);
 
 	bool isEmpty();
 
