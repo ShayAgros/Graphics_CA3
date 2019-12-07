@@ -14,6 +14,10 @@
 #define MIN(x, y) ((x) < (y)) ? (x) : (y)
 #define MAX(x, y) ((x) > (y)) ? (x) : (y)
 
+#define EPSILON 0.005
+
+bool areVerticesEqual(IPVertexStruct *first, IPVertexStruct *second);
+
 void updateBoundingFrameLimits(IPVertexStruct *vertex);
 
 IPFreeformConvStateStruct CGSkelFFCState = {
@@ -41,6 +45,10 @@ IPFreeformConvStateStruct CGSkelFFCState = {
 extern IritWorld world;
 
 bool is_first_polygon;
+
+VertexList *connectivity;
+
+PolygonList *all_polygons;
 
 /*****************************************************************************
 * DESCRIPTION:                                                               *
@@ -130,23 +138,33 @@ void CGSkelDumpOneTraversedObject(IPObjectStruct *PObj,
 *****************************************************************************/
 bool CGSkelStoreData(IPObjectStruct *PObj)
 {
-	int i;
+	int i, num_of_vertices;
 	const char *Str;
-	double RGB[3], Transp;
+	double RGB[3], Transp,
+		center_mass_x = 0, center_mass_y = 0, center_mass_z = 0;
 	IPPolygonStruct *PPolygon;
 	IPVertexStruct *PVertex;
+
+	connectivity = new VertexList();
+	all_polygons = new PolygonList();
+
+	PolygonList *current_polygon;
+	VertexList *current_vertex;
+
 	const IPAttributeStruct *Attrs =
-        AttrTraceAttributes(PObj -> Attr, PObj -> Attr);
+		AttrTraceAttributes(PObj->Attr, PObj->Attr);
 	IritObject *irit_object = world.createObject();
+
+	Vector first, second, third, vertex;
 
 	assert(irit_object);
 
-	if (PObj -> ObjType != IP_OBJ_POLY) {
+	if (PObj->ObjType != IP_OBJ_POLY) {
 		AfxMessageBox(_T("Non polygonal object detected and ignored"));
 		return true;
 	}
 
-	/* You can use IP_IS_POLYGON_OBJ(PObj) and IP_IS_POINTLIST_OBJ(PObj) 
+	/* You can use IP_IS_POLYGON_OBJ(PObj) and IP_IS_POINTLIST_OBJ(PObj)
 	   to identify the type of the object*/
 
 	if (CGSkelGetObjectColor(PObj, RGB))
@@ -165,7 +183,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	{
 		/* parametric texture code */
 	}
-	if (Attrs != NULL) 
+	if (Attrs != NULL)
 	{
 		printf("[OBJECT\n");
 		while (Attrs) {
@@ -173,56 +191,171 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			Attrs = AttrTraceAttributes(Attrs, NULL);
 		}
 	}
-	for (PPolygon = PObj -> U.Pl; PPolygon != NULL;	PPolygon = PPolygon -> Pnext) 
-	{
-			bool has_normal;
-			IritPolygon *irit_polygon = irit_object->createPolygon();
-			assert(irit_polygon);
 
-			if (PPolygon -> PVertex == NULL) {
-				AfxMessageBox(_T("Dump: Attemp to dump empty polygon"));
-				return false;
+	//  First pass - build linked lists
+	for (PPolygon = PObj->U.Pl; PPolygon != NULL; PPolygon = PPolygon->Pnext) {
+
+		IritPolygon *new_polygon = new IritPolygon();
+
+		// List of all polygons
+		current_polygon = all_polygons;
+		if (current_polygon->polygon == nullptr) { // Populate the first node
+			current_polygon->skel_polygon = PPolygon;
+			current_polygon->polygon = new_polygon;
+		} else {
+			while (current_polygon->next != nullptr) {
+				current_polygon = current_polygon->next;
 			}
+			PolygonList *new_node = new PolygonList();
+			current_polygon->next = new_node;
+			current_polygon->next->polygon = new_polygon;
+			current_polygon->next->skel_polygon = PPolygon;
+		}
 
-			/* Count number of vertices. */
-			for (PVertex = PPolygon -> PVertex -> Pnext, i = 1;
-				PVertex != PPolygon -> PVertex && PVertex != NULL;
-				PVertex = PVertex -> Pnext, i++);
-			/* use if(IP_HAS_PLANE_POLY(PPolygon)) to know whether a normal is defined for the polygon
-			   access the normal by the first 3 components of PPolygon->Plane */
-			if (IP_HAS_PLANE_POLY(PPolygon)) {
-				irit_polygon->has_normal = true;
-				for (int i = 0; i < 3; i++) {
-					irit_polygon->normal[i] = PPolygon->Plane[i];
+		// List of all vertices, with connectiviy information
+		if (PPolygon->PVertex == NULL) {
+			AfxMessageBox(_T("Dump: Attemp to dump empty polygon"));
+			return false; // might cause memory leakage
+		}
+
+		PVertex = PPolygon->PVertex;
+		do {
+			current_vertex = connectivity;
+			if (current_vertex->vertex == nullptr) { // Populate the first node
+				current_vertex->vertex = PVertex;
+				current_vertex->polygon_list = new PolygonList();
+				current_vertex->polygon_list->skel_polygon = PPolygon;
+				current_vertex->polygon_list->polygon = new_polygon;
+			} else {
+				while (!areVerticesEqual(current_vertex->vertex, PVertex) && current_vertex->next != nullptr) {
+					current_vertex = current_vertex->next;
+				}
+				if (areVerticesEqual(current_vertex->vertex, PVertex)) { // We found the vertex
+					current_polygon = current_vertex->polygon_list;
+					while (current_polygon->skel_polygon != PPolygon && current_polygon->next != nullptr) {
+						current_polygon = current_polygon->next;
+					}
+					if (current_polygon->next == nullptr) {
+						current_polygon->next = new PolygonList();
+						current_polygon->next->skel_polygon = PPolygon;
+						current_polygon->next->polygon = new_polygon;
+						// If we found the polygon, it means the vertex was the one 
+						// who closes the loop for the polygon, so no need for the else clause
+					}
+				} else { // Vertex is not on the list
+					current_vertex->next = new VertexList();
+					current_vertex->next->vertex = PVertex;
+					current_vertex->next->polygon_list = new PolygonList();
+					current_vertex->next->polygon_list->skel_polygon = PPolygon;
+					current_vertex->next->polygon_list->polygon = new_polygon;
 				}
 			}
-			PVertex = PPolygon -> PVertex;
-			do {			     /* Assume at least one edge in polygon! */
-				/* code handeling all vertex/normal/texture coords */
-
-				has_normal = false;
-				if(IP_HAS_NORMAL_VRTX(PVertex)) 
-					has_normal = true;
-				irit_polygon->addPoint(PVertex, has_normal);
-
-				// Update the bounding frame
-				if (is_first_polygon) {
-					is_first_polygon = false;
-					world.max_bound_coord[0] = PVertex->Coord[0];
-					world.min_bound_coord[0] = PVertex->Coord[0];
-					world.max_bound_coord[1] = PVertex->Coord[1];
-					world.min_bound_coord[1] = PVertex->Coord[1];
-					world.max_bound_coord[2] = PVertex->Coord[2];
-					world.min_bound_coord[2] = PVertex->Coord[2];
-				} else {
-					updateBoundingFrameLimits(PVertex);
-				}
-
-				PVertex = PVertex -> Pnext;
-			}
-			while (PVertex != PPolygon -> PVertex && PVertex != NULL);
-			/* Close the polygon. */
+			PVertex = PVertex->Pnext;
+		} while (PVertex != nullptr && PVertex != PPolygon->PVertex);
 	}
+
+	// Second pass - calculate polygon normals
+	current_polygon = all_polygons;
+	while (current_polygon != nullptr) {
+		center_mass_x = 0;
+		center_mass_y = 0;
+		center_mass_z = 0;
+		IritPolygon *irit_polygon = current_polygon->polygon;
+		PPolygon = current_polygon->skel_polygon;
+		if (IP_HAS_PLANE_POLY(current_polygon->skel_polygon)) {
+			irit_polygon->is_irit_normal = true;
+			for (int j = 0; j < 3; j++) {
+				irit_polygon->normal_end[j] = current_polygon->skel_polygon->Plane[j];
+			}
+		} else {
+			PVertex = PPolygon->PVertex;
+			first = Vector(PVertex->Coord[0], PVertex->Coord[1], PVertex->Coord[2], 1);
+			PVertex = PVertex->Pnext;
+			second = Vector(PVertex->Coord[0], PVertex->Coord[1], PVertex->Coord[2], 1);
+			PVertex = PVertex->Pnext;
+			third = Vector(PVertex->Coord[0], PVertex->Coord[1], PVertex->Coord[2], 1);
+
+			irit_polygon->normal_end = (second - first) ^ (third - second);
+			irit_polygon->normal_end.Normalize();
+			irit_polygon->normal_end[3] = 1;
+		}
+
+		// FOR SMALLER POLYGON NORMALS
+		irit_polygon->normal_end = irit_polygon->normal_end * 0.3;
+
+		// Find center of mass
+		PVertex = PPolygon->PVertex;
+		num_of_vertices = 0;
+		do {
+			center_mass_x += PVertex->Coord[0];
+			center_mass_y += PVertex->Coord[1];
+			center_mass_z += PVertex->Coord[2];
+			num_of_vertices++;
+			PVertex = PVertex->Pnext;
+		} while (PVertex != nullptr && PVertex != PPolygon->PVertex);
+		center_mass_x /= num_of_vertices;
+		center_mass_y /= num_of_vertices;
+		center_mass_z /= num_of_vertices;
+
+		irit_polygon->normal_start = Vector(center_mass_x, center_mass_y, center_mass_z, 1);
+		irit_polygon->normal_end = irit_polygon->normal_end + irit_polygon->normal_start;
+		irit_polygon->normal_end[3] = 1;
+
+		// calculate next polygon
+		current_polygon = current_polygon->next;
+	}
+
+	// Third pass - populate the world
+	current_polygon = all_polygons;
+	do {
+		int polygon_count = 0;
+		bool is_irit_normal;
+		PolygonList *iterator;
+		Vector vertex_normal;
+
+		irit_object->addPolygonP(current_polygon->polygon);
+
+		PVertex = current_polygon->skel_polygon->PVertex;
+		do { // Assume at least one vertex in the polygon
+			vertex_normal = Vector(0, 0, 0, 1);
+			is_irit_normal = false;
+			if (IP_HAS_NORMAL_VRTX(PVertex)) {
+				is_irit_normal = true;
+			} else {
+				// Find vertex in vertices list
+				current_vertex = connectivity;
+				while (current_vertex->vertex != PVertex) { // It should find it
+					current_vertex = current_vertex->next;
+				}
+				iterator = current_vertex->polygon_list;
+				while (iterator != nullptr) {
+					vertex_normal += current_polygon->polygon->normal_end - current_polygon->polygon->normal_start;
+					polygon_count++;
+					iterator = iterator->next;
+				}
+				vertex_normal = vertex_normal * (1.0 / polygon_count);
+				vertex_normal.Normalize();
+			}
+			current_polygon->polygon->addPoint(PVertex, is_irit_normal, vertex_normal);
+
+			if (is_first_polygon) {
+				is_first_polygon = false;
+				world.max_bound_coord[0] = PVertex->Coord[0];
+				world.min_bound_coord[0] = PVertex->Coord[0];
+				world.max_bound_coord[1] = PVertex->Coord[1];
+				world.min_bound_coord[1] = PVertex->Coord[1];
+				world.max_bound_coord[2] = PVertex->Coord[2];
+				world.min_bound_coord[2] = PVertex->Coord[2];
+			} else {
+				updateBoundingFrameLimits(PVertex);
+			}
+
+			PVertex = PVertex->Pnext;
+		} while (PVertex != current_polygon->skel_polygon->PVertex && PVertex != NULL);		
+
+		current_polygon = current_polygon->next;
+	} while (current_polygon != nullptr);
+
 	/* Close the object. */
 	return true;
 }
@@ -235,6 +368,15 @@ void updateBoundingFrameLimits(IPVertexStruct *vertex)
 	world.max_bound_coord[1] = MAX(world.max_bound_coord[1], vertex->Coord[1]);
 	world.min_bound_coord[2] = MIN(world.min_bound_coord[2], vertex->Coord[2]);
 	world.max_bound_coord[2] = MAX(world.max_bound_coord[2], vertex->Coord[2]);
+}
+
+bool areVerticesEqual(IPVertexStruct *first, IPVertexStruct *second) {
+	if ((abs(first->Coord[0] - second->Coord[0]) < EPSILON) &&
+		(abs(first->Coord[1] - second->Coord[1]) < EPSILON) &&
+		(abs(first->Coord[2] - second->Coord[2]) < EPSILON)) {
+		return true;
+	}
+	return false;
 }
 
 /*****************************************************************************

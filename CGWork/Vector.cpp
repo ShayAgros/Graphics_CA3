@@ -107,7 +107,7 @@ Vector Vector::operator^(const Vector &vec) const
 // Vector addition
 Vector Vector::operator+(const Vector &vec) const
 {
-    Vector new_vec = Vector();
+    Vector new_vec = Vector(0, 0, 0, 1);
 
     for (int i = 0; i < 3; i++)
     {
@@ -152,6 +152,18 @@ void Vector::operator-=(const Vector &vec)
     }
 
     // W isn't affected;
+}
+
+bool Vector::operator==(const Vector &vec) const
+{
+	for (int i = 0; i < 4; i++)
+	{
+		if (coordinates[i] != vec.coordinates[i])
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 // Vector array index

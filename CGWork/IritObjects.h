@@ -32,11 +32,13 @@ enum Axis {
 	NUM_OF_AXES
 };
 
+class IritPolygon;
+
 struct IritPoint {
 	Vector vertex;
 	Vector normal;
 
-	bool has_normal;
+	bool is_irit_normal;
 
 	struct IritPoint *next_point;
 };
@@ -66,6 +68,18 @@ struct State {
 	RGBQUAD bg_color;
 };
 
+struct PolygonList {
+	IPPolygonStruct *skel_polygon;
+	IritPolygon *polygon;
+	PolygonList *next;
+};
+
+struct VertexList {
+	IPVertexStruct *vertex;
+	PolygonList *polygon_list;
+	VertexList *next;
+};
+
 class IritPolygon {
 	int m_point_nr;
 	struct IritPoint *m_points;
@@ -73,8 +87,9 @@ class IritPolygon {
 	IritPolygon *m_next_polygon;
 
 public:
-	Vector normal;
-	bool has_normal;
+	Vector normal_start;
+	Vector normal_end;
+	bool is_irit_normal;
 
 	IritPolygon();
 
@@ -86,7 +101,7 @@ public:
 	bool addPoint(double &x, double &y, double &z, double &normal_x, double &normal_y,
 		double &normal_z);
 
-	bool addPoint(IPVertexStruct *vertex, bool has_normal);
+	bool addPoint(IPVertexStruct *vertex, bool is_irit_normal, Vector normal);
 
 	IritPolygon *getNextPolygon();
 

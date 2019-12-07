@@ -46,6 +46,9 @@ public:
     // Vector subtraction
     void operator-=(const Vector &vec);
 
+	// Vectgor comperator
+	bool operator==(const Vector &vec) const;
+
 	// Vector array index
 	double &operator[](const int index);
 

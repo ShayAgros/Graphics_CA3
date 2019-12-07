@@ -6,8 +6,8 @@ void lineDraw(int *bits, int width, int height, RGBQUAD color, Vector first, Vec
 
 #define BOX_NUM_OF_VERTICES 8
 
-IritPolygon::IritPolygon() : m_point_nr(0), m_points(nullptr),
-			normal(Vector(0, 0, 0, 1)), has_normal(false), m_next_polygon(nullptr) {
+IritPolygon::IritPolygon() : m_point_nr(0), m_points(nullptr), normal_start(Vector(0, 0, 0, 1)),
+			normal_end(Vector(0, 0, 0, 1)), is_irit_normal(false), m_next_polygon(nullptr) {
 }
 
 IritPolygon::~IritPolygon() {
@@ -51,23 +51,23 @@ bool IritPolygon::addPoint(double &x, double &y, double &z, double &normal_x, do
 	return addPoint(new_point);
 }
 
-bool IritPolygon::addPoint(IPVertexStruct *vertex, bool has_normal) {
+bool IritPolygon::addPoint(IPVertexStruct *vertex, bool is_irit_normal, Vector normal) {
 	IritPoint new_point;
-	new_point.has_normal = false;
+	new_point.is_irit_normal = is_irit_normal;
 
 	for (int i = 0; i < 3; i++) {
 		new_point.vertex[i] = vertex->Coord[i];
 
-		if (has_normal)
+		if (is_irit_normal) {
 			new_point.normal[i] = vertex->Normal[i];
+		} else {
+			new_point.normal[i] = normal[i];
+		}
 	}
 
 	// Homogeneous component
 	new_point.vertex[3] = 1;
-	if (has_normal) {
-		new_point.normal[3] = 1;
-		new_point.has_normal = true;
-	}
+	new_point.normal[3] = 1;
 
 	return addPoint(new_point);
 }
@@ -86,26 +86,10 @@ void IritPolygon::draw(int *bitmap, int width, int height, struct State state, M
 	struct IritPoint *current_point = m_points;
 	Vector current_vertex = current_point->vertex;
 	Vector next_vertex;
+	Vector polygon_normal[2];
 
 	// For vertex normal drawing
 	Vector normal;
-	double normal_end_x, normal_end_y;
-
-	// For polygon normal drawing
-	double x_sum = 0, y_sum = 0, num_of_vertices = 0;
-
-	x_sum += current_vertex[0];
-	y_sum += current_vertex[1];
-	++num_of_vertices;
-
-	if (state.show_vertex_normal && current_point->has_normal && 0) {
-		//normal = normal_transform * current_point->normal;
-		//if (state.is_perspective_view)
-		//	normal.Homogenize();
-		//normal = state.ratio_mat * normal;
-		//normal_end_x = vertex[0] + normal[0];
-		//normal_end_y = vertex[1] + normal[1];
-	}
 
 	/* Draw shape's lines */
 	while (current_point->next_point != nullptr) {
@@ -121,35 +105,35 @@ void IritPolygon::draw(int *bitmap, int width, int height, struct State state, M
 		current_vertex = state.screen_mat * current_vertex;
 		next_vertex = state.screen_mat * next_vertex;
 
-		x_sum += next_vertex[0];
-		y_sum += next_vertex[1];
-		++num_of_vertices;
-
 		lineDraw(bitmap, width, height, state.wire_color, current_vertex, next_vertex);
 
-		if (state.show_vertex_normal && current_point->has_normal) {
-			//normal = normal_transform * current_point->normal;
-			//if (state.is_perspective_view)
-			//	normal.Homogenize();
-			//normal = state.ratio_mat * normal;
+		if (state.show_vertex_normal) {
+			normal = current_point->normal * 0.3;
+			normal += current_point->vertex;
+			normal = vertex_transform * normal;
+			if (state.is_perspective_view)
+				normal.Homogenize();
+			normal = state.screen_mat * normal;
 
-			//normal_end_x = vertex[0] + normal[0];
-			//normal_end_y = vertex[1] + normal[1];
+			lineDraw(bitmap, width, height, state.wire_color, current_vertex, normal);
 		}
 
 		current_point = current_point->next_point;
 	}
 
-	if (state.show_polygon_normal && this->has_normal) {
-		// TODO: add z value to normals
-		//Vector polygon_center = Vector(x_sum / num_of_vertices, y_sum / num_of_vertices, 0, 1);
-		//normal = normal_transform * this->normal;
-		//if (state.is_perspective_view)
-		//	normal.Homogenize();
-		//normal = state.ratio_mat * normal;
+	if (state.show_polygon_normal) {
+		polygon_normal[0] = vertex_transform * normal_start;
+		polygon_normal[1] = vertex_transform * normal_end;
 
-		//pDCToUse->MoveTo((int)floor(polygon_center[0]), (int)floor(polygon_center[1]));
-		//pDCToUse->LineTo((int)floor(polygon_center[0] + normal[0]), (int)floor(polygon_center[1] + normal[1]));
+		if (state.is_perspective_view) {
+			polygon_normal[0].Homogenize();
+			polygon_normal[1].Homogenize();
+		}
+
+		polygon_normal[0] = state.screen_mat * polygon_normal[0];
+		polygon_normal[1] = state.screen_mat * polygon_normal[1];
+		
+		lineDraw(bitmap, width, height, state.wire_color, polygon_normal[0], polygon_normal[1]);
 	}
 }
 
