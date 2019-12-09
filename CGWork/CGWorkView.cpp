@@ -201,7 +201,7 @@ BOOL CCGWorkView::InitializeCGWork()
 	GetClientRect(&r);
 	m_pDbDC = new CDC();
 	m_pDbDC->CreateCompatibleDC(m_pDC);
-	SetTimer(1, 1000, NULL);
+	//SetTimer(1, 1000, NULL);
 	m_pDbBitMap = CreateCompatibleBitmap(m_pDC->m_hDC, r.right, r.bottom);	
 	m_pDbDC->SelectObject(m_pDbBitMap);
 
