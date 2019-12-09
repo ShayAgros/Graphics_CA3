@@ -78,6 +78,7 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(ID_OBJECT_FRAME, OnUpdateObjectFrame)
 	ON_COMMAND(ID_OBJECT_COLOR, OnObjectColor)
 	ON_COMMAND(ID_BG_COLOR, OnBGColor)
+	ON_COMMAND(ID_NORMAL_COLOR, OnNormalColor)
 	ON_COMMAND(ID_WORLD_TRANSFORM, OnWorldTransform)
 	ON_UPDATE_COMMAND_UI(ID_WORLD_TRANSFORM, OnUpdateWorldTransform)
 	ON_COMMAND(ID_OBJECT_TRANSFORM, OnObjectTransform)
@@ -88,6 +89,9 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_GOURAUD, OnUpdateLightShadingGouraud)
 	ON_COMMAND(ID_LIGHT_CONSTANTS, OnLightConstants)
 	ON_COMMAND(IDD_SENS_DISTANCE, OnSensDistance)
+	ON_COMMAND(IDD_DIFFERENT_NORMALS, OnDifferentNormals)
+	ON_UPDATE_COMMAND_UI(IDD_DIFFERENT_NORMALS, OnUpdateDifferentNormals)
+
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
 	ON_WM_LBUTTONDOWN()
@@ -571,9 +575,10 @@ void resetWorld() {
 
 // TODO: tweak sensitivity
 Matrix createRotateMatrix(int axis, int shift) {
+	double move = shift * world.state.sensitivity;
 	Matrix transform = Matrix::Identity();
-	double sin_val = sin(shift / (2 * M_PI));
-	double cos_val = cos(shift / (2 * M_PI));
+	double sin_val = sin(move / (2 * M_PI));
+	double cos_val = cos(move / (2 * M_PI));
 
 	switch (axis) {
 	case X_AXIS: // X axis
@@ -601,18 +606,20 @@ Matrix createRotateMatrix(int axis, int shift) {
 
 // TODO: find a better solution to this, cause this one sucks.
 Matrix createScaleMatrix(int axis, double shift) {
+	double move = shift * world.state.sensitivity;
 	Matrix transform = Matrix::Identity();
 
-	if (shift != 0)
-		transform.array[axis][axis] = (1 + shift/10);
+	if (move != 0)
+		transform.array[axis][axis] = (1 + move/10);
 
 	return transform;
 }
 
 Matrix createTranslateMatrix(int axis, int shift) {
+	double move = shift * world.state.sensitivity;
 	Matrix transform = Matrix::Identity();
 
-	transform.array[axis][3] = shift;
+	transform.array[axis][3] = move;
 	
 	return transform;
 }
@@ -764,6 +771,18 @@ void CCGWorkView::OnBGColor()
 	}
 }
 
+void CCGWorkView::OnNormalColor()
+{
+	CColorDialog diag;
+	COLORREF color;
+
+	if (diag.DoModal() == IDOK) {
+		color = diag.GetColor();
+		world.state.normal_color = RGB_TO_RGBQUAD(color);
+		Invalidate();
+	}
+}
+
 void CCGWorkView::OnSensDistance() {
 	CEx2Dialog diag(world.state.sensitivity, world.state.projection_plane_distance, world.state.fineness);
 
@@ -771,6 +790,16 @@ void CCGWorkView::OnSensDistance() {
 		world.state.sensitivity = diag.m_sensitivity;
 		world.state.projection_plane_distance = diag.m_distance;
 		world.state.fineness = diag.m_fineness;
+		Invalidate();
 	}
 	return;
+}
+
+void CCGWorkView::OnDifferentNormals() {
+	world.state.tell_normals_apart = !world.state.tell_normals_apart;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdateDifferentNormals(CCmdUI* pCmdUI) {
+	pCmdUI->SetCheck(world.state.tell_normals_apart);
 }

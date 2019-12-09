@@ -8,6 +8,7 @@
 #define IDD_LIGHTS_DLG                  134
 #define IDD_MATERIAL_DLG                136
 #define IDD_SENS_DISTANCE				137
+#define IDD_DIFFERENT_NORMALS			138
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -63,6 +64,7 @@
 #define ID_OBJECT_TRANSFORM				32804
 #define ID_OBJECT_COLOR					32805
 #define ID_BG_COLOR						32806
+#define ID_NORMAL_COLOR					32807
 
 // Next default values for new objects
 // 

@@ -130,6 +130,9 @@ public:
 	afx_msg void OnUpdateWorldTransform(CCmdUI* pCmdUI);
 	afx_msg void OnObjectColor();
 	afx_msg void OnBGColor();
+	afx_msg void OnNormalColor();
+	afx_msg void OnDifferentNormals();
+	afx_msg void OnUpdateDifferentNormals(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

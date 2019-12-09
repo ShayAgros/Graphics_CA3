@@ -6,11 +6,12 @@
 #include "Matrix.h"
 
 // The color scheme here is    <B G R *reserved*>
-#define BG_DEFAULT_COLOR	{0, 0, 0, 0}
-#define WIRE_DEFAULT_COLOR	{128, 128, 128, 0}
-#define FRAME_DEFAULT_COLOR	{0, 0, 255, 0}
-
-#define FRAME_WIDTH 2
+#define BG_DEFAULT_COLOR		{0, 0, 0, 0}       // Black
+#define WIRE_DEFAULT_COLOR		{128, 128, 128, 0} // Grey
+#define FRAME_DEFAULT_COLOR		{0, 0, 255, 0}     // Red
+#define IRIT_NORMAL_COLOR		{0, 255, 255, 0}   // Yellow
+#define CALC_NORMAL_COLOR		{255, 0, 0, 0}     // Blue
+#define NORMAL_DEFAULT_COLOR	{255, 255, 255, 0} // White
 
 #define DEFAULT_PROJECTION_PLANE_DISTANCE 20
 #define DEAULT_VIEW_PARAMETERS 0, 0, -20
@@ -51,6 +52,7 @@ struct State {
 	bool is_perspective_view;
 	bool object_transform;
 	bool is_default_color;
+	bool tell_normals_apart;
 
 	double projection_plane_distance;
 	double sensitivity;
@@ -70,6 +72,7 @@ struct State {
 	RGBQUAD wire_color;
 	RGBQUAD frame_color;
 	RGBQUAD bg_color;
+	RGBQUAD normal_color;
 };
 
 struct PolygonList {

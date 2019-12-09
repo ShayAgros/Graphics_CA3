@@ -88,6 +88,7 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 	Vector next_vertex;
 	Vector polygon_normal[2];
 	RGBQUAD current_color = (state.is_default_color) ? color : state.wire_color;
+	RGBQUAD normal_color;
 
 	// For vertex normal drawing
 	Vector normal;
@@ -116,7 +117,15 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 				normal.Homogenize();
 			normal = state.screen_mat * normal;
 
-			lineDraw(bitmap, width, height, current_color, current_vertex, normal);
+			normal_color = state.normal_color;
+			if (state.tell_normals_apart) {
+				if (current_point->is_irit_normal)
+					normal_color = IRIT_NORMAL_COLOR;
+				else
+					normal_color = CALC_NORMAL_COLOR;
+			}
+
+			lineDraw(bitmap, width, height, normal_color, current_vertex, normal);
 		}
 
 		current_point = current_point->next_point;
@@ -134,7 +143,14 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		polygon_normal[0] = state.screen_mat * polygon_normal[0];
 		polygon_normal[1] = state.screen_mat * polygon_normal[1];
 		
-		lineDraw(bitmap, width, height, current_color, polygon_normal[0], polygon_normal[1]);
+		normal_color = state.normal_color;
+		if (state.tell_normals_apart) {
+			if (this->is_irit_normal)
+				normal_color = IRIT_NORMAL_COLOR;
+			else
+				normal_color = CALC_NORMAL_COLOR;
+		}
+		lineDraw(bitmap, width, height, normal_color, polygon_normal[0], polygon_normal[1]);
 	}
 }
 
@@ -318,6 +334,7 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.is_perspective_view = false;
 	state.object_transform = true;
 	state.is_default_color = true;
+	state.tell_normals_apart = false;
 
 	max_bound_coord = Vector();
 	max_bound_coord[3] = 1;
@@ -339,6 +356,7 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.bg_color = BG_DEFAULT_COLOR;
 	state.wire_color = WIRE_DEFAULT_COLOR;
 	state.frame_color = FRAME_DEFAULT_COLOR;
+	state.normal_color = NORMAL_DEFAULT_COLOR;
 }
 
 IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_figures_nr(0), m_figures_arr(nullptr) {
@@ -348,6 +366,7 @@ IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_figures_
 	state.is_perspective_view = false;
 	state.object_transform = true;
 	state.is_default_color = true;
+	state.tell_normals_apart = false;
 
 	max_bound_coord = Vector();
 	max_bound_coord[3] = 1;
@@ -369,6 +388,7 @@ IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_figures_
 	state.bg_color = BG_DEFAULT_COLOR;
 	state.wire_color = WIRE_DEFAULT_COLOR;
 	state.frame_color = FRAME_DEFAULT_COLOR;
+	state.normal_color = NORMAL_DEFAULT_COLOR;
 }
 
 IritWorld::~IritWorld() {
