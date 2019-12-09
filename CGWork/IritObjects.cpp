@@ -103,6 +103,10 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 			current_vertex.Homogenize();
 			next_vertex.Homogenize();
 		}
+
+		if (current_vertex[X_AXIS] > 5 || current_vertex[X_AXIS] < -5 || current_vertex[Y_AXIS] > 5 || current_vertex[Y_AXIS] < -5)
+			goto pass_this_point;
+
 		current_vertex = state.screen_mat * current_vertex;
 		next_vertex = state.screen_mat * next_vertex;
 
@@ -118,7 +122,7 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 
 			lineDraw(bitmap, width, height, current_color, current_vertex, normal);
 		}
-
+pass_this_point:
 		current_point = current_point->next_point;
 	}
 
@@ -379,13 +383,16 @@ void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int 
 	Matrix coor_mat;
 	Matrix center_mat;
 	Matrix ratio_mat;
+	int min_size = min(screen_width, screen_height);
 
 	// Expand to ratio
 
 	// Ratio should be about a fifth of the screen.
 	ratio_mat = Matrix::Identity();
-	ratio_mat.array[0][0] = screen_width / 5.0;
-	ratio_mat.array[1][1] = screen_height / 5.0;
+	ratio_mat.array[0][0] = min_size / 5.0;
+	ratio_mat.array[1][1] = min_size / 5.0;
+//	ratio_mat.array[0][0] = screen_width;
+//	ratio_mat.array[1][1] = screen_height;
 	state.ratio_mat = ratio_mat;
 	
 	// Set world coordinate system
@@ -452,11 +459,12 @@ Matrix IritWorld::getPerspectiveMatrx(const float &angleOfView, const float &nea
 	Matrix projection_mat(Matrix::Identity());
 	// set the basic projection matrix
 	double scale = 1 / tan(angleOfView * 0.5 * M_PI / 180);
+
 	projection_mat.array[0][0] = -scale; // scale the x coordinates of the projected point
 	projection_mat.array[1][1] = -scale; // scale the y coordinates of the projected point
 	projection_mat.array[2][2] = -far_z / (far_z - near_z); // used to remap z to [0,1]
-	projection_mat.array[3][2] = -far_z * near_z / (far_z - near_z); // used to remap z [0,1]
-	projection_mat.array[2][3] = -1; // set w = -z
+	projection_mat.array[2][3] = -far_z * near_z / (far_z - near_z); // used to remap z [0,1]
+	projection_mat.array[3][2] = -1; // set w = -z
 	projection_mat.array[3][3] = 0;
 
 	return projection_mat;
@@ -471,15 +479,18 @@ Vector IritWorld::projectPoint(Vector &td_point, Matrix &transformation) {
 
 Matrix IritWorld::createProjectionMatrix() {
 	if (state.is_perspective_view) {
-		Matrix perspective_matrix = Matrix::Identity();
+/*		Matrix perspective_matrix = Matrix::Identity();
 		perspective_matrix.array[3][2] = 1 / state.projection_plane_distance;
-		perspective_matrix.array[3][3] = 0;
+		perspective_matrix.array[3][3] = 0; */
 
+		Matrix worldToCamera(Matrix::Identity());
+		worldToCamera.array[3][1] = -10;
+		worldToCamera.array[3][2] = -20;
 		/* Use frustum perpective view */
-		//projection_mat = createProjectionMatrix(45, 0.5, 30) * state.view_mat;
-
+		Matrix perspective_matrix = getPerspectiveMatrx(90, 0.1, 100) * state.view_mat;
+//		Matrix perspective_matrix = getPerspectiveMatrx(90, 0.1, 100) * worldToCamera;
 		/* Use Gershon's perpective matrix */
-		return perspective_matrix * state.view_mat * state.ortho_mat;
+		return perspective_matrix * state.view_mat;
 	}
 
 	// we're in orthogonal view
