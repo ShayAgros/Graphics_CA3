@@ -581,7 +581,7 @@ Matrix createRotateMatrix(double x, double y, double z, double angle) {
 	double move = angle * world.state.sensitivity;
 	Matrix transform = Matrix::Identity();
 
-	Vector axis = (x, y, z, 1);
+	Vector axis = Vector(x, y, z, 1);
 	axis.Normalize();
 
 	double sin_val = sin(move / (2 * M_PI));
