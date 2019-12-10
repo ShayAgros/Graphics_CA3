@@ -457,7 +457,7 @@ void CCGWorkView::OnUpdateActionScale(CCmdUI* pCmdUI)
 // selected axis.
 void CCGWorkView::OnAxisX() 
 {
-	m_nAxis = ID_AXIS_X;
+	world.state.is_axis_active[X_AXIS] = !world.state.is_axis_active[X_AXIS];
 }
 
 // Gets called when windows has to repaint either the X button or the Axis pop up menu.
@@ -466,29 +466,29 @@ void CCGWorkView::OnAxisX()
 // It sets itself Checked if the current axis is the X axis.
 void CCGWorkView::OnUpdateAxisX(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(m_nAxis == ID_AXIS_X);
+	pCmdUI->SetCheck(world.state.is_axis_active[X_AXIS]);
 }
 
 
 void CCGWorkView::OnAxisY() 
 {
-	m_nAxis = ID_AXIS_Y;
+	world.state.is_axis_active[Y_AXIS] = !world.state.is_axis_active[Y_AXIS];
 }
 
 void CCGWorkView::OnUpdateAxisY(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(m_nAxis == ID_AXIS_Y);
+	pCmdUI->SetCheck(world.state.is_axis_active[Y_AXIS]);
 }
 
 
 void CCGWorkView::OnAxisZ() 
 {
-	m_nAxis = ID_AXIS_Z;
+	world.state.is_axis_active[Z_AXIS] = !world.state.is_axis_active[Z_AXIS];
 }
 
 void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(m_nAxis == ID_AXIS_Z);
+	pCmdUI->SetCheck(world.state.is_axis_active[Z_AXIS]);
 }
 
 
@@ -574,52 +574,48 @@ void resetWorld() {
 }
 
 // TODO: tweak sensitivity
-Matrix createRotateMatrix(int axis, int shift) {
-	double move = shift * world.state.sensitivity;
+Matrix createRotateMatrix(double x, double y, double z, double angle) {
+	if (x == 0 && y == 0 && z == 0) {
+		return Matrix::Identity();
+	}
+	double move = angle * world.state.sensitivity;
 	Matrix transform = Matrix::Identity();
+
+	Vector axis = (x, y, z, 1);
+	axis.Normalize();
+
 	double sin_val = sin(move / (2 * M_PI));
 	double cos_val = cos(move / (2 * M_PI));
 
-	switch (axis) {
-	case X_AXIS: // X axis
-		transform.array[1][1] = cos_val;
-		transform.array[2][2] = cos_val;
-		transform.array[1][2] = -sin_val;
-		transform.array[2][1] = sin_val;
-		break;
-	case Y_AXIS: // Y axis
-		transform.array[0][0] = cos_val;
-		transform.array[2][2] = cos_val;
-		transform.array[0][2] = sin_val;
-		transform.array[2][0] = -sin_val;
-		break;
-	case Z_AXIS: // Z axis
-		transform.array[0][0] = cos_val;
-		transform.array[1][1] = cos_val;
-		transform.array[0][1] = -sin_val;
-		transform.array[1][0] = sin_val;
-		break;
-	}
+	transform.array[0][0] = cos_val + pow(axis[0], 2) * (1 - cos_val);
+	transform.array[0][1] = axis[0] * axis[1] * (1 - cos_val) - axis[2] * sin_val;
+	transform.array[0][2] = axis[0] * axis[2] * (1 - cos_val) + axis[1] * sin_val;
+	transform.array[1][0] = axis[1] * axis[0] * (1 - cos_val) + axis[2] * sin_val;
+	transform.array[1][1] = cos_val + pow(axis[1], 2) * (1 - cos_val);
+	transform.array[1][2] = axis[1] * axis[2] * (1 - cos_val) - axis[0] * sin_val;
+	transform.array[2][0] = axis[2] * axis[0] * (1 - cos_val) - axis[1] * sin_val;
+	transform.array[2][1] = axis[2] * axis[1] * (1 - cos_val) + axis[0] * sin_val;
+	transform.array[2][2] = cos_val + pow(axis[2], 2) * (1 - cos_val);
 
 	return transform;
 }
 
-// TODO: find a better solution to this, cause this one sucks.
-Matrix createScaleMatrix(int axis, double shift) {
-	double move = shift * world.state.sensitivity;
+Matrix createScaleMatrix(double x, double y, double z) {
 	Matrix transform = Matrix::Identity();
 
-	if (move != 0)
-		transform.array[axis][axis] = (1 + move/10);
+	transform.array[0][0] = x;
+	transform.array[1][1] = y;
+	transform.array[2][2] = z;
 
 	return transform;
 }
 
-Matrix createTranslateMatrix(int axis, int shift) {
-	double move = shift * world.state.sensitivity;
+Matrix createTranslateMatrix(double x, double y, double z) {
 	Matrix transform = Matrix::Identity();
 
-	transform.array[axis][3] = move;
+	transform.array[0][3] = x;
+	transform.array[1][3] = y;
+	transform.array[2][3] = z;
 	
 	return transform;
 }
@@ -643,17 +639,9 @@ int sign(int number) {
 void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 {
 	if (is_mouse_down && chosen_figure) {
-		CPoint distance = (point - mouse_location);
-		int shift = (int)sqrt(distance.x * distance.x + distance.y * distance.y)/15;
-		int axis = m_nAxis - ID_AXIS_X;
-		if (axis == 0) /* X Axis */
-			shift *= sign(distance.x);
-		else if(axis == 1) /* Y Axis */
-			shift *= -sign(distance.y);
-		else
-			shift *= sign(distance.y);
-
+		double distance = (point.x - mouse_location.x) * world.state.sensitivity / 10.0;
 		Matrix* mat_to_transform;
+		Vector shift;
 
 		if (world.state.object_transform) {
 			mat_to_transform = &chosen_figure->object_mat;
@@ -664,18 +652,29 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 		Matrix transform = Matrix::Identity();
 		switch (m_nAction) {
 		case ID_ACTION_ROTATE :
-			transform = createRotateMatrix(axis, shift);
+			shift[0] = (world.state.is_axis_active[X_AXIS]) ? 1.0 : 0.0;
+			shift[1] = (world.state.is_axis_active[Y_AXIS]) ? 1.0 : 0.0;
+			shift[2] = (world.state.is_axis_active[Z_AXIS]) ? 1.0 : 0.0;
+
+			transform = createRotateMatrix(shift[0], shift[1], shift[2], distance);
 			break;
 		case ID_ACTION_SCALE :
-			transform = createScaleMatrix(axis, shift);
+			shift[0] = 1.0 + ((world.state.is_axis_active[X_AXIS]) ? (distance / 10.0) : 0.0);
+			shift[1] = 1.0 + ((world.state.is_axis_active[Y_AXIS]) ? (distance / 10.0) : 0.0);
+			shift[2] = 1.0 + ((world.state.is_axis_active[Z_AXIS]) ? (distance / 10.0) : 0.0);
+
+			transform = createScaleMatrix(shift[0], shift[1], shift[2]);
 			break;
 		case ID_ACTION_TRANSLATE :
-			transform = createTranslateMatrix(axis, shift);
+			shift[0] = (world.state.is_axis_active[X_AXIS]) ? distance : 0.0;
+			shift[1] = (world.state.is_axis_active[Y_AXIS]) ? distance : 0.0;
+			shift[2] = (world.state.is_axis_active[Z_AXIS]) ? distance : 0.0;
+
+			transform = createTranslateMatrix(shift[0], shift[1], shift[2]);
 		default:
 			break;
 	}		
 		*mat_to_transform = transform * chosen_figure->backup_transformation_matrix;
-//		mouse_location = point;
 
 		Invalidate();
 	}

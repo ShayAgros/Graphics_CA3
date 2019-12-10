@@ -340,6 +340,9 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.is_default_color = true;
 	state.tell_normals_apart = false;
 
+	for (int i = 0; i < 3; i++)
+		state.is_axis_active[i] = false;
+
 	max_bound_coord = Vector();
 	max_bound_coord[3] = 1;
 	min_bound_coord = Vector();
@@ -371,6 +374,9 @@ IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_figures_
 	state.object_transform = true;
 	state.is_default_color = true;
 	state.tell_normals_apart = false;
+
+	for (int i = 0; i < 3; i++)
+		state.is_axis_active[i] = false;
 
 	max_bound_coord = Vector();
 	max_bound_coord[3] = 1;
@@ -474,7 +480,7 @@ bool IritWorld::isEmpty() {
 	return m_figures_nr == 0;
 };
 
-Matrix IritWorld::getPerspectiveMatrx(const float &angleOfView, const float &near_z, const float &far_z)
+Matrix IritWorld::getPerspectiveMatrix(const double &angleOfView, const double &near_z, const double &far_z)
 {
 	Matrix projection_mat(Matrix::Identity());
 	// set the basic projection matrix
@@ -507,7 +513,7 @@ Matrix IritWorld::createProjectionMatrix() {
 		worldToCamera.array[3][1] = -10;
 		worldToCamera.array[3][2] = -20;
 		/* Use frustum perpective view */
-		Matrix perspective_matrix = getPerspectiveMatrx(90, 0.1, 100) * state.view_mat;
+		Matrix perspective_matrix = getPerspectiveMatrix(90, 0.1, 100) * state.view_mat;
 //		Matrix perspective_matrix = getPerspectiveMatrx(90, 0.1, 100) * worldToCamera;
 		/* Use Gershon's perpective matrix */
 		return perspective_matrix * state.view_mat;

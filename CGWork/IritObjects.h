@@ -58,6 +58,8 @@ struct State {
 	double sensitivity;
 	double fineness;
 
+	bool is_axis_active[3];
+
 	Matrix ratio_mat;
 	Matrix coord_mat;
 	Matrix center_mat;
@@ -238,7 +240,7 @@ class IritWorld {
 	IritFigure **m_figures_arr;
 
 	/* Returns the perspective matrix */
-	Matrix getPerspectiveMatrx(const float &angleOfView, const float &near_z, const float &far_z);
+	Matrix getPerspectiveMatrix(const double &angleOfView, const double &near_z, const double &far_z);
 
 	/* Creates a projection matrix */
 	Matrix createProjectionMatrix();
