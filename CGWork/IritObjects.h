@@ -14,7 +14,7 @@
 #define NORMAL_DEFAULT_COLOR	{255, 255, 255, 0} // White
 
 #define DEFAULT_PROJECTION_PLANE_DISTANCE 20
-#define DEAULT_VIEW_PARAMETERS 0, 0, -10
+#define DEAULT_VIEW_PARAMETERS 0, 0, -20
 #define DEFAULT_FINENESS 20.0
 
 #define RGB_TO_RGBQUAD(x) {(BYTE)((x & 0xff0000) >> 16), (BYTE)((x & 0xff00) >> 8), (BYTE)(x & 0xff), 0}
