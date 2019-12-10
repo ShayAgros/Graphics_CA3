@@ -86,7 +86,8 @@ bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
 	CGSkelFFCState.LinearOnePolyFlag = TRUE;    /* Linear srf gen. one poly. */
 
 	// Need to be initialized before any object is proccesed;
-	is_first_polygon = true;
+	if (world.isEmpty())
+		is_first_polygon = true;
 
 	is_first_figure = true;
 
