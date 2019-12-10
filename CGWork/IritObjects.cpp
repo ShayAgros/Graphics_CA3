@@ -103,10 +103,10 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		if (state.is_perspective_view) {
 			current_vertex.Homogenize();
 			next_vertex.Homogenize();
-		}
 
-		if (current_vertex[X_AXIS] > 5 || current_vertex[X_AXIS] < -5 || current_vertex[Y_AXIS] > 5 || current_vertex[Y_AXIS] < -5)
-			goto pass_this_point;
+			if (current_vertex[X_AXIS] > 4.5 || current_vertex[X_AXIS] < -4.5 || current_vertex[Y_AXIS] > 4.5 || current_vertex[Y_AXIS] < -4.5)
+				goto pass_this_point;
+		}
 
 		current_vertex = state.screen_mat * current_vertex;
 		next_vertex = state.screen_mat * next_vertex;
@@ -396,7 +396,7 @@ IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_figures_
 }
 
 IritWorld::~IritWorld() {
-	delete[] m_figures_arr;
+	delete[] m_figures_arr; 
 }
 
 void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int screen_width, int screen_height) {
@@ -499,18 +499,15 @@ Vector IritWorld::projectPoint(Vector &td_point, Matrix &transformation) {
 
 Matrix IritWorld::createProjectionMatrix() {
 	if (state.is_perspective_view) {
-/*		Matrix perspective_matrix = Matrix::Identity();
+		Matrix perspective_matrix = Matrix::Identity();
+		// Use Gershon's perpective matrix
 		perspective_matrix.array[3][2] = 1 / state.projection_plane_distance;
-		perspective_matrix.array[3][3] = 0; */
+		perspective_matrix.array[3][3] = 0; 
 
-		Matrix worldToCamera(Matrix::Identity());
-		worldToCamera.array[3][1] = -10;
-		worldToCamera.array[3][2] = -20;
 		/* Use frustum perpective view */
-		Matrix perspective_matrix = getPerspectiveMatrx(90, 0.1, 100) * state.view_mat;
+//		Matrix perspective_matrix = getPerspectiveMatrx(10, -5, 100) * state.view_mat;
 //		Matrix perspective_matrix = getPerspectiveMatrx(90, 0.1, 100) * worldToCamera;
-		/* Use Gershon's perpective matrix */
-		return perspective_matrix * state.view_mat;
+		return perspective_matrix * state.view_mat * state.ortho_mat;
 	}
 
 	// we're in orthogonal view
