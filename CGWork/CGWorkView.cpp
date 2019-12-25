@@ -600,22 +600,13 @@ Matrix createRotateMatrix(double x, double y, double z, double angle) {
 	return transform;
 }
 
-Matrix createScaleMatrix(double x, double y, double z) {
-	Matrix transform = Matrix::Identity();
-
-	transform.array[0][0] = x;
-	transform.array[1][1] = y;
-	transform.array[2][2] = z;
-
-	return transform;
-}
-
 Matrix createTranslateMatrix(double x, double y, double z) {
 	Matrix transform = Matrix::Identity();
 
 	transform.array[0][3] = x;
 	transform.array[1][3] = y;
 	transform.array[2][3] = z;
+
 	
 	return transform;
 }
@@ -663,7 +654,8 @@ void CCGWorkView::OnMouseMove(UINT nFlags, CPoint point)
 			shift[1] = 1.0 + ((world.state.is_axis_active[Y_AXIS]) ? (distance / 10.0) : 0.0);
 			shift[2] = 1.0 + ((world.state.is_axis_active[Z_AXIS]) ? (distance / 10.0) : 0.0);
 
-			transform = createScaleMatrix(shift[0], shift[1], shift[2]);
+			transform = Matrix::createScaleMatrix(shift[0], shift[1], shift[2]);
+			//world.update
 			break;
 		case ID_ACTION_TRANSLATE :
 			shift[0] = (world.state.is_axis_active[X_AXIS]) ? distance : 0.0;

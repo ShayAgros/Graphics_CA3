@@ -254,3 +254,14 @@ void Matrix::Print() const
         cout << ">" << endl;
     }
 }
+
+
+Matrix Matrix::createScaleMatrix(double x, double y, double z) {
+	Matrix transform = Matrix::Identity();
+
+	transform.array[0][0] = x;
+	transform.array[1][1] = y;
+	transform.array[2][2] = z;
+
+	return transform;
+}

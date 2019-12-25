@@ -1,6 +1,6 @@
 #include "IritObjects.h"
 
-Matrix createTranslationMatrix(double &x, double &y, double z = 0);
+Matrix createTranslationMatrix(double x, double y, double z = 0);
 Matrix createTranslationMatrix(Vector &v);
 void lineDraw(int *bits, int width, int height, RGBQUAD color, Vector first, Vector second);
 
@@ -103,9 +103,13 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		if (state.is_perspective_view) {
 			current_vertex.Homogenize();
 			next_vertex.Homogenize();
+		}
 
-			if (current_vertex[X_AXIS] > 4.5 || current_vertex[X_AXIS] < -4.5 || current_vertex[Y_AXIS] > 4.5 || current_vertex[Y_AXIS] < -4.5)
-				goto pass_this_point;
+		// Clipping. Don't draw points that are outside of our view volume
+		if (current_vertex[X_AXIS] > 1 || current_vertex[X_AXIS] < -1 || current_vertex[Y_AXIS] > 1 || current_vertex[Y_AXIS] < -1 ||
+			current_vertex[2] > 1 || current_vertex[2] < -1) {
+			printf("Way out of line!\n");
+			goto pass_this_point;
 		}
 
 		current_vertex = state.screen_mat * current_vertex;
@@ -215,7 +219,9 @@ IritFigure::IritFigure() : m_objects_nr(0), m_objects_arr(nullptr) {
 	min_bound_coord[3] = 1;
 
 	object_mat = Matrix::Identity();
-	world_mat = Matrix::Identity();
+
+	// We draw an object in a 1/2 of its size. No need to fill the whole screen
+	world_mat = Matrix::createScaleMatrix((double)(1) /2, (double)(1) /2, 1) * Matrix::Identity();
 }
 
 IritFigure::~IritFigure() {
@@ -415,10 +421,10 @@ void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int 
 
 	// Ratio should be about a fifth of the screen.
 	ratio_mat = Matrix::Identity();
-	ratio_mat.array[0][0] = min_size / 5.0;
-	ratio_mat.array[1][1] = min_size / 5.0;
-//	ratio_mat.array[0][0] = screen_width;
-//	ratio_mat.array[1][1] = screen_height;
+	ratio_mat.array[0][0] = min_size / 2;
+	ratio_mat.array[1][1] = min_size / 2;
+//	ratio_mat.array[0][0] = screen_width / 2;
+//	ratio_mat.array[1][1] = screen_height / 2;
 	state.ratio_mat = ratio_mat;
 	
 	// Set world coordinate system
@@ -430,14 +436,24 @@ void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int 
 	state.center_mat = center_mat;
 }
 
+/* This function creates the Orthogonal matrix. The purpose of this matrix is to
+ * transform all objects into a cube whose center at the origin, at all the edges
+ * are of length 2.
+*/
 void IritWorld::setOrthoMat()
 {
+
 	double max_x = max_bound_coord[0],
-	   	   min_x = min_bound_coord[0],
-		   max_y = max_bound_coord[1],
-		   min_y = min_bound_coord[1],
-		   max_z = max_bound_coord[2],
-		   min_z = min_bound_coord[2];
+		min_x = min_bound_coord[0],
+		max_y = max_bound_coord[1],
+		min_y = min_bound_coord[1],
+		max_z = max_bound_coord[2],
+		min_z = min_bound_coord[2];
+
+	state.ortho_mat = Matrix::Identity();
+
+	max_z = (state.view_mat * Vector(0, 0, max_z, 1))[2];
+	min_z = (state.view_mat * Vector(0, 0, min_z, 1))[2];
 
 	state.ortho_mat.array[X_AXIS][0] = 2 / (max_x - min_x);
 	state.ortho_mat.array[Y_AXIS][1] = 2 / (max_y - min_y);
@@ -445,7 +461,7 @@ void IritWorld::setOrthoMat()
 
 	state.ortho_mat.array[X_AXIS][3] = -(max_x + min_x) / (max_x - min_x);
 	state.ortho_mat.array[Y_AXIS][3] = -(max_y + min_y) / (max_y - min_y);
-	state.ortho_mat.array[Z_AXIS][3] =  (max_z + min_z) / (max_z - min_z);
+	state.ortho_mat.array[Z_AXIS][3] =  -(max_z + min_z) / (max_z - min_z);
 }
 
 IritFigure *IritWorld::createFigure() {
@@ -486,13 +502,12 @@ Matrix IritWorld::getPerspectiveMatrix(const double &angleOfView, const double &
 	// set the basic projection matrix
 	double scale = 1 / tan(angleOfView * 0.5 * M_PI / 180);
 
-	projection_mat.array[0][0] = -scale; // scale the x coordinates of the projected point
-	projection_mat.array[1][1] = -scale; // scale the y coordinates of the projected point
-	projection_mat.array[2][2] = -far_z / (far_z - near_z); // used to remap z to [0,1]
-	projection_mat.array[2][3] = -far_z * near_z / (far_z - near_z); // used to remap z [0,1]
+	projection_mat.array[0][0] = scale;
+	projection_mat.array[1][1] = scale;
+	projection_mat.array[2][2] = ((double)near_z + far_z) / ((double)far_z - near_z);
+	projection_mat.array[2][3] = (2 * (double)near_z * (double)far_z) / ((double)far_z - near_z);
 	projection_mat.array[3][2] = -1; // set w = -z
 	projection_mat.array[3][3] = 0;
-
 	return projection_mat;
 }
 
@@ -503,31 +518,34 @@ Vector IritWorld::projectPoint(Vector &td_point, Matrix &transformation) {
 	return state.screen_mat * transformed_point;
 }
 
+/* The ortho_mat transforms the figure into a cubic with side
+ * of length 1 cantered at the origin. Since changing into perspective
+ * view involves dividing by z, we cannot allow the figure to stay
+ * to pass the z=0 point. To switch to perspective view, we first move
+ * the figure in some offset of z.
+*/
 Matrix IritWorld::createProjectionMatrix() {
 	if (state.is_perspective_view) {
-		Matrix perspective_matrix = Matrix::Identity();
-		// Use Gershon's perpective matrix
-		perspective_matrix.array[3][2] = 1 / state.projection_plane_distance;
-		perspective_matrix.array[3][3] = 0; 
+		Matrix translation = createTranslationMatrix(0, 0, -8);
+		Matrix scale_back = Matrix::createScaleMatrix(8, 8, 1);
+		Matrix perspective_matrix = getPerspectiveMatrix(90, 7, 9);
 
-		/* Use frustum perpective view */
-//		Matrix perspective_matrix = getPerspectiveMatrix(90, 0.1, 100) * state.view_mat;
-//		Matrix perspective_matrix = getPerspectiveMatrx(90, 0.1, 100) * worldToCamera;
-		return perspective_matrix * state.view_mat * state.ortho_mat;
+		return scale_back * perspective_matrix * translation * state.ortho_mat;
 	}
 
 	// we're in orthogonal view
-	return state.view_mat * state.ortho_mat;
+	return state.ortho_mat;
 }
 
 void IritWorld::draw(int *bitmap, int width, int height) {
 		Matrix projection_mat = createProjectionMatrix();
+		Matrix transformation = projection_mat * state.view_mat;
 
 		this->state.screen_mat = state.center_mat * state.ratio_mat;
 
 		// Draw all objects
 		for (int i = 0; i < m_figures_nr; i++)
-			m_figures_arr[i]->draw(bitmap, width, height, projection_mat, state);
+			m_figures_arr[i]->draw(bitmap, width, height, transformation, state);
 }
 
 IritFigure *IritWorld::getFigureInPoint(CPoint &point) {
@@ -568,7 +586,7 @@ IritFigure &IritWorld::getLastFigure() {
 	return *m_figures_arr[m_figures_nr - 1];
 }
 
-Matrix createTranslationMatrix(double &x, double &y, double z) {
+Matrix createTranslationMatrix(double x, double y, double z) {
 	Matrix translation = Matrix::Identity();
 
 	translation.array[0][3] = x;
@@ -590,9 +608,18 @@ Matrix createTranslationMatrix(Vector &v) {
 
 Matrix createViewMatrix(double x, double y, double z)
 {
-	Matrix camera_translation = createTranslationMatrix(x, y, z);
+	Matrix camera_translation = createTranslationMatrix(-x, -y, -z);
+	Matrix camera_rotation;
 
-	return camera_translation.Inverse();
+	// TODO: This actually needs to be implemented with vectors and cross
+	// see 'transformation' tutorial, slide 16
+	// Make it look at the (0, 0, -1) direction
+	camera_rotation.array[0][0] = 1;
+	camera_rotation.array[1][1] = 1;
+	camera_rotation.array[2][2] = 1;
+	camera_rotation.array[3][3] = 1;
+
+	return camera_rotation * camera_translation;
 }
 
 void lineDrawOct0(int *bits, int width, int height, RGBQUAD color, Vector first, Vector second) {

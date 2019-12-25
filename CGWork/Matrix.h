@@ -66,6 +66,8 @@ public:
     // Print the vector - for debug purposes
     void Print() const;
 
+	static Matrix createScaleMatrix(double x, double y, double z);
+
     class MatrixNotReversible : public exception{};
 };
 
