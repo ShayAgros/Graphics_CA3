@@ -21,6 +21,7 @@ int CGSkelGetObjectColor(IPObjectStruct *PObj, double RGB[3]);
 const char *CGSkelGetObjectTexture(IPObjectStruct *PObj);
 const char *CGSkelGetObjectPTexture(IPObjectStruct *PObj);
 int CGSkelGetObjectTransp(IPObjectStruct *PObj, double *Transp);
+int CGSkelInverseMatrix(double M[4][4], double InvM[4][4]);
 
 bool CGSkelStoreData(IPObjectStruct *PObj);
 
