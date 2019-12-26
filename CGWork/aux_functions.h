@@ -10,6 +10,7 @@
 void mergeSort(struct twod_line arr[], int sz);
 
 /* Perform bucketSort on an array, using the given min_val and max_val
- * a as values boundries.
+ * a as values boundries. The sorting also removes duplications of the
+ * same value (same as unique in *nix machines)
  */
-void bucketSort(int arr[], int sz, int min_val, int max_val);
+void bucketSortAndUnique(int arr[], int &arr_sz, int min_val, int max_val);

@@ -88,7 +88,7 @@ void mergeSort(struct twod_line arr[], int sz)
 	delete[] helper;
 }
 
-void bucketSort(int arr[], int arr_sz, int min_val, int max_val)
+void bucketSortAndUnique(int arr[], int &arr_sz, int min_val, int max_val)
 {
 	int offset = min_val;
 	int *bucket_arr;
@@ -113,11 +113,15 @@ void bucketSort(int arr[], int arr_sz, int min_val, int max_val)
 
 	// fill bucket with the number of iteration for each value
 	for (i = 0; i < arr_sz; i++) {
-		bucket_arr[arr[i] - offset]++;
+		//bucket_arr[arr[i] - offset]++;
+		bucket_arr[arr[i] - offset] = 1;
 	}
 
 	arr_sz = 0;
 	for (i = 0; i < max_val + 1; i++) {
+		if (bucket_arr[i] > 2) {
+			printf("Stop\n");
+		}
 		for (j = 0; j < bucket_arr[i]; j++)
 			arr[arr_sz++] = i + offset;
 	}

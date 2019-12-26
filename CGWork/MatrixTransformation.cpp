@@ -39,17 +39,17 @@ void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int 
 void IritWorld::setOrthoMat()
 {
 
-	double max_x = max_bound_coord[0],
-		min_x = min_bound_coord[0],
-		max_y = max_bound_coord[1],
-		min_y = min_bound_coord[1],
-		max_z = max_bound_coord[2],
-		min_z = min_bound_coord[2];
+	double max_x = max_bound_coord[X_AXIS],
+		min_x = min_bound_coord[X_AXIS],
+		max_y = max_bound_coord[Y_AXIS],
+		min_y = min_bound_coord[Y_AXIS],
+		max_z = max_bound_coord[Z_AXIS],
+		min_z = min_bound_coord[Z_AXIS];
 
 	state.ortho_mat = Matrix::Identity();
 
-	max_z = (state.view_mat * Vector(0, 0, max_z, 1))[2];
-	min_z = (state.view_mat * Vector(0, 0, min_z, 1))[2];
+	max_z = (state.view_mat * Vector(0, 0, max_z, 1))[Z_AXIS] * 1.75;
+	min_z = (state.view_mat * Vector(0, 0, min_z, 1))[Z_AXIS] * 0.25;
 
 	state.ortho_mat.array[X_AXIS][0] = 2 / (max_x - min_x);
 	state.ortho_mat.array[Y_AXIS][1] = 2 / (max_y - min_y);

@@ -156,15 +156,15 @@ void IritPolygon::paintObject(int *bitmap, int width, int height, RGBQUAD color,
 			continue;
 
 		// sort pixels in increasing order
-		bucketSort(intersecting_x, intersecting_x_nr, min_x, max_x);
+		bucketSortAndUnique(intersecting_x, intersecting_x_nr, min_x, max_x);
 
 		// Now we finally draw the pixels for each two adjacent x values
 		for (int i = 0; i < intersecting_x_nr - 1; i += 2) {
 			// paint all the pixels between the two adjact x values (inclusive)
 			for (int x = intersecting_x[i]; x <= intersecting_x[i + 1]; x++) {
 				// don't overdraw alraedy painted pixels (which might be the edges themselves)
-				//if (bitmap[y * width + x])
-				//	continue;
+				if (bitmap[y * width + x])
+					continue;
 				bitmap[y * width + x] = *((int*)&color);
 			}
 		}
@@ -214,7 +214,7 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		current_vertex = state.screen_mat * current_vertex;
 		next_vertex = state.screen_mat * next_vertex;
 
-//		lineDraw(bitmap, width, height, current_color, current_vertex, next_vertex);
+		lineDraw(bitmap, width, height, current_color, current_vertex, next_vertex);
 
 		// Add the drawn line to the list of lines on the screen
 		lines[lines_nr++] = { (int)current_vertex.coordinates[X_AXIS],
@@ -277,10 +277,18 @@ pass_this_point:
 		next_vertex.Homogenize();
 	}
 
+	// Clipping. Don't draw points that are outside of our view volume
+	if (current_vertex[X_AXIS] > 1 || current_vertex[X_AXIS] < -1 || current_vertex[Y_AXIS] > 1 || current_vertex[Y_AXIS] < -1 ||
+		current_vertex[2] > 1 || current_vertex[2] < -1) {
+		printf("Way out of line!\n");
+		goto paint_object;
+	}
+
 	current_vertex = state.screen_mat * current_vertex;
 	next_vertex = state.screen_mat * next_vertex;
 
-//	lineDraw(bitmap, width, height, current_color, current_vertex, next_vertex);
+
+	lineDraw(bitmap, width, height, current_color, current_vertex, next_vertex);
 	// Add the drawn line to the list of lines on the screen
 	lines[lines_nr++] = { (int)current_vertex.coordinates[X_AXIS],
 						  (int)current_vertex.coordinates[Y_AXIS],
@@ -288,7 +296,7 @@ pass_this_point:
 						  (int)next_vertex.coordinates[Y_AXIS] };
 
 
-
+paint_object:
 	// paint the polygon
 	paintObject(bitmap, width, height, { 0, 0, 255, 0 }, state);
 	delete[] lines;
