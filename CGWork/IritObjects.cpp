@@ -1,4 +1,5 @@
 #include "IritObjects.h"
+#include "aux_functions.h"
 
 Matrix createTranslationMatrix(double x, double y, double z = 0);
 Matrix createTranslationMatrix(Vector &v);
@@ -80,6 +81,96 @@ void IritPolygon::setNextPolygon(IritPolygon *polygon) {
 	m_next_polygon = polygon;
 }
 
+/* This function uses an algorithm to find intersection between
+ * two lines. For more info see
+ * https://www.geeksforgeeks.org/program-for-point-of-intersection-of-two-lines/
+*/
+void IritPolygon::paintObject(int *bitmap, int width, int height, RGBQUAD color, State &state) {
+
+	int y_max = (state.screen_mat * Vector(0, 1, 0, 1))[Y_AXIS];
+	double A1, B1, C1; // We represent our lines by A1*X + B1*Y = C1
+	double A2, B2, C2;
+	double determinant;
+
+	int *intersecting_x;
+	int intersecting_x_nr;
+	int min_x, max_x;
+	int min_y, max_y;
+
+	if (!lines_nr)
+		return;
+
+	mergeSort(lines, lines_nr);
+
+	intersecting_x = new int[lines_nr * 2];
+	min_x = min(lines[0].x1, lines[0].x2);
+	max_x = min(lines[0].x1, lines[0].x2);
+
+	min_y = lines[0].ymin();
+	max_y = lines[0].ymax();
+	for (int line_ix = 0; line_ix < lines_nr; line_ix++)
+		max_y = max(max_y, lines[line_ix].ymax());
+
+	for (int y = min_y; y < max_y; y++) {
+		intersecting_x_nr = 0;
+		for (int line_ix = 0; line_ix < lines_nr; line_ix++) {
+			struct twod_line &current_line = lines[line_ix];
+			// Does this line start before our y value
+			if (y < current_line.ymin())
+				break;
+			// Does this line end before our y value
+			if (current_line.ymax() < y)
+				continue;
+
+			// Set coefficients of the first line
+			A1 = current_line.y2 - current_line.y1;
+			B1 = current_line.x1 - current_line.x2;
+			C1 = A1 * current_line.x1 + B1 * current_line.y1;
+
+			// Set coefficients of the second line, f(x) = y
+			A2 = 0;
+			B2 = 1;
+			C2 = y;
+
+			determinant = A1 * B2 - A2 * B1;
+			if (determinant == 0) {
+
+				// Lines are parallel, we add X boundries as intersection point
+				intersecting_x[intersecting_x_nr++] = current_line.x1;
+				intersecting_x[intersecting_x_nr++] = current_line.x2;
+
+				min_x = min(min_x, min(current_line.x1, current_line.x2));
+				max_x = max(max_x, max(current_line.x1, current_line.x2));
+			}
+			else {
+				intersecting_x[intersecting_x_nr] = (int)((B2 * C1 - B1 * C2) / determinant);
+				min_x = min(min_x, intersecting_x[intersecting_x_nr]);
+				max_x = max(max_x, intersecting_x[intersecting_x_nr]);
+
+				intersecting_x_nr++;
+			}
+		}
+
+		// nothing to draw for this y value
+		if (!intersecting_x_nr)
+			continue;
+
+		// sort pixels in increasing order
+		bucketSort(intersecting_x, intersecting_x_nr, min_x, max_x);
+
+		// Now we finally draw the pixels for each two adjacent x values
+		for (int i = 0; i < intersecting_x_nr - 1; i += 2) {
+			// paint all the pixels between the two adjact x values (inclusive)
+			for (int x = intersecting_x[i]; x <= intersecting_x[i + 1]; x++) {
+				// don't overdraw alraedy painted pixels (which might be the edges themselves)
+				//if (bitmap[y * width + x])
+				//	continue;
+				bitmap[y * width + x] = *((int*)&color);
+			}
+		}
+	}
+
+}
 
 void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct State state,
 					   Matrix &vertex_transform) {
@@ -93,7 +184,15 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 	// For vertex normal drawing
 	Vector normal;
 
-	/* Draw shape's lines */
+	// For figure painting
+
+	// We assume that number of lines is at most the number of points
+	lines = new struct twod_line[m_point_nr];
+	// we count the exact number of lines when drawing the wireframe
+	lines_nr = 0;
+
+
+	/* Draw shape's wireframe and find lines */
 	while (current_point->next_point != nullptr) {
 		current_vertex = current_point->vertex;
 		next_vertex = current_point->next_point->vertex;
@@ -115,7 +214,13 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		current_vertex = state.screen_mat * current_vertex;
 		next_vertex = state.screen_mat * next_vertex;
 
-		lineDraw(bitmap, width, height, current_color, current_vertex, next_vertex);
+//		lineDraw(bitmap, width, height, current_color, current_vertex, next_vertex);
+
+		// Add the drawn line to the list of lines on the screen
+		lines[lines_nr++] = { (int)current_vertex.coordinates[X_AXIS],
+							  (int)current_vertex.coordinates[Y_AXIS],
+							  (int)next_vertex.coordinates[X_AXIS],
+							  (int)next_vertex.coordinates[Y_AXIS] };
 
 		if (state.show_vertex_normal) {
 			normal = current_point->normal * 0.3;
@@ -160,6 +265,37 @@ pass_this_point:
 		}
 		lineDraw(bitmap, width, height, normal_color, polygon_normal[0], polygon_normal[1]);
 	}
+
+	// close the figure by drawing line from last point to the first
+	current_vertex = current_point->vertex;
+	next_vertex = m_points->vertex;
+	current_vertex = vertex_transform * current_vertex;
+	next_vertex = vertex_transform * next_vertex;
+
+	if (state.is_perspective_view) {
+		current_vertex.Homogenize();
+		next_vertex.Homogenize();
+	}
+
+	current_vertex = state.screen_mat * current_vertex;
+	next_vertex = state.screen_mat * next_vertex;
+
+//	lineDraw(bitmap, width, height, current_color, current_vertex, next_vertex);
+	// Add the drawn line to the list of lines on the screen
+	lines[lines_nr++] = { (int)current_vertex.coordinates[X_AXIS],
+						  (int)current_vertex.coordinates[Y_AXIS],
+						  (int)next_vertex.coordinates[X_AXIS],
+						  (int)next_vertex.coordinates[Y_AXIS] };
+
+
+
+	// paint the polygon
+	paintObject(bitmap, width, height, { 0, 0, 255, 0 }, state);
+	delete[] lines;
+}
+
+int IritPolygon::getPointsNr() {
+	return m_point_nr;
 }
 
 IritPolygon &IritPolygon::operator++() {
@@ -202,13 +338,17 @@ IritPolygon *IritObject::createPolygon() {
 	return new_polygon;
 }
 
-void IritObject::draw(int *bitmap, int width, int height, struct State state,
+void IritObject::draw(int *bitmap, int width, int height, State &state,
 					  Matrix &vertex_transform) {
+	int points_nr = 0;
+	m_iterator = m_polygons;
+
 	m_iterator = m_polygons;
 	while (m_iterator) {
 		m_iterator->draw(bitmap, width, height, object_color, state, vertex_transform);
 		m_iterator = m_iterator->getNextPolygon();
 	}
+
 }
 
 IritFigure::IritFigure() : m_objects_nr(0), m_objects_arr(nullptr) {
@@ -411,59 +551,6 @@ IritWorld::~IritWorld() {
 	delete[] m_figures_arr; 
 }
 
-void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int screen_width, int screen_height) {
-	Matrix coor_mat;
-	Matrix center_mat;
-	Matrix ratio_mat;
-	int min_size = min(screen_width, screen_height);
-
-	// Expand to ratio
-
-	// Ratio should be about a fifth of the screen.
-	ratio_mat = Matrix::Identity();
-	ratio_mat.array[0][0] = min_size / 2;
-	ratio_mat.array[1][1] = min_size / 2;
-//	ratio_mat.array[0][0] = screen_width / 2;
-//	ratio_mat.array[1][1] = screen_height / 2;
-	state.ratio_mat = ratio_mat;
-	
-	// Set world coordinate system
-	coor_mat = Matrix(axes[0], axes[1], axes[2]);
-	state.coord_mat = coor_mat;
-
-	// Center to screen
-	center_mat = createTranslationMatrix(axes_origin);
-	state.center_mat = center_mat;
-}
-
-/* This function creates the Orthogonal matrix. The purpose of this matrix is to
- * transform all objects into a cube whose center at the origin, at all the edges
- * are of length 2.
-*/
-void IritWorld::setOrthoMat()
-{
-
-	double max_x = max_bound_coord[0],
-		min_x = min_bound_coord[0],
-		max_y = max_bound_coord[1],
-		min_y = min_bound_coord[1],
-		max_z = max_bound_coord[2],
-		min_z = min_bound_coord[2];
-
-	state.ortho_mat = Matrix::Identity();
-
-	max_z = (state.view_mat * Vector(0, 0, max_z, 1))[2];
-	min_z = (state.view_mat * Vector(0, 0, min_z, 1))[2];
-
-	state.ortho_mat.array[X_AXIS][0] = 2 / (max_x - min_x);
-	state.ortho_mat.array[Y_AXIS][1] = 2 / (max_y - min_y);
-	state.ortho_mat.array[Z_AXIS][2] = 2 / (max_z - min_z);
-
-	state.ortho_mat.array[X_AXIS][3] = -(max_x + min_x) / (max_x - min_x);
-	state.ortho_mat.array[Y_AXIS][3] = -(max_y + min_y) / (max_y - min_y);
-	state.ortho_mat.array[Z_AXIS][3] =  -(max_z + min_z) / (max_z - min_z);
-}
-
 IritFigure *IritWorld::createFigure() {
 	IritFigure *new_figure = new IritFigure();
 	if (!new_figure)
@@ -496,45 +583,12 @@ bool IritWorld::isEmpty() {
 	return m_figures_nr == 0;
 };
 
-Matrix IritWorld::getPerspectiveMatrix(const double &angleOfView, const double &near_z, const double &far_z)
-{
-	Matrix projection_mat(Matrix::Identity());
-	// set the basic projection matrix
-	double scale = 1 / tan(angleOfView * 0.5 * M_PI / 180);
-
-	projection_mat.array[0][0] = scale;
-	projection_mat.array[1][1] = scale;
-	projection_mat.array[2][2] = ((double)near_z + far_z) / ((double)far_z - near_z);
-	projection_mat.array[2][3] = (2 * (double)near_z * (double)far_z) / ((double)far_z - near_z);
-	projection_mat.array[3][2] = -1; // set w = -z
-	projection_mat.array[3][3] = 0;
-	return projection_mat;
-}
 
 Vector IritWorld::projectPoint(Vector &td_point, Matrix &transformation) {
 	Vector transformed_point = transformation * td_point;
 	if (state.is_perspective_view) 
 		transformed_point.Homogenize();
 	return state.screen_mat * transformed_point;
-}
-
-/* The ortho_mat transforms the figure into a cubic with side
- * of length 1 cantered at the origin. Since changing into perspective
- * view involves dividing by z, we cannot allow the figure to stay
- * to pass the z=0 point. To switch to perspective view, we first move
- * the figure in some offset of z.
-*/
-Matrix IritWorld::createProjectionMatrix() {
-	if (state.is_perspective_view) {
-		Matrix translation = createTranslationMatrix(0, 0, -8);
-		Matrix scale_back = Matrix::createScaleMatrix(8, 8, 1);
-		Matrix perspective_matrix = getPerspectiveMatrix(90, 7, 9);
-
-		return scale_back * perspective_matrix * translation * state.ortho_mat;
-	}
-
-	// we're in orthogonal view
-	return state.ortho_mat;
 }
 
 void IritWorld::draw(int *bitmap, int width, int height) {
@@ -586,41 +640,6 @@ IritFigure &IritWorld::getLastFigure() {
 	return *m_figures_arr[m_figures_nr - 1];
 }
 
-Matrix createTranslationMatrix(double x, double y, double z) {
-	Matrix translation = Matrix::Identity();
-
-	translation.array[0][3] = x;
-	translation.array[1][3] = y;
-	translation.array[2][3] = z;
-
-	return translation;
-}
-
-/* This function creates a matrix which translates a point by a vector
- * @v - the vector by which to translate
- */
-Matrix createTranslationMatrix(Vector &v) {
-
-	return createTranslationMatrix(v.coordinates[0],
-		v.coordinates[1],
-		v.coordinates[2]);
-}
-
-Matrix createViewMatrix(double x, double y, double z)
-{
-	Matrix camera_translation = createTranslationMatrix(-x, -y, -z);
-	Matrix camera_rotation;
-
-	// TODO: This actually needs to be implemented with vectors and cross
-	// see 'transformation' tutorial, slide 16
-	// Make it look at the (0, 0, -1) direction
-	camera_rotation.array[0][0] = 1;
-	camera_rotation.array[1][1] = 1;
-	camera_rotation.array[2][2] = 1;
-	camera_rotation.array[3][3] = 1;
-
-	return camera_rotation * camera_translation;
-}
 
 void lineDrawOct0(int *bits, int width, int height, RGBQUAD color, Vector first, Vector second) {
 	int dx = (int)(second[0] - first[0]),

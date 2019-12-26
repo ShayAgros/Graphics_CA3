@@ -26,6 +26,8 @@
  * returns a matrix which maps every object to view space
 */
 Matrix createViewMatrix(double x, double y, double z);
+Matrix createTranslationMatrix(Vector &v);
+Matrix createTranslationMatrix(double x, double y, double z);
 
 // this enum prob isnt needed, beacuse of built in axis info - m_nAxis
 enum Axis {
@@ -90,11 +92,37 @@ struct VertexList {
 	VertexList *next;
 };
 
+/* Represents a 2 dimensional line
+*/
+struct twod_line {
+	int x1, y1;
+	int x2, y2;
+
+	bool operator<(twod_line &l1) {
+		return this->ymin() < l1.ymin();
+	}
+
+	int ymin() {
+		return min(this->y1, this->y2);
+	}
+
+	int ymax() {
+		return max(this->y1, this->y2);
+	}
+};
+
 class IritPolygon {
 	int m_point_nr;
 	struct IritPoint *m_points;
 
 	IritPolygon *m_next_polygon;
+
+	struct twod_line *lines;
+	int lines_nr;
+
+	/* This function uses the lines array to do a
+	   scan conversion painting of the figure */
+	void paintObject(int *bitmap, int width, int height, RGBQUAD color, State &state);
 
 public:
 	Vector normal_start;
@@ -128,10 +156,12 @@ public:
 	 *						vertex is multiplied by this matrix before being drawn
 	*/
 	void draw(int *bitmap, int width, int height, RGBQUAD color, struct State state,
-			  Matrix &vertex_transform);
+		Matrix &vertex_transform);
 
 	// Operators overriding
 	IritPolygon &operator++();
+
+	int getPointsNr();
 };
 
 /* This class represents an object in the IRIT world. An object is formed from
@@ -174,7 +204,7 @@ public:
 	 * @vertex_transform - a transformation matrix for the the vertices (each
 	 *						vertex is multiplied by this matrix before being drawn
 	*/
-	void draw(int *bitmap, int width, int height, struct State state,
+	void draw(int *bitmap, int width, int height, State &state,
 			  Matrix &vertex_transform);
 };
 
@@ -245,6 +275,7 @@ class IritWorld {
 
 	/* Creates a projection matrix */
 	Matrix createProjectionMatrix();
+
 
 	/* Project a point to screen space using the given transformation and
 	 * the world's screen matrix.

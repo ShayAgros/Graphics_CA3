@@ -559,7 +559,7 @@ void resetWorld() {
 	world.state.show_polygon_normal = false;
 	world.state.object_frame = false;
 	world.state.is_perspective_view = false;
-	world.state.object_transform = false;
+	world.state.object_transform = true;
 
 	world.state.bg_color = BG_DEFAULT_COLOR;
 	world.state.wire_color = WIRE_DEFAULT_COLOR;

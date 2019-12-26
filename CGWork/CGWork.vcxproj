@@ -205,6 +205,7 @@
     </ClCompile>
     <ClCompile Include="MaterialDlg.cpp" />
     <ClCompile Include="Matrix.cpp" />
+    <ClCompile Include="MatrixTransformation.cpp" />
     <ClCompile Include="PngWrapper.cpp" />
     <ClCompile Include="CGDialog.cpp" />
     <ClCompile Include="StdAfx.cpp">
@@ -219,6 +220,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</BrowseInformation>
     </ClCompile>
+    <ClCompile Include="aux_functions.cpp" />
     <ClCompile Include="Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -229,6 +231,7 @@
     <ClInclude Include="CGWorkDoc.h" />
     <ClInclude Include="CGWorkView.h" />
     <ClInclude Include="CGDialog.h" />
+    <ClInclude Include="aux_functions.h" />
     <ClInclude Include="IritObjects.h" />
     <ClInclude Include="iritSkel.h" />
     <ClInclude Include="Light.h" />
