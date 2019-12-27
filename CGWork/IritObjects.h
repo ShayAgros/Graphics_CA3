@@ -78,6 +78,12 @@ struct State {
 	RGBQUAD frame_color;
 	RGBQUAD bg_color;
 	RGBQUAD normal_color;
+
+	// For hidden face removal
+	double* z_buffer;
+
+	// For background/depth drawing
+	bool* is_drawn_buffer;
 };
 
 struct PolygonList {
@@ -92,13 +98,23 @@ struct VertexList {
 	VertexList *next;
 };
 
-/* Represents a 2 dimensional line
-*/
-struct twod_line {
-	int x1, y1;
-	int x2, y2;
+struct IntersectionPoint {
+	int x;
+	double z; 
 
-	bool operator<(twod_line &l1) {
+	// will need to contain extrapolated normal as well
+};
+
+/* Represents a 3 dimensional line
+*/
+struct threed_line {
+	int x1, y1;
+	double z1;
+	int x2, y2;
+	double z2;
+	
+
+	bool operator<(threed_line &l1) {
 		return this->ymin() < l1.ymin();
 	}
 
@@ -117,7 +133,7 @@ class IritPolygon {
 
 	IritPolygon *m_next_polygon;
 
-	struct twod_line *lines;
+	struct threed_line *lines;
 	int lines_nr;
 
 	/* This function uses the lines array to do a
@@ -267,6 +283,7 @@ public:
 };
 
 class IritWorld {
+
 	int m_figures_nr;
 	IritFigure **m_figures_arr;
 
@@ -283,7 +300,6 @@ class IritWorld {
 	Vector projectPoint(Vector &td_point, Matrix &transformation);
 
 public:
-
 	// World state
 	struct State state;
 
@@ -292,6 +308,8 @@ public:
 		   min_bound_coord;
 
 	IritWorld();
+
+	IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin);
 
 	~IritWorld();
 

@@ -298,6 +298,12 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		w = rect.right - rect.left;
 	int *bitmap = new int[w * h];
 
+	delete(world.state.z_buffer);
+	world.state.z_buffer = new double[w * h];
+
+	delete(world.state.is_drawn_buffer);
+	world.state.is_drawn_buffer = new bool[w * h];
+
 	HDC hdcMem = CreateCompatibleDC(pDC->m_hDC);
 	HBITMAP bm = CreateCompatibleBitmap(pDC->m_hDC, w, h);
 
@@ -317,6 +323,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
 	for (int i = 0; i < w * h; i++) {
 		bitmap[i] = *((int*)&background);
+		world.state.z_buffer[i] = 0;
+		world.state.is_drawn_buffer[i] = false;
 	}
 
 	if (!world.isEmpty())

@@ -3,7 +3,7 @@
 
 Matrix createTranslationMatrix(double x, double y, double z = 0);
 Matrix createTranslationMatrix(Vector &v);
-void lineDraw(int *bits, int width, int height, RGBQUAD color, Vector first, Vector second);
+void lineDraw(int *bitmap, State state, int width, int height, RGBQUAD color, Vector first, Vector second);
 
 #define BOX_NUM_OF_VERTICES 8
 
@@ -87,12 +87,12 @@ void IritPolygon::setNextPolygon(IritPolygon *polygon) {
 */
 void IritPolygon::paintObject(int *bitmap, int width, int height, RGBQUAD color, State &state) {
 
-	int y_max = (state.screen_mat * Vector(0, 1, 0, 1))[Y_AXIS];
+	int y_max = (int)(state.screen_mat * Vector(0, 1, 0, 1))[Y_AXIS];
 	double A1, B1, C1; // We represent our lines by A1*X + B1*Y = C1
 	double A2, B2, C2;
 	double determinant;
 
-	int *intersecting_x;
+	IntersectionPoint *intersecting_x;
 	int intersecting_x_nr;
 	int min_x, max_x;
 	int min_y, max_y;
@@ -102,7 +102,7 @@ void IritPolygon::paintObject(int *bitmap, int width, int height, RGBQUAD color,
 
 	mergeSort(lines, lines_nr);
 
-	intersecting_x = new int[lines_nr * 2];
+	intersecting_x = new IntersectionPoint[lines_nr * 2];
 	min_x = min(lines[0].x1, lines[0].x2);
 	max_x = min(lines[0].x1, lines[0].x2);
 
@@ -114,7 +114,7 @@ void IritPolygon::paintObject(int *bitmap, int width, int height, RGBQUAD color,
 	for (int y = min_y; y < max_y; y++) {
 		intersecting_x_nr = 0;
 		for (int line_ix = 0; line_ix < lines_nr; line_ix++) {
-			struct twod_line &current_line = lines[line_ix];
+			struct threed_line &current_line = lines[line_ix];
 			// Does this line start before our y value
 			if (y < current_line.ymin())
 				break;
@@ -136,16 +136,26 @@ void IritPolygon::paintObject(int *bitmap, int width, int height, RGBQUAD color,
 			if (determinant == 0) {
 
 				// Lines are parallel, we add X boundries as intersection point
-				intersecting_x[intersecting_x_nr++] = current_line.x1;
-				intersecting_x[intersecting_x_nr++] = current_line.x2;
+				intersecting_x[intersecting_x_nr].x = current_line.x1;
+				intersecting_x[intersecting_x_nr++].z = current_line.z1;
+				intersecting_x[intersecting_x_nr].x = current_line.x2;
+				intersecting_x[intersecting_x_nr++].z = current_line.z2;
 
 				min_x = min(min_x, min(current_line.x1, current_line.x2));
 				max_x = max(max_x, max(current_line.x1, current_line.x2));
 			}
 			else {
-				intersecting_x[intersecting_x_nr] = (int)((B2 * C1 - B1 * C2) / determinant);
-				min_x = min(min_x, intersecting_x[intersecting_x_nr]);
-				max_x = max(max_x, intersecting_x[intersecting_x_nr]);
+				double t;
+				double extrapolated_z;
+				intersecting_x[intersecting_x_nr].x = (int)((B2 * C1 - B1 * C2) / determinant);
+
+				t = (double)(intersecting_x[intersecting_x_nr].x - current_line.x1) / (double)(current_line.x2 - current_line.x1);
+				extrapolated_z = (1 - t) * current_line.z1 + t * current_line.z2;
+
+				intersecting_x[intersecting_x_nr].z = extrapolated_z;
+
+				min_x = min(min_x, intersecting_x[intersecting_x_nr].x);
+				max_x = max(max_x, intersecting_x[intersecting_x_nr].x);
 
 				intersecting_x_nr++;
 			}
@@ -160,12 +170,46 @@ void IritPolygon::paintObject(int *bitmap, int width, int height, RGBQUAD color,
 
 		// Now we finally draw the pixels for each two adjacent x values
 		for (int i = 0; i < intersecting_x_nr - 1; i += 2) {
+
+			double t = 0;
+			double t_step = 1.0 / (intersecting_x[i + 1].x - intersecting_x[i].x);
+
 			// paint all the pixels between the two adjact x values (inclusive)
-			for (int x = intersecting_x[i]; x <= intersecting_x[i + 1]; x++) {
-				// don't overdraw alraedy painted pixels (which might be the edges themselves)
+			for (int x = intersecting_x[i].x; x <= intersecting_x[i + 1].x; x++) {
 				if (bitmap[y * width + x])
 					continue;
-				bitmap[y * width + x] = *((int*)&color);
+				bitmap[y * width + x] = *((int*)&color); 
+				
+				// This might be a better way of doing this, since line draw already check all these stuff
+				// anyway, this can probably be removed when we are comfortable with the current
+				// way to draw
+				/*
+				Vector* first = new Vector((double)intersecting_x[i].x, (double)y, intersecting_x[i].z);
+				Vector* second = new Vector((double)intersecting_x[i+1].x, (double)y, intersecting_x[i+1].z);
+				lineDraw(bitmap, state, width, height, color, *first, *second);
+				delete(first);
+				delete(second);
+				*/
+				
+
+				double extrapolated_z;
+				extrapolated_z = (1 - t) * intersecting_x[i].z + t * intersecting_x[i + 1].z;
+				t += t_step;
+
+				
+				bool not_drawn,
+					closer,
+					within_bounds = ((x >= 0) && (x < width) && (y >= 0) && (y < height));
+
+				if (within_bounds) {
+					not_drawn = !state.is_drawn_buffer[y * width + x];
+				    closer = extrapolated_z < state.z_buffer[y * width + x];
+					if (closer || not_drawn) {
+						bitmap[y * width + x] = *((int*)&color);
+						state.z_buffer[y * width + x] = extrapolated_z;
+						state.is_drawn_buffer[y * width + x] = true;
+					}
+				}
 			}
 		}
 	}
@@ -187,7 +231,7 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 	// For figure painting
 
 	// We assume that number of lines is at most the number of points
-	lines = new struct twod_line[m_point_nr];
+	lines = new struct threed_line[m_point_nr];
 	// we count the exact number of lines when drawing the wireframe
 	lines_nr = 0;
 
@@ -214,13 +258,15 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		current_vertex = state.screen_mat * current_vertex;
 		next_vertex = state.screen_mat * next_vertex;
 
-		lineDraw(bitmap, width, height, current_color, current_vertex, next_vertex);
+		lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
 
 		// Add the drawn line to the list of lines on the screen
 		lines[lines_nr++] = { (int)current_vertex.coordinates[X_AXIS],
 							  (int)current_vertex.coordinates[Y_AXIS],
+							  (double)current_vertex.coordinates[Z_AXIS],
 							  (int)next_vertex.coordinates[X_AXIS],
-							  (int)next_vertex.coordinates[Y_AXIS] };
+							  (int)next_vertex.coordinates[Y_AXIS],
+							  (double)next_vertex.coordinates[Z_AXIS]};
 
 		if (state.show_vertex_normal) {
 			normal = current_point->normal * 0.3;
@@ -238,7 +284,7 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 					normal_color = CALC_NORMAL_COLOR;
 			}
 
-			lineDraw(bitmap, width, height, normal_color, current_vertex, normal);
+			lineDraw(bitmap, state, width, height, normal_color, current_vertex, normal);
 		}
 pass_this_point:
 		current_point = current_point->next_point;
@@ -263,7 +309,7 @@ pass_this_point:
 			else
 				normal_color = CALC_NORMAL_COLOR;
 		}
-		lineDraw(bitmap, width, height, normal_color, polygon_normal[0], polygon_normal[1]);
+		lineDraw(bitmap, state, width, height, normal_color, polygon_normal[0], polygon_normal[1]);
 	}
 
 	// close the figure by drawing line from last point to the first
@@ -288,17 +334,19 @@ pass_this_point:
 	next_vertex = state.screen_mat * next_vertex;
 
 
-	lineDraw(bitmap, width, height, current_color, current_vertex, next_vertex);
+	lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
 	// Add the drawn line to the list of lines on the screen
 	lines[lines_nr++] = { (int)current_vertex.coordinates[X_AXIS],
 						  (int)current_vertex.coordinates[Y_AXIS],
+						  (double)current_vertex.coordinates[Z_AXIS],
 						  (int)next_vertex.coordinates[X_AXIS],
-						  (int)next_vertex.coordinates[Y_AXIS] };
+						  (int)next_vertex.coordinates[Y_AXIS],
+						  (double)next_vertex.coordinates[Z_AXIS] };
 
 
 paint_object:
 	// paint the polygon
-	paintObject(bitmap, width, height, { 0, 0, 255, 0 }, state);
+	paintObject(bitmap, width, height, current_color, state);
 	delete[] lines;
 }
 
@@ -356,7 +404,6 @@ void IritObject::draw(int *bitmap, int width, int height, State &state,
 		m_iterator->draw(bitmap, width, height, object_color, state, vertex_transform);
 		m_iterator = m_iterator->getNextPolygon();
 	}
-
 }
 
 IritFigure::IritFigure() : m_objects_nr(0), m_objects_arr(nullptr) {
@@ -449,28 +496,28 @@ void IritFigure::drawFrame(int *bitmap, int width, int height, struct State stat
 
 	// Draw "front side"
 
-	lineDraw(bitmap, width, height, state.frame_color, coords[0], coords[1]);
-	lineDraw(bitmap, width, height, state.frame_color, coords[1], coords[3]);
-	lineDraw(bitmap, width, height, state.frame_color, coords[3], coords[2]);
-	lineDraw(bitmap, width, height, state.frame_color, coords[2], coords[0]);
+	lineDraw(bitmap, state, width, height, state.frame_color, coords[0], coords[1]);
+	lineDraw(bitmap, state, width, height, state.frame_color, coords[1], coords[3]);
+	lineDraw(bitmap, state, width, height, state.frame_color, coords[3], coords[2]);
+	lineDraw(bitmap, state, width, height, state.frame_color, coords[2], coords[0]);
 
 	// Draw "back side"
 
-	lineDraw(bitmap, width, height, state.frame_color, coords[4], coords[5]);
-	lineDraw(bitmap, width, height, state.frame_color, coords[5], coords[7]);
-	lineDraw(bitmap, width, height, state.frame_color, coords[7], coords[6]);
-	lineDraw(bitmap, width, height, state.frame_color, coords[6], coords[4]);
+	lineDraw(bitmap, state, width, height, state.frame_color, coords[4], coords[5]);
+	lineDraw(bitmap, state, width, height, state.frame_color, coords[5], coords[7]);
+	lineDraw(bitmap, state, width, height, state.frame_color, coords[7], coords[6]);
+	lineDraw(bitmap, state, width, height, state.frame_color, coords[6], coords[4]);
 
 	// Draw "sides"
 
 	// Top right
-	lineDraw(bitmap, width, height, state.frame_color, coords[0], coords[4]);
+	lineDraw(bitmap, state, width, height, state.frame_color, coords[0], coords[4]);
 	// Bottom right
-	lineDraw(bitmap, width, height, state.frame_color, coords[1], coords[5]);
+	lineDraw(bitmap, state, width, height, state.frame_color, coords[1], coords[5]);
 	// Top left
-	lineDraw(bitmap, width, height, state.frame_color, coords[2], coords[6]);
+	lineDraw(bitmap, state, width, height, state.frame_color, coords[2], coords[6]);
 	// Bottom left
-	lineDraw(bitmap, width, height, state.frame_color, coords[3], coords[7]);
+	lineDraw(bitmap, state, width, height, state.frame_color, coords[3], coords[7]);
 }
 
 bool IritFigure::isEmpty() {
@@ -519,6 +566,8 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.frame_color = FRAME_DEFAULT_COLOR;
 	state.normal_color = NORMAL_DEFAULT_COLOR;
 
+	state.is_drawn_buffer = nullptr;
+	state.z_buffer = nullptr;
 }
 
 IritWorld::~IritWorld() {
@@ -615,7 +664,7 @@ IritFigure &IritWorld::getLastFigure() {
 }
 
 
-void lineDrawOct0(int *bits, int width, int height, RGBQUAD color, Vector first, Vector second) {
+void lineDrawOct0(int *bitmap, State state, int width, int height, RGBQUAD color, Vector first, Vector second) {
 	int dx = (int)(second[0] - first[0]),
 		dy = (int)(second[1] - first[1]),
 		error = (2 * dy) - dx,
@@ -623,10 +672,25 @@ void lineDrawOct0(int *bits, int width, int height, RGBQUAD color, Vector first,
 		y = (int)first[1],
 		end_x = (int)second[0],
 		end_y = (int)second[1];
+	double start_z = first[2],
+		   end_z = second[2],
+		   current_z = first[2],
+		   z_step = 1.0 / (end_x - x),
+		   extrapolate_z = 0.0;
 
 	while (x != end_x) {
+		current_z = (1.0 - extrapolate_z) * start_z + extrapolate_z * end_z;
 		if ((x >= 0) && (x < width) && (y >= 0) && (y < height)) {
-			bits[y * width + x] = *((int*)&color);
+			if (!state.is_drawn_buffer[y * width + x]) {
+				bitmap[y * width + x] = *((int*)&color);
+				state.z_buffer[y * width + x] = current_z;
+				state.is_drawn_buffer[y * width + x] = true;
+			} else {
+				if (state.z_buffer[y * width + x] < current_z) {
+					bitmap[y * width + x] = *((int*)&color);
+					state.z_buffer[y * width + x] = current_z;
+				}
+			}
 		}			
 		if (error > 0) {
 			y++;
@@ -636,10 +700,11 @@ void lineDrawOct0(int *bits, int width, int height, RGBQUAD color, Vector first,
 			x++;
 			error += 2 * dy;         // East
 		}
+		extrapolate_z = z_step;
 	}
 }
 
-void lineDrawOct1(int *bits, int width, int height, RGBQUAD color, Vector first, Vector second) {
+void lineDrawOct1(int *bitmap, State state, int width, int height, RGBQUAD color, Vector first, Vector second) {
 	int dx = (int)(second[0] - first[0]),
 		dy = (int)(second[1] - first[1]),
 		error = dy - (2 * dx),
@@ -647,10 +712,27 @@ void lineDrawOct1(int *bits, int width, int height, RGBQUAD color, Vector first,
 		y = (int)first[1],
 		end_x = (int)second[0],
 		end_y = (int)second[1];
+	double start_z = first[2],
+		end_z = second[2],
+		current_z = first[2],
+		z_step = 1.0 / (end_y - y),
+		extrapolate_z = 0.0;
 
 	while (y != end_y) {
-		if ((x >= 0) && (x < width) && (y >= 0) && (y < height))
-			bits[y * width + x] = *((int*)&color);
+		current_z = (1.0 - extrapolate_z) * start_z + extrapolate_z * end_z;
+		if ((x >= 0) && (x < width) && (y >= 0) && (y < height)) {
+			current_z = (1.0 - extrapolate_z) * start_z + extrapolate_z * end_z;
+			if (!state.is_drawn_buffer[y * width + x]) {
+				bitmap[y * width + x] = *((int*)&color);
+				state.z_buffer[y * width + x] = current_z;
+				state.is_drawn_buffer[y * width + x] = true;
+			} else {
+				if (state.z_buffer[y * width + x] < current_z) {
+					bitmap[y * width + x] = *((int*)&color);
+					state.z_buffer[y * width + x] = current_z;
+				}
+			}
+		}
 		if (error > 0) {
 			y++;
 			error += -2 * dx;       // North
@@ -659,10 +741,11 @@ void lineDrawOct1(int *bits, int width, int height, RGBQUAD color, Vector first,
 			x++;
 			error += 2 * (dy - dx); // North-East
 		}
+		extrapolate_z += z_step;
 	}
 }
 
-void lineDrawOct6(int *bits, int width, int height, RGBQUAD color, Vector first, Vector second) {
+void lineDrawOct6(int *bitmap, State state, int width, int height, RGBQUAD color, Vector first, Vector second) {
 	int dx = (int)(second[0] - first[0]),
 		dy = (int)(second[1] - first[1]),
 		error = dy + (2 * dx),
@@ -670,10 +753,26 @@ void lineDrawOct6(int *bits, int width, int height, RGBQUAD color, Vector first,
 		y = (int)first[1],
 		end_x = (int)second[0],
 		end_y = (int)second[1];
+	double start_z = first[2],
+		end_z = second[2],
+		current_z = first[2],
+		z_step = 1.0 / (end_y - y),
+		extrapolate_z = 0.0;
 
 	while (y != end_y) {
-		if ((x >= 0) && (x < width) && (y >= 0) && (y < height))
-			bits[y * width + x] = *((int*)&color);
+		if ((x >= 0) && (x < width) && (y >= 0) && (y < height)) {
+			current_z = (1.0 - extrapolate_z) * start_z + extrapolate_z * end_z;
+			if (!state.is_drawn_buffer[y * width + x]) {
+				bitmap[y * width + x] = *((int*)&color);
+				state.z_buffer[y * width + x] = current_z;
+				state.is_drawn_buffer[y * width + x] = true;
+			} else {
+				if (state.z_buffer[y * width + x] < current_z) {
+					bitmap[y * width + x] = *((int*)&color);
+					state.z_buffer[y * width + x] = current_z;
+				}
+			}
+		}
 		if (error > 0) {
 			y--;
 			x++;
@@ -682,10 +781,11 @@ void lineDrawOct6(int *bits, int width, int height, RGBQUAD color, Vector first,
 			y--;
 			error += 2 * dx;        // South
 		}
+		extrapolate_z += z_step;
 	}
 }
 
-void lineDrawOct7(int *bits, int width, int height, RGBQUAD color, Vector first, Vector second) {
+void lineDrawOct7(int *bitmap, State state, int width, int height, RGBQUAD color, Vector first, Vector second) {
 	int dx = (int)(second[0] - first[0]),
 		dy = (int)(second[1] - first[1]),
 		error = (2 * dy) + dx,
@@ -693,10 +793,26 @@ void lineDrawOct7(int *bits, int width, int height, RGBQUAD color, Vector first,
 		y = (int)first[1],
 		end_x = (int)second[0],
 		end_y = (int)second[1];
+	double start_z = first[2],
+		end_z = second[2],
+		current_z = first[2],
+		z_step = 1.0 / (end_x - x),
+		extrapolate_z = 0.0;
 
 	while (x != end_x) {
-		if ((x >= 0) && (x < width) && (y >= 0) && (y < height))
-			bits[y * width + x] = *((int*)&color);
+		if ((x >= 0) && (x < width) && (y >= 0) && (y < height)) {
+			current_z = (1.0 - extrapolate_z) * start_z + extrapolate_z * end_z;
+			if (!state.is_drawn_buffer[y * width + x]) {
+				bitmap[y * width + x] = *((int*)&color);
+				state.z_buffer[y * width + x] = current_z;
+				state.is_drawn_buffer[y * width + x] = true;
+			} else {
+				if (state.z_buffer[y * width + x] < current_z) {
+					bitmap[y * width + x] = *((int*)&color);
+					state.z_buffer[y * width + x] = current_z;
+				}
+			}
+		}
 		if (error > 0) {
 			x++;
 			error += 2 * dy; // East
@@ -705,19 +821,20 @@ void lineDrawOct7(int *bits, int width, int height, RGBQUAD color, Vector first,
 			y--;
 			error += 2 * (dx + dy); // South-East
 		}
+		extrapolate_z += z_step;
 	}
 }
 
-void lineDraw(int *bits, int width, int height, RGBQUAD color, Vector first, Vector second) {
+void lineDraw(int *bitmap, State state, int width, int height, RGBQUAD color, Vector first, Vector second) {
 	double delta_x, delta_y, ratio;
 
 	// Handle case where they are vertical
 	if (first[0] == second[0]) {
 		if (first[1] < second[1]) {
-			lineDrawOct1(bits, width, height, color, first, second);
+			lineDrawOct1(bitmap, state, width, height, color, first, second);
 		} else {
 			if (first[1] > second[2]) {
-				lineDrawOct6(bits, width, height, color, first, second);
+				lineDrawOct6(bitmap, state, width, height, color, first, second);
 			} else {
 				return; // They are the same point
 			}
@@ -738,12 +855,12 @@ void lineDraw(int *bits, int width, int height, RGBQUAD color, Vector first, Vec
 	ratio = delta_y / delta_x;
 
 	if (ratio >= 1.0) {							   // Octant 1
-		lineDrawOct1(bits, width, height, color, first, second);
+		lineDrawOct1(bitmap, state, width, height, color, first, second);
 	} else if ((ratio >= 0.0) && (ratio < 1.0)) {  // Octant 0
-		lineDrawOct0(bits, width, height, color, first, second);
+		lineDrawOct0(bitmap, state, width, height, color, first, second);
 	} else if ((ratio >= -1.0) && (ratio < 0.0)) { // Octant 7
-		lineDrawOct7(bits, width, height, color, first, second);
+		lineDrawOct7(bitmap, state, width, height, color, first, second);
 	} else {									   // Octant 6
-		lineDrawOct6(bits, width, height, color, first, second);
+		lineDrawOct6(bitmap, state, width, height, color, first, second);
 	}
 }

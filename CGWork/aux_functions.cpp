@@ -4,12 +4,12 @@
 #include "aux_functions.h"
 #include "IritObjects.h"
 
-void merge(struct twod_line arr[], int l, int m, int r, struct twod_line helper[]);
+void merge(struct threed_line arr[], int l, int m, int r, struct threed_line helper[]);
 
 // Merges two subarrays of arr[]. 
 // First subarray is arr[l..m] 
 // Second subarray is arr[m+1..r-1] 
-void merge(struct twod_line arr[], int l, int m, int r, struct twod_line helper[])
+void merge(struct threed_line arr[], int l, int m, int r, struct threed_line helper[])
 {
 	int i, j, k;
 	int n1 = m - l + 1;
@@ -63,7 +63,7 @@ void merge(struct twod_line arr[], int l, int m, int r, struct twod_line helper[
 
 /* l is for left index and r is right index of the
    sub-array of arr to be sorted */
-void mergeSort_aux(struct twod_line arr[], int l, int r, struct twod_line helper[])
+void mergeSort_aux(struct threed_line arr[], int l, int r, struct threed_line helper[])
 {
 	if (l < r - 1)
 	{
@@ -79,20 +79,20 @@ void mergeSort_aux(struct twod_line arr[], int l, int r, struct twod_line helper
 	}
 }
 
-void mergeSort(struct twod_line arr[], int sz)
+void mergeSort(struct threed_line arr[], int sz)
 {
-	struct twod_line *helper = new struct twod_line[sz]();
+	struct threed_line *helper = new struct threed_line[sz]();
 
 	mergeSort_aux(arr, 0, sz, helper);
 
 	delete[] helper;
 }
 
-void bucketSortAndUnique(int arr[], int &arr_sz, int min_val, int max_val)
+void bucketSortAndUnique(IntersectionPoint arr[], int &arr_sz, int min_val, int max_val)
 {
 	int offset = min_val;
-	int *bucket_arr;
-	int i, j;
+	struct IntersectionPoint *bucket_arr;
+	int i;
 
 	// We "move" all values -min_val in order to have the first value
 	// at 0. This is done to save allocation space
@@ -104,26 +104,26 @@ void bucketSortAndUnique(int arr[], int &arr_sz, int min_val, int max_val)
 	if (!max_val)
 		return;
 
-	bucket_arr = new int[max_val + 1];
+	bucket_arr = new struct IntersectionPoint[max_val + 1];
 	
 	// zero bucket array
 	for (i = 0; i < max_val + 1; i++) {
-		bucket_arr[i] = 0;
+		bucket_arr[i].x = 0;
 	}
 
 	// fill bucket with the number of iteration for each value
 	for (i = 0; i < arr_sz; i++) {
 		//bucket_arr[arr[i] - offset]++;
-		bucket_arr[arr[i] - offset] = 1;
+		bucket_arr[arr[i].x - offset].x = 1;
+		bucket_arr[arr[i].x - offset].z = arr[i].z;
 	}
 
 	arr_sz = 0;
 	for (i = 0; i < max_val + 1; i++) {
-		if (bucket_arr[i] > 2) {
-			printf("Stop\n");
+		if (bucket_arr[i].x) {
+			arr[arr_sz].x = i + offset;
+			arr[arr_sz++].z = bucket_arr[i].z;
 		}
-		for (j = 0; j < bucket_arr[i]; j++)
-			arr[arr_sz++] = i + offset;
 	}
 
 	delete[] bucket_arr;
