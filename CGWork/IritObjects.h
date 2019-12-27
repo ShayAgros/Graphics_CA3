@@ -293,8 +293,6 @@ public:
 
 	IritWorld();
 
-	IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin);
-
 	~IritWorld();
 
 	/* Sets a coordinate system (with axes and origin point)

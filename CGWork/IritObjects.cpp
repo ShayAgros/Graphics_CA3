@@ -518,41 +518,7 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.wire_color = WIRE_DEFAULT_COLOR;
 	state.frame_color = FRAME_DEFAULT_COLOR;
 	state.normal_color = NORMAL_DEFAULT_COLOR;
-}
 
-IritWorld::IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin) : m_figures_nr(0), m_figures_arr(nullptr) {
-	state.show_vertex_normal = false;
-	state.show_polygon_normal = false;
-	state.object_frame = false;
-	state.is_perspective_view = false;
-	state.object_transform = true;
-	state.is_default_color = true;
-	state.tell_normals_apart = false;
-
-	for (int i = 0; i < 3; i++)
-		state.is_axis_active[i] = false;
-
-	max_bound_coord = Vector();
-	max_bound_coord[3] = 1;
-	min_bound_coord = Vector();
-	min_bound_coord[3] = 1;
-
-	state.coord_mat = Matrix::Identity();
-	state.center_mat = Matrix::Identity();
-	state.ratio_mat = Matrix::Identity();
-	state.world_mat = Matrix::Identity();
-	state.object_mat = Matrix::Identity();
-	state.ortho_mat = Matrix::Identity();
-
-	state.view_mat = createViewMatrix(DEAULT_VIEW_PARAMETERS);
-	state.projection_plane_distance = DEFAULT_PROJECTION_PLANE_DISTANCE;
-	state.sensitivity = 1.0;
-	state.fineness = DEFAULT_FINENESS;
-
-	state.bg_color = BG_DEFAULT_COLOR;
-	state.wire_color = WIRE_DEFAULT_COLOR;
-	state.frame_color = FRAME_DEFAULT_COLOR;
-	state.normal_color = NORMAL_DEFAULT_COLOR;
 }
 
 IritWorld::~IritWorld() {
