@@ -14,6 +14,8 @@
 #define CALC_NORMAL_COLOR		{255, 0, 0, 0}     // Blue
 #define NORMAL_DEFAULT_COLOR	{255, 255, 255, 0} // White
 
+#define DEFAULT_DEPTH -500.0
+
 #define DEFAULT_PROJECTION_PLANE_DISTANCE 20
 #define DEAULT_VIEW_PARAMETERS 0, 0, 10
 
@@ -93,9 +95,6 @@ struct State {
 	// For hidden face removal
 	double* z_buffer;
 
-	// For background/depth drawing
-	bool* is_drawn_buffer;
-
 	// lights
 	struct light *lights;
 	int lights_nr;
@@ -158,7 +157,7 @@ class IritPolygon {
 
 	/* This function uses the lines array to do a
 	   scan conversion painting of the figure */
-	void paintObject(int *bitmap, int width, int height, RGBQUAD color, State &state);
+	void paintPolygon(int *bitmap, int width, int height, RGBQUAD color, State &state);
 
 public:
 	Vector normal_start;

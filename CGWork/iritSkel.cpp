@@ -291,9 +291,6 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			irit_polygon->normal_end[3] = 1;
 		}
 
-		// FOR SMALLER POLYGON NORMALS
-		irit_polygon->normal_end = irit_polygon->normal_end * 0.3;
-
 		// Find center of mass
 		PVertex = PPolygon->PVertex;
 		num_of_vertices = 0;
