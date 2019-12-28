@@ -94,6 +94,8 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
       <DisableSpecificWarnings>4273;4996;4800;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <LanguageStandard>
+      </LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -190,6 +192,7 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</BrowseInformation>
     </ClCompile>
+    <ClCompile Include="IritLight.cpp" />
     <ClCompile Include="IritObjects.cpp" />
     <ClCompile Include="iritSkel.cpp" />
     <ClCompile Include="LightDialog.cpp" />
@@ -232,6 +235,7 @@
     <ClInclude Include="CGWorkView.h" />
     <ClInclude Include="CGDialog.h" />
     <ClInclude Include="aux_functions.h" />
+    <ClInclude Include="IritLight.h" />
     <ClInclude Include="IritObjects.h" />
     <ClInclude Include="iritSkel.h" />
     <ClInclude Include="Light.h" />

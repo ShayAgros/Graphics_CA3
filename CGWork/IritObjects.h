@@ -4,6 +4,7 @@
 #include <iritprsr.h>
 #include "Vector.h"
 #include "Matrix.h"
+#include "IritLight.h"
 
 // The color scheme here is    <B G R *reserved*>
 #define BG_DEFAULT_COLOR		{0, 0, 0, 0}       // Black
@@ -20,6 +21,9 @@
 
 #define RGB_TO_RGBQUAD(x) {(BYTE)((x & 0xff0000) >> 16), (BYTE)((x & 0xff00) >> 8), (BYTE)(x & 0xff), 0}
 
+const RGBQUAD max_rgb = { 255, 255, 255, 0 };
+//const unsigned int max_rgb_uint = ((unsigned int *)&max_rgb)
+
 // Declerations
 /* Creates a view matrix which simulates changing the position of the camera
  * @x,y,z - camera coordinates in *world* view system
@@ -35,6 +39,12 @@ enum Axis {
 	Y_AXIS,
 	Z_AXIS,
 	NUM_OF_AXES
+};
+
+enum ShadingMode {
+	SHADING_M_FLAT,
+	SHADING_M_GOURD,
+	SHADING_M_PHONG,
 };
 
 class IritPolygon;
@@ -71,6 +81,7 @@ struct State {
 	Matrix ortho_mat;
 	Matrix view_mat;
 
+	Matrix orthogonal_to_perspective;
 	Matrix perspective_mat;
 	Matrix screen_mat;
 
@@ -84,6 +95,11 @@ struct State {
 
 	// For background/depth drawing
 	bool* is_drawn_buffer;
+
+	// lights
+	struct light *lights;
+	int lights_nr;
+	enum ShadingMode shading_mode;
 };
 
 struct PolygonList {
@@ -100,9 +116,11 @@ struct VertexList {
 
 struct IntersectionPoint {
 	int x;
+	int y;
 	double z; 
 
 	// will need to contain extrapolated normal as well
+	struct threed_line *containing_line;
 };
 
 /* Represents a 3 dimensional line
@@ -112,8 +130,10 @@ struct threed_line {
 	double z1;
 	int x2, y2;
 	double z2;
-	
 
+	IritPoint p1;
+	IritPoint p2;
+	
 	bool operator<(threed_line &l1) {
 		return this->ymin() < l1.ymin();
 	}
@@ -171,8 +191,8 @@ public:
 	 * @vertex_transform - a transformation matrix for the the vertices (each
 	 *						vertex is multiplied by this matrix before being drawn
 	*/
-	void draw(int *bitmap, int width, int height, RGBQUAD color, struct State state,
-		Matrix &vertex_transform);
+	void draw(int *bitmap, int width, int height, RGBQUAD color, struct State &state,
+			  Matrix &vertex_transform, Vector &ambient_reflection);
 
 	// Operators overriding
 	IritPolygon &operator++();
@@ -187,6 +207,10 @@ class IritObject {
 	int m_polygons_nr;
 	IritPolygon *m_polygons;
 	IritPolygon *m_iterator;
+
+	/* light */
+	/*surface diffuse reflection coeffients */
+	Vector kd;
 
 public:
 	RGBQUAD object_color;
@@ -309,8 +333,6 @@ public:
 
 	IritWorld();
 
-	IritWorld(Vector axes[NUM_OF_AXES], Vector &axes_origin);
-
 	~IritWorld();
 
 	/* Sets a coordinate system (with axes and origin point)
@@ -348,4 +370,10 @@ public:
 	bool isEmpty();
 
 	void draw(int *bitmap, int width, int height);
+
+	/* Add a light source to the IritWorld
+	 * @pos - the position of the camera in *clipping space*
+	 * @intensity - the light intensity of the light source
+	*/
+	void addLightSource(Vector &pos, int intensity);
 };

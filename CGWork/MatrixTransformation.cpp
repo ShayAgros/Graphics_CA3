@@ -4,6 +4,7 @@
 #include "IritObjects.h"
 #include "Matrix.h"
 #include "Vector.h"
+#include "iritSkel.h"
 
 
 
@@ -87,11 +88,11 @@ Matrix IritWorld::createProjectionMatrix() {
 		Matrix scale_back = Matrix::createScaleMatrix(8, 8, 1);
 		Matrix perspective_matrix = getPerspectiveMatrix(90, 7, 9);
 
-		return scale_back * perspective_matrix * translation * state.ortho_mat;
+		return scale_back * perspective_matrix * translation;
 	}
 
 	// we're in orthogonal view
-	return state.ortho_mat;
+	return Matrix::Identity();
 }
 
 Matrix createTranslationMatrix(double x, double y, double z) {

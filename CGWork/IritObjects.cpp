@@ -81,6 +81,12 @@ void IritPolygon::setNextPolygon(IritPolygon *polygon) {
 	m_next_polygon = polygon;
 }
 
+bool isOutsideClippingBoundries(Vector &vertex)
+{
+	return vertex[X_AXIS] > 1 || vertex[X_AXIS] < -1 || vertex[Y_AXIS] > 1 || vertex[Y_AXIS] < -1 ||
+		   vertex[2] > 1 || vertex[2] < -1;
+}
+
 /* This function uses an algorithm to find intersection between
  * two lines. For more info see
  * https://www.geeksforgeeks.org/program-for-point-of-intersection-of-two-lines/
@@ -92,7 +98,7 @@ void IritPolygon::paintObject(int *bitmap, int width, int height, RGBQUAD color,
 	double A2, B2, C2;
 	double determinant;
 
-	IntersectionPoint *intersecting_x;
+	struct IntersectionPoint *intersecting_x;
 	int intersecting_x_nr;
 	int min_x, max_x;
 	int min_y, max_y;
@@ -102,7 +108,7 @@ void IritPolygon::paintObject(int *bitmap, int width, int height, RGBQUAD color,
 
 	mergeSort(lines, lines_nr);
 
-	intersecting_x = new IntersectionPoint[lines_nr * 2];
+	intersecting_x = new struct IntersectionPoint[lines_nr * 2];
 	min_x = min(lines[0].x1, lines[0].x2);
 	max_x = min(lines[0].x1, lines[0].x2);
 
@@ -137,9 +143,14 @@ void IritPolygon::paintObject(int *bitmap, int width, int height, RGBQUAD color,
 
 				// Lines are parallel, we add X boundries as intersection point
 				intersecting_x[intersecting_x_nr].x = current_line.x1;
+				intersecting_x[intersecting_x_nr].y = y;
+				intersecting_x[intersecting_x_nr].containing_line = &current_line;
 				intersecting_x[intersecting_x_nr++].z = current_line.z1;
 				intersecting_x[intersecting_x_nr].x = current_line.x2;
+				intersecting_x[intersecting_x_nr].y = y;
+				intersecting_x[intersecting_x_nr].containing_line = &current_line;
 				intersecting_x[intersecting_x_nr++].z = current_line.z2;
+
 
 				min_x = min(min_x, min(current_line.x1, current_line.x2));
 				max_x = max(max_x, max(current_line.x1, current_line.x2));
@@ -148,6 +159,8 @@ void IritPolygon::paintObject(int *bitmap, int width, int height, RGBQUAD color,
 				double t;
 				double extrapolated_z;
 				intersecting_x[intersecting_x_nr].x = (int)((B2 * C1 - B1 * C2) / determinant);
+				intersecting_x[intersecting_x_nr].y = y;
+				intersecting_x[intersecting_x_nr].containing_line = &current_line;
 
 				t = (double)(intersecting_x[intersecting_x_nr].x - current_line.x1) / (double)(current_line.x2 - current_line.x1);
 				extrapolated_z = (1 - t) * current_line.z1 + t * current_line.z2;
@@ -176,9 +189,15 @@ void IritPolygon::paintObject(int *bitmap, int width, int height, RGBQUAD color,
 
 			// paint all the pixels between the two adjact x values (inclusive)
 			for (int x = intersecting_x[i].x; x <= intersecting_x[i + 1].x; x++) {
-				if (bitmap[y * width + x])
-					continue;
-				bitmap[y * width + x] = *((int*)&color); 
+				RGBQUAD light_color = calculateLight(intersecting_x[i], intersecting_x[i + 1], t, state);
+
+				// the casting is needed, otherwise the addition of colors overflows
+				unsigned int new_red_c = min((unsigned int)color.rgbRed + (unsigned int)light_color.rgbRed, 255);
+				unsigned int new_green_c = min((unsigned int)color.rgbGreen + (unsigned int)light_color.rgbGreen, 255);
+				unsigned int new_blue_c = min((unsigned int)color.rgbBlue + (unsigned int)light_color.rgbBlue, 255);
+				//RGBQUAD new_color = { new_red_c, new_green_c, new_blue_c, 0};
+				RGBQUAD new_color = color;
+				bitmap[y * width + x] = *((int*)&new_color);
 				
 				// This might be a better way of doing this, since line draw already check all these stuff
 				// anyway, this can probably be removed when we are comfortable with the current
@@ -205,7 +224,7 @@ void IritPolygon::paintObject(int *bitmap, int width, int height, RGBQUAD color,
 					not_drawn = !state.is_drawn_buffer[y * width + x];
 				    closer = extrapolated_z < state.z_buffer[y * width + x];
 					if (closer || not_drawn) {
-						bitmap[y * width + x] = *((int*)&color);
+						bitmap[y * width + x] = *((int*)&new_color);
 						state.z_buffer[y * width + x] = extrapolated_z;
 						state.is_drawn_buffer[y * width + x] = true;
 					}
@@ -213,17 +232,19 @@ void IritPolygon::paintObject(int *bitmap, int width, int height, RGBQUAD color,
 			}
 		}
 	}
-
+	delete[] intersecting_x;
 }
 
-void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct State state,
-					   Matrix &vertex_transform) {
+void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct State &state,
+					   Matrix &vertex_transform, Vector &ambient_reflection) {
 	struct IritPoint *current_point = m_points;
 	Vector current_vertex = current_point->vertex;
 	Vector next_vertex;
 	Vector polygon_normal[2];
 	RGBQUAD current_color = (state.is_default_color) ? color : state.wire_color;
 	RGBQUAD normal_color;
+	struct threed_line line;
+	struct threed_line *prev_line = NULL;
 
 	// For vertex normal drawing
 	Vector normal;
@@ -234,7 +255,6 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 	lines = new struct threed_line[m_point_nr];
 	// we count the exact number of lines when drawing the wireframe
 	lines_nr = 0;
-
 
 	/* Draw shape's wireframe and find lines */
 	while (current_point->next_point != nullptr) {
@@ -249,11 +269,14 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		}
 
 		// Clipping. Don't draw points that are outside of our view volume
-		if (current_vertex[X_AXIS] > 1 || current_vertex[X_AXIS] < -1 || current_vertex[Y_AXIS] > 1 || current_vertex[Y_AXIS] < -1 ||
-			current_vertex[2] > 1 || current_vertex[2] < -1) {
+		if (isOutsideClippingBoundries(current_vertex) || isOutsideClippingBoundries(next_vertex)) {
 			printf("Way out of line!\n");
+			prev_line = NULL;
 			goto pass_this_point;
 		}
+
+		line.p1.vertex = current_vertex;
+		line.p2.vertex = next_vertex;
 
 		current_vertex = state.screen_mat * current_vertex;
 		next_vertex = state.screen_mat * next_vertex;
@@ -261,19 +284,27 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
 
 		// Add the drawn line to the list of lines on the screen
-		lines[lines_nr++] = { (int)current_vertex.coordinates[X_AXIS],
-							  (int)current_vertex.coordinates[Y_AXIS],
-							  (double)current_vertex.coordinates[Z_AXIS],
-							  (int)next_vertex.coordinates[X_AXIS],
-							  (int)next_vertex.coordinates[Y_AXIS],
-							  (double)next_vertex.coordinates[Z_AXIS]};
+		line.x1 = (int)current_vertex.coordinates[X_AXIS];
+		line.y1 = (int)current_vertex.coordinates[Y_AXIS];
+		line.x2 = (int)next_vertex.coordinates[X_AXIS];
+		line.y2 = (int)next_vertex.coordinates[Y_AXIS];
+
+		line.z1 = (double)current_vertex.coordinates[Z_AXIS];
+		line.z2 = (double)next_vertex.coordinates[Z_AXIS];
+
+		normal = current_point->normal * 0.3;
+		normal += current_point->vertex;
+		normal = vertex_transform * normal;
+		if (state.is_perspective_view)
+			normal.Homogenize();
+
+		line.p1.normal = normal;
+		// update normal for this point in the previous line as well
+		if (prev_line)
+			prev_line->p2.normal = normal;
 
 		if (state.show_vertex_normal) {
-			normal = current_point->normal * 0.3;
-			normal += current_point->vertex;
-			normal = vertex_transform * normal;
-			if (state.is_perspective_view)
-				normal.Homogenize();
+
 			normal = state.screen_mat * normal;
 
 			normal_color = state.normal_color;
@@ -286,6 +317,16 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 
 			lineDraw(bitmap, state, width, height, normal_color, current_vertex, normal);
 		}
+
+		if (line.x1 != line.x2 || line.y1 != line.y2) {
+			// we ignore lines that only change in their z value since
+			// its won't be a line in 2d space
+			lines[lines_nr] = line;
+			prev_line = &lines[lines_nr];
+			lines_nr++;
+		}
+		else
+			prev_line = NULL;
 pass_this_point:
 		current_point = current_point->next_point;
 	}
@@ -324,26 +365,43 @@ pass_this_point:
 	}
 
 	// Clipping. Don't draw points that are outside of our view volume
-	if (current_vertex[X_AXIS] > 1 || current_vertex[X_AXIS] < -1 || current_vertex[Y_AXIS] > 1 || current_vertex[Y_AXIS] < -1 ||
-		current_vertex[2] > 1 || current_vertex[2] < -1) {
+	if (isOutsideClippingBoundries(current_vertex) || isOutsideClippingBoundries(next_vertex)) {
 		printf("Way out of line!\n");
 		goto paint_object;
 	}
 
+	line.p1.vertex = current_vertex;
+	line.p2.vertex = next_vertex;
+
 	current_vertex = state.screen_mat * current_vertex;
 	next_vertex = state.screen_mat * next_vertex;
 
-
 	lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
 	// Add the drawn line to the list of lines on the screen
-	lines[lines_nr++] = { (int)current_vertex.coordinates[X_AXIS],
-						  (int)current_vertex.coordinates[Y_AXIS],
-						  (double)current_vertex.coordinates[Z_AXIS],
-						  (int)next_vertex.coordinates[X_AXIS],
-						  (int)next_vertex.coordinates[Y_AXIS],
-						  (double)next_vertex.coordinates[Z_AXIS] };
+	line.x1 = (int)current_vertex.coordinates[X_AXIS];
+	line.y1 = (int)(int)current_vertex.coordinates[Y_AXIS];
+	line.x2 = (int)next_vertex.coordinates[X_AXIS];
+	line.y2 = (int)next_vertex.coordinates[Y_AXIS];
 
+	line.z1 = current_vertex.coordinates[Z_AXIS];
+	line.z2 = (double)next_vertex.coordinates[Z_AXIS];
 
+	normal = current_point->normal * 0.3;
+	normal += current_point->vertex;
+	normal = vertex_transform * normal;
+	if (state.is_perspective_view)
+		normal.Homogenize();
+
+	line.p1.normal = normal;
+	// update normal for this point in the previous line as well
+	if (prev_line)
+		prev_line->p2.normal = normal;
+
+	if (line.x1 != line.x2 || line.y1 != line.y2) {
+		// we ignore lines that only change in their z value since
+		// its won't be a line in 2d space
+		lines[lines_nr++] = line;
+	}
 paint_object:
 	// paint the polygon
 	paintObject(bitmap, width, height, current_color, state);
@@ -360,6 +418,7 @@ IritPolygon &IritPolygon::operator++() {
 
 IritObject::IritObject() : m_polygons_nr(0), m_polygons(nullptr), m_iterator(nullptr) {
 	object_color = WIRE_DEFAULT_COLOR;
+	kd = Vector(0.5);
 }
 
 IritObject::~IritObject() {
@@ -401,7 +460,7 @@ void IritObject::draw(int *bitmap, int width, int height, State &state,
 
 	m_iterator = m_polygons;
 	while (m_iterator) {
-		m_iterator->draw(bitmap, width, height, object_color, state, vertex_transform);
+		m_iterator->draw(bitmap, width, height, object_color, state, vertex_transform, kd);
 		m_iterator = m_iterator->getNextPolygon();
 	}
 }
@@ -568,6 +627,12 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 
 	state.is_drawn_buffer = nullptr;
 	state.z_buffer = nullptr;
+
+	state.lights = NULL;
+	state.lights_nr = 0;
+	state.shading_mode = SHADING_M_PHONG;
+
+	this->addLightSource(Vector(0, 0, 10), 50);
 }
 
 IritWorld::~IritWorld() {
@@ -615,9 +680,11 @@ Vector IritWorld::projectPoint(Vector &td_point, Matrix &transformation) {
 }
 
 void IritWorld::draw(int *bitmap, int width, int height) {
-		Matrix projection_mat = createProjectionMatrix();
+		Matrix partial_projection_mat = createProjectionMatrix();
+		Matrix projection_mat = partial_projection_mat * state.ortho_mat;
 		Matrix transformation = projection_mat * state.view_mat;
 
+		this->state.orthogonal_to_perspective = partial_projection_mat;
 		this->state.screen_mat = state.center_mat * state.ratio_mat;
 
 		// Draw all objects
