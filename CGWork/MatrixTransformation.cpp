@@ -49,8 +49,10 @@ void IritWorld::setOrthoMat()
 
 	state.ortho_mat = Matrix::Identity();
 
-	max_z = (state.view_mat * Vector(0, 0, max_z, 1))[Z_AXIS] * 1.75;
-	min_z = (state.view_mat * Vector(0, 0, min_z, 1))[Z_AXIS] * 0.25;
+	/*max_z = (state.view_mat * Vector(0, 0, max_z, 1))[Z_AXIS] * 1.75;
+	min_z = (state.view_mat * Vector(0, 0, min_z, 1))[Z_AXIS] * 0.25;*/
+	max_z = (state.view_mat * Vector(0, 0, max_z, 1))[Z_AXIS];
+	min_z = (state.view_mat * Vector(0, 0, min_z, 1))[Z_AXIS];
 
 	state.ortho_mat.array[X_AXIS][0] = 2 / (max_x - min_x);
 	state.ortho_mat.array[Y_AXIS][1] = 2 / (max_y - min_y);

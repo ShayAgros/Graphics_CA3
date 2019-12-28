@@ -19,6 +19,8 @@
 
 #define DEFAULT_FINENESS 20.0
 
+#define DEFAULT_DEPTH -500.0
+
 #define RGB_TO_RGBQUAD(x) {(BYTE)((x & 0xff0000) >> 16), (BYTE)((x & 0xff00) >> 8), (BYTE)(x & 0xff), 0}
 
 const RGBQUAD max_rgb = { 255, 255, 255, 0 };
@@ -93,9 +95,6 @@ struct State {
 	// For hidden face removal
 	double* z_buffer;
 
-	// For background/depth drawing
-	bool* is_drawn_buffer;
-
 	// lights
 	struct light *lights;
 	int lights_nr;
@@ -158,7 +157,7 @@ class IritPolygon {
 
 	/* This function uses the lines array to do a
 	   scan conversion painting of the figure */
-	void paintObject(int *bitmap, int width, int height, RGBQUAD color, State &state);
+	void paintPolygon(int *bitmap, int width, int height, RGBQUAD color, State &state);
 
 public:
 	Vector normal_start;
