@@ -64,19 +64,30 @@ void extrapolate_normal_and_vertex(struct IntersectionPoint &intersecting_p, Vec
 	extrapolated_pos = (left_x_vertex * (1 - t)) + (right_x_vertex * t);
 }
 
+/* See http://www.ogldev.org/www/tutorial19/tutorial19.html for reflection calculations */
 Vector calculatePhongLight(struct IntersectionPoint &intersecting_x1, struct IntersectionPoint &intersecting_x2,
-						   int t, struct State &state)
+						   double t, struct State &state)
 {
-	int ambient_intensity = 90;
-	int point_source_intensity = 150;
 
 	// In case of inverted normals;
 	int sign = (state.invert_normals) ? -1 : 1;
 
-	Vector ka = Vector(0.4);
-	Vector kd = Vector(0.1);
-	Vector light_source_pos = Vector(0, 0, 1);
+	/* General */
+	Vector light_source_pos = Vector(0, 0, 0.8);
+	Vector camera_position = Vector(0, 0, 2);
 
+	/* Ambient */
+	int ambient_intensity = 90;
+	Vector ka = Vector(0.4);
+
+	/* Diffusive */
+	Vector kd = Vector(0.8);
+	int point_source_intensity = 70;
+
+	/* Specular */
+	Vector ks = Vector(0.7);
+
+	/* Positional vectors */
 	Vector left_side_normal;
 	Vector left_side_pos;
 
@@ -86,29 +97,50 @@ Vector calculatePhongLight(struct IntersectionPoint &intersecting_x1, struct Int
 	Vector point_normal;
 	Vector point_pos;
 
+	Vector point_to_light;
 	Vector light_to_point;
+	Vector point_to_eye;
+	Vector reflected_vector;
 
+	// extrapolate the normals and position of the containing lines boundries
 	extrapolate_normal_and_vertex(intersecting_x1, left_side_normal, left_side_pos);
 	extrapolate_normal_and_vertex(intersecting_x2, right_side_normal, right_side_pos);
 
 	// The 3D-normal and the 3D-position of our intersection point
-	point_normal = (left_side_normal * (1 - t)) + (right_side_normal * t) * sign;
+	point_normal = (left_side_normal * (1 - t)) + (right_side_normal * t) *sign;
 	point_pos = (left_side_pos * (1 - t)) + (right_side_pos * t);
 
-	light_to_point = point_pos - light_source_pos;
-
 	point_normal.Normalize();
+
+	point_to_light = light_source_pos - point_pos;
+	light_to_point = point_to_light * (-1);
+	point_to_eye = camera_position - point_pos;
+	reflected_vector = light_to_point - (point_normal * (point_normal * light_to_point) * 2);
+
+	point_to_light.Normalize();
+	reflected_vector.Normalize();
+	point_to_eye.Normalize();
 	light_to_point.Normalize();
 
-	double cos_theta = light_to_point * point_normal;
-	//return Vector(0, 0, 0);
-	if (cos_theta > 0)
-		return /*ka * ambient_intensity +*/ kd * point_source_intensity * (light_to_point * point_normal);
+	double cos_theta = point_normal * point_to_light;
+
+	if(cos_theta > 0.95)
+		printf("Stop here\n");
+
+	if (cos_theta > 0) {
+		Vector diffusive = kd * point_source_intensity * cos_theta;
+		double alpha = reflected_vector * point_to_eye;
+		if (alpha > 0) {
+			Vector specular_light = ks * point_source_intensity * (pow(alpha, 50));
+			return /*ka * ambient_intensity +*/ diffusive + specular_light;
+		}
+		return diffusive;
+	}
 	return Vector(0, 0, 0);
 }
 
 RGBQUAD calculateLight(struct IntersectionPoint &intersecting_x1, struct IntersectionPoint &intersecting_x2,
-					   int t, struct State &state)
+					   double t, struct State &state)
 {
 	RGBQUAD rgbq = { 0, 0, 0, 0 };
 

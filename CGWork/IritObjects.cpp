@@ -195,13 +195,6 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 
 			// paint all the pixels between the two adjact x values (inclusive)
 			for (int x = intersecting_x[i].x; x <= intersecting_x[i + 1].x; x++) {
-				RGBQUAD light_color = calculateLight(intersecting_x[i], intersecting_x[i + 1], t, state);
-
-				// the casting is needed, otherwise the addition of colors overflows
-				unsigned int new_red_c = min((unsigned int)color.rgbRed + (unsigned int)light_color.rgbRed, 255);
-				unsigned int new_green_c = min((unsigned int)color.rgbGreen + (unsigned int)light_color.rgbGreen, 255);
-				unsigned int new_blue_c = min((unsigned int)color.rgbBlue + (unsigned int)light_color.rgbBlue, 255);
-				RGBQUAD new_color = { new_red_c, new_green_c, new_blue_c, 0};
 
 				double extrapolated_z;
 				extrapolated_z = (1 - t) * intersecting_x[i].z + t * intersecting_x[i + 1].z;
@@ -210,8 +203,15 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 				bool closer = extrapolated_z > state.z_buffer[y * width + x];
 				
 				if (closer) {
-					//bitmap[y * width + x] = *((int*)&new_color);
-					bitmap[y * width + x] = *((int*)&color);
+					RGBQUAD light_color = calculateLight(intersecting_x[i], intersecting_x[i + 1], t, state);
+					// the casting is needed, otherwise the addition of colors overflows
+					unsigned int new_red_c = min((unsigned int)color.rgbRed + (unsigned int)light_color.rgbRed, 255);
+					unsigned int new_green_c = min((unsigned int)color.rgbGreen + (unsigned int)light_color.rgbGreen, 255);
+					unsigned int new_blue_c = min((unsigned int)color.rgbBlue + (unsigned int)light_color.rgbBlue, 255);
+					RGBQUAD new_color = { new_red_c, new_green_c, new_blue_c, 0 };
+
+					bitmap[y * width + x] = *((int*)&new_color);
+					//bitmap[y * width + x] = *((int*)&color);
 					state.z_buffer[y * width + x] = extrapolated_z;
 				}
 			}
@@ -294,13 +294,8 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		if (state.is_perspective_view)
 			normal.Homogenize();
 
-		//line.p1.normal = normal;
-		//// update normal for this point in the previous line as well
-		//if (prev_line)
-		//	prev_line->p2.normal = normal;
-		line.p1.normal = vertex_transform * current_point->normal * sign;
 
-		line.p1.normal.Homogenize();
+		line.p1.normal = normal * sign;
 		// update normal for this point in the previous line as well
 		if (prev_line)
 			prev_line->p2.normal = line.p1.normal;
@@ -399,8 +394,8 @@ pass_this_point:
 	//// update normal for this point in the previous line as well
 	//if (prev_line)
 	//	prev_line->p2.normal = normal;
-	line.p1.normal = vertex_transform * current_point->normal;
-	line.p1.normal.Homogenize();
+	line.p1.normal = normal;
+	//line.p1.normal.Homogenize();
 	// update normal for this point in the previous line as well
 	if (prev_line)
 		prev_line->p2.normal = line.p1.normal;

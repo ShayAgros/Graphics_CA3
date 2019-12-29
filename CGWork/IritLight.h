@@ -26,4 +26,4 @@ struct light {
  * @state				- contains all light sources in our world
 */
 RGBQUAD calculateLight(struct IntersectionPoint &intersecting_x1, struct IntersectionPoint &intersecting_x2,
-					   int t, struct State &state);
+					   double t, struct State &state);
