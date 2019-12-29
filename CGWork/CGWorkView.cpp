@@ -101,6 +101,13 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(IDD_SAVE_TO_PNG, OnUpdateSaveToPng)
 	ON_COMMAND(IDD_ON_SCREEN, OnRenderOnScreen)
 	ON_UPDATE_COMMAND_UI(IDD_ON_SCREEN, OnUpdateRenderOnScreen)
+	ON_COMMAND(IDD_PNG_BACKGROUND, OnChoosePNG)
+	ON_COMMAND(IDD_REPEAT_IMAGE, OnRepeatPNG)
+	ON_UPDATE_COMMAND_UI(IDD_REPEAT_IMAGE, OnUpdateRepeatPNG)
+	ON_COMMAND(IDD_STRETCH_IMAGE, OnStretchPNG)
+	ON_UPDATE_COMMAND_UI(IDD_STRETCH_IMAGE, OnUpdateStretchPNG)
+	ON_COMMAND(IDD_CANCEL_IMAGE, OnCancelPNG)
+	ON_UPDATE_COMMAND_UI(IDD_CANCEL_IMAGE, OnUpdateCancelPNG)
 
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
@@ -301,17 +308,15 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	CRect rect;
 	GetClientRect(&rect);
 
-	RGBQUAD background = world.state.bg_color;
+	RGBQUAD static_background = world.state.bg_color;
 
 	Vector axes[NUM_OF_AXES];
-
-	Vector origin;
-
-	int h, w;
-
 	axes[X_AXIS] = Vector(1, 0, 0, 0);
 	axes[Y_AXIS] = Vector(0, -1, 0, 0);
 	axes[Z_AXIS] = Vector(0, 0, 1, 0);
+	Vector origin;
+
+	int h, w;
 
 	if (world.state.save_to_png) {
 		h = world.png_height;
@@ -350,7 +355,29 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	bminfo.bmiHeader.biClrImportant = 0;
 
 	for (int i = 0; i < w * h; i++) {
-		bitmap[i] = *((int*)&background);
+		if (world.state.background_png) {
+			PngWrapper *p = world.background;
+
+			int png_width = p->GetWidth(),
+				png_height = p->GetHeight(),
+				x, y;
+
+			double h_ratio = (double)png_height / (double)h,
+				   w_ratio = (double)png_width / (double)w;
+
+			if (world.state.png_stretch) {
+				x = (int)(((double)(i % w)) * w_ratio);
+				y = (int)(((double)(i / w)) * h_ratio);
+			} else { // PNG repeat
+				x = (i % w) % png_width;
+				y = (i / w) % png_height;
+			}
+			// Screen is inverted compared to PNG
+			y = png_height - y - 1;
+			bitmap[i] = RGBA_TO_ARGB(p->GetValue(x, y));
+		} else {
+			bitmap[i] = *((int*)&static_background);
+		}
 		world.state.z_buffer[i] = DEFAULT_DEPTH;
 	}
 
@@ -367,7 +394,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		for (int i = 0; i < w * h; i++) {
 			int x = i % w,
 				y = i / w;
-			// The picture is inverted, so use "h-y'
+			// The picture is inverted, so use "h-y-1'
 			png->SetValue(x, h - y - 1, ARGB_TO_RGBA(bitmap[i]));
 		}
 		png->WritePng();
@@ -427,7 +454,6 @@ void CCGWorkView::OnFileLoad()
 
 		Invalidate();	// force a WM_PAINT for drawing.
 	} 
-
 }
 
 // VIEW HANDLERS ///////////////////////////////////////////
@@ -792,7 +818,7 @@ void CCGWorkView::OnObjectColor()
 
 	if (diag.DoModal() == IDOK) {
 		color = diag.GetColor();
-		world.state.wire_color = RGB_TO_RGBQUAD(color);
+		world.state.wire_color = COLORREF_TO_RGBQUAD(color);
 		world.state.is_default_color = false;
 		Invalidate();
 	}
@@ -805,7 +831,7 @@ void CCGWorkView::OnBGColor()
 
 	if (diag.DoModal() == IDOK) {
 		color = diag.GetColor();
-		world.state.bg_color = RGB_TO_RGBQUAD(color);
+		world.state.bg_color = COLORREF_TO_RGBQUAD(color);
 		Invalidate();
 	}
 }
@@ -817,7 +843,7 @@ void CCGWorkView::OnNormalColor()
 
 	if (diag.DoModal() == IDOK) {
 		color = diag.GetColor();
-		world.state.normal_color = RGB_TO_RGBQUAD(color);
+		world.state.normal_color = COLORREF_TO_RGBQUAD(color);
 		Invalidate();
 	}
 }
@@ -901,4 +927,47 @@ void CCGWorkView::OnRenderOnScreen() {
 
 void CCGWorkView::OnUpdateRenderOnScreen(CCmdUI* pCmdUI) {
 	pCmdUI->SetCheck(!world.state.save_to_png);
+}
+
+void CCGWorkView::OnChoosePNG() {
+	TCHAR szFilters[] = _T("PNG Files (*.png)|*.png|All Files (*.*)|*.*||");
+
+	CFileDialog dlg(TRUE, _T("png"), _T("*.png"), OFN_FILEMUSTEXIST | OFN_HIDEREADONLY, szFilters);
+
+	if (dlg.DoModal() == IDOK) {
+		PngWrapper *p = world.background;
+		// CT2A converts CString to const char*
+		p->SetFileName(CT2A(dlg.GetPathName()));
+		p->ReadPng();
+
+		world.state.background_png = true;
+		Invalidate();
+	}
+}
+
+void CCGWorkView::OnRepeatPNG() {
+	world.state.png_stretch = false;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdateRepeatPNG(CCmdUI* pCmdUI) {
+	pCmdUI->SetCheck(!world.state.png_stretch);
+}
+
+void CCGWorkView::OnStretchPNG() {
+	world.state.png_stretch = true;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdateStretchPNG(CCmdUI* pCmdUI) {
+	pCmdUI->SetCheck(world.state.png_stretch);
+}
+
+void CCGWorkView::OnCancelPNG() {
+	world.state.background_png = false;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdateCancelPNG(CCmdUI* pCmdUI) {
+	pCmdUI->Enable(world.state.background_png);
 }

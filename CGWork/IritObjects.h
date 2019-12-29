@@ -5,6 +5,7 @@
 #include "Vector.h"
 #include "Matrix.h"
 #include "IritLight.h"
+#include "PngWrapper.h"
 
 // The color scheme here is    <B G R *reserved*>
 #define BG_DEFAULT_COLOR		{0, 0, 0, 0}       // Black
@@ -21,8 +22,14 @@
 
 #define DEFAULT_DEPTH -500.0
 
-#define RGB_TO_RGBQUAD(x) {(BYTE)((x & 0xff0000) >> 16), (BYTE)((x & 0xff00) >> 8), (BYTE)(x & 0xff), 0}
+#define COLORREF_TO_RGBQUAD(x) {(BYTE)((x & 0xff0000) >> 16), (BYTE)((x & 0xff00) >> 8), (BYTE)(x & 0xff), 0}
 #define ARGB_TO_RGBA(x) (((x & 0xff000000) >> 24) + ((x & 0x00ff0000) << 8) + ((x & 0x0000ff00) << 8) + ((x & 0x000000ff) << 8))
+// 0x00ff0000 is G, mapped to R
+// 0x0000ff00 is B, mapped to G
+// 0x000000ff is nothing
+// 0xff000000 is nothing
+// -g-- to --g-
+#define RGBA_TO_ARGB(x) (((x & 0xff000000) >> 8) + ((x & 0x00ff0000) >> 8) + ((x & 0x0000ff00) >> 8)+ ((x & 0x000000ff) << 24))
 
 const RGBQUAD max_rgb = { 255, 255, 255, 0 };
 //const unsigned int max_rgb_uint = ((unsigned int *)&max_rgb)
@@ -73,6 +80,8 @@ struct State {
 	bool backface_culling;
 	bool only_mesh;
 	bool save_to_png;
+	bool png_stretch;
+	bool background_png;
 
 	double projection_plane_distance;
 	double sensitivity;
@@ -330,6 +339,8 @@ class IritWorld {
 public:
 	// World state
 	struct State state;
+
+	PngWrapper *background;
 	
 	// PNG Size
 	int png_height;

@@ -192,8 +192,8 @@ BEGIN
 		MENUITEM "Invert Normals"			IDD_INVERT_NORMALS
 		POPUP "Select PNG Background"
 		BEGIN
-			MENUITEM "Pick Background"		IDD_PNG_BACKGROUND
-			MENUITEM "Stretch Image"			IDD_STRETCH_IMAGE
+			MENUITEM "Pick background"		IDD_PNG_BACKGROUND
+			MENUITEM "Stretch Image"		IDD_STRETCH_IMAGE
 			MENUITEM "Repeat Image"			IDD_REPEAT_IMAGE
 			MENUITEM "Cancel Image"			IDD_CANCEL_IMAGE
 		END

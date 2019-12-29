@@ -143,6 +143,13 @@ public:
 	afx_msg void OnUpdateSaveToPng(CCmdUI* pCmdUI);
 	afx_msg void OnRenderOnScreen();
 	afx_msg void OnUpdateRenderOnScreen(CCmdUI* pCmdUI);
+	afx_msg void OnChoosePNG();
+	afx_msg void OnStretchPNG();
+	afx_msg void OnUpdateStretchPNG(CCmdUI* pCmdUI);
+	afx_msg void OnRepeatPNG();
+	afx_msg void OnUpdateRepeatPNG(CCmdUI* pCmdUI);
+	afx_msg void OnCancelPNG();
+	afx_msg void OnUpdateCancelPNG(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

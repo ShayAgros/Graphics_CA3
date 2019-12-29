@@ -1,5 +1,6 @@
 #include "IritObjects.h"
 #include "aux_functions.h"
+#include "PngWrapper.h"
 
 Matrix createTranslationMatrix(double x, double y, double z = 0);
 Matrix createTranslationMatrix(Vector &v);
@@ -612,6 +613,8 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.backface_culling = false;
 	state.only_mesh = false;
 	state.save_to_png = false;
+
+	background = new PngWrapper();
 
 	for (int i = 0; i < 3; i++)
 		state.is_axis_active[i] = false;
