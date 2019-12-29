@@ -9,6 +9,14 @@
 #define IDD_MATERIAL_DLG                136
 #define IDD_SENS_DISTANCE				137
 #define IDD_DIFFERENT_NORMALS			138
+#define IDD_SAVE_TO_PNG					139
+#define IDD_BACKFACE_CULLING			140
+#define IDD_INVERT_NORMALS				141
+#define IDD_PNG_BACKGROUND				142
+#define IDD_SHOW_SILHOUTTE				143
+#define IDD_STRETCH_IMAGE				144
+#define IDD_REPEAT_IMAGE				145
+#define IDD_CANCEL_IMAGE				146
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -70,7 +78,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        139
+#define _APS_NEXT_RESOURCE_VALUE        146
 #define _APS_NEXT_COMMAND_VALUE         32805
 #define _APS_NEXT_CONTROL_VALUE         1040
 #define _APS_NEXT_SYMED_VALUE           101

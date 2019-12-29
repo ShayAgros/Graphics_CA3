@@ -133,6 +133,8 @@ public:
 	afx_msg void OnNormalColor();
 	afx_msg void OnDifferentNormals();
 	afx_msg void OnUpdateDifferentNormals(CCmdUI* pCmdUI);
+	afx_msg void OnInvertNormals();
+	afx_msg void OnUpdateInvertNormals(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

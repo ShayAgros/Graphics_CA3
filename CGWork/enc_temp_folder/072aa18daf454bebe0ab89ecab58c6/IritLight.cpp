@@ -69,10 +69,6 @@ Vector calculatePhongLight(struct IntersectionPoint &intersecting_x1, struct Int
 {
 	int ambient_intensity = 90;
 	int point_source_intensity = 150;
-
-	// In case of inverted normals;
-	int sign = (state.invert_normals) ? -1 : 1;
-
 	Vector ka = Vector(0.4);
 	Vector kd = Vector(0.1);
 	Vector light_source_pos = Vector(0, 0, 1);
@@ -92,7 +88,7 @@ Vector calculatePhongLight(struct IntersectionPoint &intersecting_x1, struct Int
 	extrapolate_normal_and_vertex(intersecting_x2, right_side_normal, right_side_pos);
 
 	// The 3D-normal and the 3D-position of our intersection point
-	point_normal = (left_side_normal * (1 - t)) + (right_side_normal * t) * sign;
+	point_normal = (left_side_normal * (1 - t)) + (right_side_normal * t);
 	point_pos = (left_side_pos * (1 - t)) + (right_side_pos * t);
 
 	light_to_point = point_pos - light_source_pos;

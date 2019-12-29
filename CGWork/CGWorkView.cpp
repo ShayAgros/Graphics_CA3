@@ -91,6 +91,8 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_COMMAND(IDD_SENS_DISTANCE, OnSensDistance)
 	ON_COMMAND(IDD_DIFFERENT_NORMALS, OnDifferentNormals)
 	ON_UPDATE_COMMAND_UI(IDD_DIFFERENT_NORMALS, OnUpdateDifferentNormals)
+	ON_COMMAND(IDD_INVERT_NORMALS, OnInvertNormals)
+	ON_UPDATE_COMMAND_UI(IDD_INVERT_NORMALS, OnUpdateInvertNormals)
 
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
@@ -797,4 +799,13 @@ void CCGWorkView::OnDifferentNormals() {
 
 void CCGWorkView::OnUpdateDifferentNormals(CCmdUI* pCmdUI) {
 	pCmdUI->SetCheck(world.state.tell_normals_apart);
+}
+
+void CCGWorkView::OnInvertNormals() {
+	world.state.invert_normals = !world.state.invert_normals;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdateInvertNormals(CCmdUI* pCmdUI) {
+	pCmdUI->SetCheck(world.state.invert_normals);
 }

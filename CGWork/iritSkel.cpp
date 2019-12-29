@@ -276,7 +276,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 		if (IP_HAS_PLANE_POLY(current_polygon->skel_polygon)) {
 			irit_polygon->is_irit_normal = true;
 			for (int j = 0; j < 3; j++) {
-				irit_polygon->normal_end[j] = current_polygon->skel_polygon->Plane[j];
+				irit_polygon->normal[j] = current_polygon->skel_polygon->Plane[j];
 			}
 		} else {
 			PVertex = PPolygon->PVertex;
@@ -286,9 +286,9 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			PVertex = PVertex->Pnext;
 			third = Vector(PVertex->Coord[0], PVertex->Coord[1], PVertex->Coord[2], 1);
 
-			irit_polygon->normal_end = (second - first) ^ (third - second);
-			irit_polygon->normal_end.Normalize();
-			irit_polygon->normal_end[3] = 1;
+			irit_polygon->normal = (second - first) ^ (third - second);
+			irit_polygon->normal.Normalize();
+			irit_polygon->normal[3] = 1;
 		}
 
 		// Find center of mass
@@ -305,9 +305,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 		center_mass_y /= num_of_vertices;
 		center_mass_z /= num_of_vertices;
 
-		irit_polygon->normal_start = Vector(center_mass_x, center_mass_y, center_mass_z, 1);
-		irit_polygon->normal_end = irit_polygon->normal_end + irit_polygon->normal_start;
-		irit_polygon->normal_end[3] = 1;
+		irit_polygon->center_of_mass = Vector(center_mass_x, center_mass_y, center_mass_z, 1);
 
 		// calculate next polygon
 		current_polygon = current_polygon->next;
@@ -337,7 +335,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 				}
 				iterator = current_vertex->polygon_list;
 				while (iterator != nullptr) {
-					vertex_normal += current_polygon->polygon->normal_end - current_polygon->polygon->normal_start;
+					vertex_normal += current_polygon->polygon->normal;
 					polygon_count++;
 					iterator = iterator->next;
 				}

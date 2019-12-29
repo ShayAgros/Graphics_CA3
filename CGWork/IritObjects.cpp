@@ -7,8 +7,8 @@ void lineDraw(int *bitmap, State state, int width, int height, RGBQUAD color, Ve
 
 #define BOX_NUM_OF_VERTICES 8
 
-IritPolygon::IritPolygon() : m_point_nr(0), m_points(nullptr), normal_start(Vector(0, 0, 0, 1)),
-			normal_end(Vector(0, 0, 0, 1)), is_irit_normal(false), m_next_polygon(nullptr) {
+IritPolygon::IritPolygon() : m_point_nr(0), m_points(nullptr), center_of_mass(Vector(0, 0, 0, 1)),
+			normal(Vector(0, 0, 0, 1)), is_irit_normal(false), m_next_polygon(nullptr) {
 }
 
 IritPolygon::~IritPolygon() {
@@ -209,7 +209,8 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 				bool closer = extrapolated_z > state.z_buffer[y * width + x];
 				
 				if (closer) {
-					bitmap[y * width + x] = *((int*)&new_color);
+					//bitmap[y * width + x] = *((int*)&new_color);
+					bitmap[y * width + x] = *((int*)&color);
 					state.z_buffer[y * width + x] = extrapolated_z;
 				}
 			}
@@ -228,6 +229,9 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 	RGBQUAD normal_color;
 	struct threed_line line;
 	struct threed_line *prev_line = NULL;
+
+	// Used to invert normals if needed
+	int sign = (state.invert_normals) ? -1 : 1;
 
 	// For vertex normal drawing
 	Vector normal;
@@ -263,7 +267,7 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		current_vertex = state.screen_mat * current_vertex;
 		next_vertex = state.screen_mat * next_vertex;
 
-//		lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
+		lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
 
 		// Add the drawn line to the list of lines on the screen
 		line.x1 = (int)current_vertex.coordinates[X_AXIS];
@@ -274,9 +278,13 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		line.z1 = (double)current_vertex.coordinates[Z_AXIS];
 		line.z2 = (double)next_vertex.coordinates[Z_AXIS];
 
-		normal = current_point->normal * 0.3;
+		// Shrink normal to reduce cluttering, and invert if needed
+		normal = current_point->normal * 0.3 * sign;
+
+		// Place normal in space
 		normal += current_point->vertex;
 		normal = vertex_transform * normal;
+
 		if (state.is_perspective_view)
 			normal.Homogenize();
 
@@ -284,7 +292,8 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		//// update normal for this point in the previous line as well
 		//if (prev_line)
 		//	prev_line->p2.normal = normal;
-		line.p1.normal = vertex_transform * current_point->normal;
+		line.p1.normal = vertex_transform * current_point->normal * sign;
+
 		line.p1.normal.Homogenize();
 		// update normal for this point in the previous line as well
 		if (prev_line)
@@ -295,6 +304,7 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 			normal = state.screen_mat * normal;
 
 			normal_color = state.normal_color;
+			// TODO: this part needs to be changed.
 			if (state.tell_normals_apart) {
 				if (current_point->is_irit_normal)
 					normal_color = IRIT_NORMAL_COLOR;
@@ -319,8 +329,8 @@ pass_this_point:
 	}
 
 	if (state.show_polygon_normal) {
-		polygon_normal[0] = vertex_transform * normal_start;
-		polygon_normal[1] = vertex_transform * normal_end;
+		polygon_normal[0] = vertex_transform * center_of_mass;
+		polygon_normal[1] = vertex_transform * (center_of_mass + this->normal * sign * 0.3);
 
 		if (state.is_perspective_view) {
 			polygon_normal[0].Homogenize();
@@ -331,6 +341,7 @@ pass_this_point:
 		polygon_normal[1] = state.screen_mat * polygon_normal[1];
 		
 		normal_color = state.normal_color;
+		// TODO: this part needs to be changed as well
 		if (state.tell_normals_apart) {
 			if (this->is_irit_normal)
 				normal_color = IRIT_NORMAL_COLOR;
@@ -362,7 +373,7 @@ pass_this_point:
 	current_vertex = state.screen_mat * current_vertex;
 	next_vertex = state.screen_mat * next_vertex;
 
-//	lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
+	lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
 	// Add the drawn line to the list of lines on the screen
 	line.x1 = (int)current_vertex.coordinates[X_AXIS];
 	line.y1 = (int)(int)current_vertex.coordinates[Y_AXIS];
@@ -590,6 +601,7 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.object_transform = true;
 	state.is_default_color = true;
 	state.tell_normals_apart = false;
+	state.invert_normals = false;
 
 	for (int i = 0; i < 3; i++)
 		state.is_axis_active[i] = false;

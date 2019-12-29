@@ -164,7 +164,18 @@ BEGIN
 	POPUP "&Misc..."
 	BEGIN
 		MENUITEM "Sensitivity and distance..."	IDD_SENS_DISTANCE
-		MENUITEM "Tell Normals Apart..."		IDD_DIFFERENT_NORMALS
+		MENUITEM "Use Calculated Normals..."	IDD_DIFFERENT_NORMALS
+		MENUITEM "Save to PNG..."		        IDD_SAVE_TO_PNG
+		MENUITEM "Cancel Backface Culling..."	IDD_BACKFACE_CULLING
+		MENUITEM "Invert Normals..."			IDD_INVERT_NORMALS
+		POPUP "Select PNG Background..."
+		BEGIN
+			MENUITEM "Pick Background..."		IDD_PNG_BACKGROUND
+			MENUITEM "Stretch Image..."			IDD_STRETCH_IMAGE
+			MENUITEM "Repeat Image..."			IDD_REPEAT_IMAGE
+			MENUITEM "Cancel Image..."			IDD_CANCEL_IMAGE
+		END
+		MENUITEM "Show Silhoutte..."			IDD_SHOW_SILHOUTTE
 	END
     POPUP "&Help"
     BEGIN

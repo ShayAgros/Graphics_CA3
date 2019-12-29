@@ -68,6 +68,7 @@ struct State {
 	bool object_transform;
 	bool is_default_color;
 	bool tell_normals_apart;
+	bool invert_normals;
 
 	double projection_plane_distance;
 	double sensitivity;
@@ -160,8 +161,8 @@ class IritPolygon {
 	void paintPolygon(int *bitmap, int width, int height, RGBQUAD color, State &state);
 
 public:
-	Vector normal_start;
-	Vector normal_end;
+	Vector center_of_mass;
+	Vector normal;
 	bool is_irit_normal;
 
 	IritPolygon();
