@@ -97,6 +97,10 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(IDD_BACKFACE_CULLING, OnUpdateBackfaceCulling)
 	ON_COMMAND(IDD_ONLY_MESH, OnDrawOnlyMesh)
 	ON_UPDATE_COMMAND_UI(IDD_ONLY_MESH, OnUpdateDrawOnlyMesh)
+	ON_COMMAND(IDD_SAVE_TO_PNG, OnSaveToPng)
+	ON_UPDATE_COMMAND_UI(IDD_SAVE_TO_PNG, OnUpdateSaveToPng)
+	ON_COMMAND(IDD_ON_SCREEN, OnRenderOnScreen)
+	ON_UPDATE_COMMAND_UI(IDD_ON_SCREEN, OnUpdateRenderOnScreen)
 
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
@@ -257,7 +261,6 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 	world.setScreenMat(axes, origin, cx, cy);
 }
 
-
 BOOL CCGWorkView::SetupViewingFrustum(void)
 {
     return TRUE;
@@ -300,8 +303,30 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
 	RGBQUAD background = world.state.bg_color;
 
-	int h = rect.bottom - rect.top,
+	Vector axes[NUM_OF_AXES];
+
+	Vector origin;
+
+	int h, w;
+
+	axes[X_AXIS] = Vector(1, 0, 0, 0);
+	axes[Y_AXIS] = Vector(0, -1, 0, 0);
+	axes[Z_AXIS] = Vector(0, 0, 1, 0);
+
+	if (world.state.save_to_png) {
+		h = world.png_height;
+		w = world.png_width;
+
+		origin = Vector(floor(w / 2), floor(h / 2), 0, 1); // x, y, z, w
+	} else {
+		h = rect.bottom - rect.top,
 		w = rect.right - rect.left;
+
+		origin = Vector(floor(w / 2), floor(h / 2), 0, 1); // x, y, z, w
+	}
+
+	world.setScreenMat(axes, origin, w, h);
+
 	int *bitmap = new int[w * h];
 
 	delete(world.state.z_buffer);
@@ -333,8 +358,21 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		world.draw(bitmap, w, h);
 
 	SetDIBits(hdcMem, bm, 0, h, bitmap, &bminfo, DIB_RGB_COLORS);
-
-	BitBlt(pDC->m_hDC, rect.left, rect.top, w, h, hdcMem, rect.left, rect.top, SRCCOPY);
+	
+	if (!world.state.save_to_png) {
+		BitBlt(pDC->m_hDC, rect.left, rect.top, w, h, hdcMem, rect.left, rect.top, SRCCOPY);
+	} else {
+		PngWrapper *png = new PngWrapper("CA_Model.png", w, h);
+		png->InitWritePng();
+		for (int i = 0; i < w * h; i++) {
+			int x = i % w,
+				y = i / w;
+			// The picture is inverted, so use "h-y'
+			png->SetValue(x, h - y - 1, ARGB_TO_RGBA(bitmap[i]));
+		}
+		png->WritePng();
+		delete(png);
+	}
 
 	SelectObject(hdcMem, hOld);
 	DeleteDC(hdcMem);
@@ -830,4 +868,37 @@ void CCGWorkView::OnDrawOnlyMesh() {
 
 void CCGWorkView::OnUpdateDrawOnlyMesh(CCmdUI* pCmdUI) {
 	pCmdUI->SetCheck(world.state.only_mesh);
+}
+
+void CCGWorkView::OnSaveToPng() {
+	CPngDialog diag;
+
+	CRect rect;
+	GetClientRect(&rect);
+
+	int h = rect.bottom - rect.top,
+		w = rect.right - rect.left;
+
+	diag.m_height = h;
+	diag.m_width = w;
+
+	if (diag.DoModal() == IDOK) {
+		world.state.save_to_png = true;
+		world.png_height = diag.m_height;
+		world.png_width = diag.m_width;
+		Invalidate();
+	}
+}
+
+void CCGWorkView::OnUpdateSaveToPng(CCmdUI* pCmdUI) {
+	pCmdUI->SetCheck(world.state.save_to_png);
+}
+
+void CCGWorkView::OnRenderOnScreen() {
+	world.state.save_to_png = false;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdateRenderOnScreen(CCmdUI* pCmdUI) {
+	pCmdUI->SetCheck(!world.state.save_to_png);
 }

@@ -139,6 +139,10 @@ public:
 	afx_msg void OnUpdateBackfaceCulling(CCmdUI* pCmdUI);
 	afx_msg void OnDrawOnlyMesh();
 	afx_msg void OnUpdateDrawOnlyMesh(CCmdUI* pCmdUI);
+	afx_msg void OnSaveToPng();
+	afx_msg void OnUpdateSaveToPng(CCmdUI* pCmdUI);
+	afx_msg void OnRenderOnScreen();
+	afx_msg void OnUpdateRenderOnScreen(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

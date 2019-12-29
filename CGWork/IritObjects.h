@@ -22,6 +22,7 @@
 #define DEFAULT_DEPTH -500.0
 
 #define RGB_TO_RGBQUAD(x) {(BYTE)((x & 0xff0000) >> 16), (BYTE)((x & 0xff00) >> 8), (BYTE)(x & 0xff), 0}
+#define ARGB_TO_RGBA(x) (((x & 0xff000000) >> 24) + ((x & 0x00ff0000) << 8) + ((x & 0x0000ff00) << 8) + ((x & 0x000000ff) << 8))
 
 const RGBQUAD max_rgb = { 255, 255, 255, 0 };
 //const unsigned int max_rgb_uint = ((unsigned int *)&max_rgb)
@@ -71,6 +72,7 @@ struct State {
 	bool invert_normals;
 	bool backface_culling;
 	bool only_mesh;
+	bool save_to_png;
 
 	double projection_plane_distance;
 	double sensitivity;
@@ -328,6 +330,10 @@ class IritWorld {
 public:
 	// World state
 	struct State state;
+	
+	// PNG Size
+	int png_height;
+	int png_width;
 
 	// Bounding frame params
 	Vector max_bound_coord,

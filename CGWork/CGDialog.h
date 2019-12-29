@@ -2,7 +2,29 @@
 
 #include "stdafx.h"
 
-/*****  Header for the Ex1Dialog class *****/
+/*****  Header for all the Dialog classes *****/
+
+class CPngDialog : public CDialog
+{
+	DECLARE_DYNAMIC(CPngDialog)
+
+public:
+	// static colors
+	int m_height,
+		m_width;
+
+	CPngDialog(CWnd* pParent = NULL);   // standard constructor
+	CPngDialog(int height, int width);
+
+
+	virtual ~CPngDialog();
+
+protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+	virtual BOOL OnInitDialog();
+
+	DECLARE_MESSAGE_MAP()
+};
 
 class CEx2Dialog : public CDialog
 {

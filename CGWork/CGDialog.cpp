@@ -6,6 +6,51 @@
 
 #include "CGDialog.h"
 
+// PNG DIALOG
+
+IMPLEMENT_DYNAMIC(CPngDialog, CDialog)
+
+CPngDialog::CPngDialog(CWnd* pParent /*=NULL*/)
+	: CDialog(IDD_SAVE_TO_PNG, pParent),
+	m_height(0),
+	m_width(0)
+{
+}
+
+CPngDialog::CPngDialog(int height, int width)
+{
+	m_height = height;
+	m_width = width;
+}
+
+CPngDialog::~CPngDialog()
+{
+}
+
+BOOL CPngDialog::OnInitDialog()
+{
+	CString string;
+	BOOL result = CDialog::OnInitDialog();
+
+	string.Format(_T("%d"), m_height);
+	GetDlgItem(IDC_PNG_HEIGHT)->SetWindowText(string);
+	string.Format(_T("%d"), m_width);
+	GetDlgItem(IDC_PNG_WIDTH)->SetWindowText(string);
+
+	return result;
+}
+
+void CPngDialog::DoDataExchange(CDataExchange* pDX)
+{
+	CDialog::DoDataExchange(pDX);
+	DDX_Text(pDX, IDC_PNG_HEIGHT, m_height);
+	DDV_MinMaxInt(pDX, m_height, 1, INT_MAX);
+	DDX_Text(pDX, IDC_PNG_WIDTH, m_width);
+	DDV_MinMaxInt(pDX, m_width, 1, INT_MAX);
+}
+
+// SENS/DISTANCE/FINENESS Dialog
+
 IMPLEMENT_DYNAMIC(CEx2Dialog, CDialog)
 
 CEx2Dialog::CEx2Dialog(CWnd* pParent /*=NULL*/)
@@ -54,6 +99,7 @@ void CEx2Dialog::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxDouble(pDX, m_fineness, 2.0, INT_MAX);
 }
 
-
+BEGIN_MESSAGE_MAP(CPngDialog, CDialog)
+END_MESSAGE_MAP()
 BEGIN_MESSAGE_MAP(CEx2Dialog, CDialog)
 END_MESSAGE_MAP()

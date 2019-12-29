@@ -611,6 +611,7 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.invert_normals = false;
 	state.backface_culling = false;
 	state.only_mesh = false;
+	state.save_to_png = false;
 
 	for (int i = 0; i < 3; i++)
 		state.is_axis_active[i] = false;
