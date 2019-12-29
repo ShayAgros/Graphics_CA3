@@ -69,6 +69,8 @@ struct State {
 	bool is_default_color;
 	bool tell_normals_apart;
 	bool invert_normals;
+	bool backface_culling;
+	bool only_mesh;
 
 	double projection_plane_distance;
 	double sensitivity;

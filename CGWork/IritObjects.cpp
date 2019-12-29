@@ -233,6 +233,11 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 	// Used to invert normals if needed
 	int sign = (state.invert_normals) ? -1 : 1;
 
+	// Check backface culling
+	if (state.backface_culling && ((vertex_transform * this->normal * sign)[Z_AXIS] <= 0)) {
+		return;
+	}
+
 	// For vertex normal drawing
 	Vector normal;
 
@@ -406,7 +411,9 @@ pass_this_point:
 	}
 paint_polygon:
 	// paint the polygon
-	paintPolygon(bitmap, width, height, current_color, state);
+	if (!state.only_mesh) {
+		paintPolygon(bitmap, width, height, current_color, state);
+	}
 	delete[] lines;
 }
 
@@ -602,6 +609,8 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.is_default_color = true;
 	state.tell_normals_apart = false;
 	state.invert_normals = false;
+	state.backface_culling = false;
+	state.only_mesh = false;
 
 	for (int i = 0; i < 3; i++)
 		state.is_axis_active[i] = false;

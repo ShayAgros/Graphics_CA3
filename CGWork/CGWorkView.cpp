@@ -93,6 +93,10 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(IDD_DIFFERENT_NORMALS, OnUpdateDifferentNormals)
 	ON_COMMAND(IDD_INVERT_NORMALS, OnInvertNormals)
 	ON_UPDATE_COMMAND_UI(IDD_INVERT_NORMALS, OnUpdateInvertNormals)
+	ON_COMMAND(IDD_BACKFACE_CULLING, OnBackfaceCulling)
+	ON_UPDATE_COMMAND_UI(IDD_BACKFACE_CULLING, OnUpdateBackfaceCulling)
+	ON_COMMAND(IDD_ONLY_MESH, OnDrawOnlyMesh)
+	ON_UPDATE_COMMAND_UI(IDD_ONLY_MESH, OnUpdateDrawOnlyMesh)
 
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
@@ -808,4 +812,22 @@ void CCGWorkView::OnInvertNormals() {
 
 void CCGWorkView::OnUpdateInvertNormals(CCmdUI* pCmdUI) {
 	pCmdUI->SetCheck(world.state.invert_normals);
+}
+
+void CCGWorkView::OnBackfaceCulling() {
+	world.state.backface_culling = !world.state.backface_culling;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdateBackfaceCulling(CCmdUI* pCmdUI) {
+	pCmdUI->SetCheck(world.state.backface_culling);
+}
+
+void CCGWorkView::OnDrawOnlyMesh() {
+	world.state.only_mesh = !world.state.only_mesh;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdateDrawOnlyMesh(CCmdUI* pCmdUI) {
+	pCmdUI->SetCheck(world.state.only_mesh);
 }

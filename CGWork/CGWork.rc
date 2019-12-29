@@ -176,6 +176,7 @@ BEGIN
 			MENUITEM "Cancel Image..."			IDD_CANCEL_IMAGE
 		END
 		MENUITEM "Show Silhoutte..."			IDD_SHOW_SILHOUTTE
+		MENUITEM "Draw Only Mesh..."			IDD_ONLY_MESH
 	END
     POPUP "&Help"
     BEGIN

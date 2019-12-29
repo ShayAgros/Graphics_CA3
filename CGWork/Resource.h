@@ -17,6 +17,7 @@
 #define IDD_STRETCH_IMAGE				144
 #define IDD_REPEAT_IMAGE				145
 #define IDD_CANCEL_IMAGE				146
+#define IDD_ONLY_MESH					147
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
