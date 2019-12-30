@@ -155,6 +155,11 @@ CCGWorkView::CCGWorkView()
 	world.state.m_lights[LIGHT_ID_1].colorR = 100;
 	world.state.m_lights[LIGHT_ID_1].colorG = 100;
 	world.state.m_lights[LIGHT_ID_1].colorB = 100;
+	world.state.m_lights[LIGHT_ID_1].type = LIGHT_TYPE_POINT;
+	world.state.m_lights[LIGHT_ID_1].dirX = 0;
+	world.state.m_lights[LIGHT_ID_1].dirY = 0;
+	world.state.m_lights[LIGHT_ID_1].dirZ = -1;
+
 
 	// init ambient intensity
 	world.state.m_ambientLight.colorR = 50;

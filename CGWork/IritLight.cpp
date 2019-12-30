@@ -51,7 +51,10 @@ Vector calculate_point_shading(Vector &point_pos, Vector &point_normal, struct S
 			continue;
 
 		Vector light_source_pos(light.posX, light.posY, light.posZ);
+		Vector light_source_direction(light.dirX, light.dirY, light.dirZ);
 		Vector point_source_intensity(light.colorR, light.colorG, light.colorB);
+
+		bool is_light_directional = light.type == LIGHT_TYPE_DIRECTIONAL;
 
 		point_to_light = light_source_pos - point_pos;
 		light_to_point = point_to_light * (-1);
@@ -61,15 +64,21 @@ Vector calculate_point_shading(Vector &point_pos, Vector &point_normal, struct S
 		point_to_light.Normalize();
 		reflected_vector.Normalize();
 		light_to_point.Normalize();
+		light_source_direction.Normalize();
 
-		double cos_theta = point_normal * point_to_light;
+		double cos_theta;
+		if (!is_light_directional)
+			cos_theta = point_normal * point_to_light;
+		else
+			cos_theta = point_normal * (light_source_direction * (-1));
+
 		if (cos_theta > 0) {
 
 			Vector diffusive_light = point_source_intensity * kd * cos_theta;
 			overall_lighting += diffusive_light;
 
 			double alpha = reflected_vector * point_to_eye;
-			if (alpha > 0) {
+			if (alpha > 0 && !is_light_directional) {
 				Vector specular_light = point_source_intensity * ks * (pow(alpha, cosine_factor));
 				overall_lighting += specular_light;
 			}
