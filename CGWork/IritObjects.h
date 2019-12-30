@@ -134,6 +134,23 @@ struct IntersectionPoint {
 
 	// will need to contain extrapolated normal as well
 	struct threed_line *containing_line;
+
+	// These hold the intersection point's 3D normal and position
+	Vector *point_normal;
+	Vector *point_pos;
+
+	IntersectionPoint() {
+		point_normal = NULL;
+		point_pos = NULL;
+	}
+
+	~IntersectionPoint() {
+		// If these resources aren't allocated, then will be NULL
+		delete point_normal;
+		point_normal = NULL;
+		delete point_pos;
+		point_pos = NULL;
+	}
 };
 
 /* Represents a 3 dimensional line

@@ -73,7 +73,7 @@ Vector calculatePhongLight(struct IntersectionPoint &intersecting_x1, struct Int
 	int sign = (state.invert_normals) ? -1 : 1;
 
 	/* General */
-	Vector light_source_pos = Vector(0, 0, 0.8);
+	Vector light_source_pos = Vector(0, 0, 3);
 	Vector camera_position = Vector(0, 0, 2);
 
 	/* Ambient */
@@ -103,8 +103,26 @@ Vector calculatePhongLight(struct IntersectionPoint &intersecting_x1, struct Int
 	Vector reflected_vector;
 
 	// extrapolate the normals and position of the containing lines boundries
-	extrapolate_normal_and_vertex(intersecting_x1, left_side_normal, left_side_pos);
-	extrapolate_normal_and_vertex(intersecting_x2, right_side_normal, right_side_pos);
+	if (!intersecting_x1.point_normal || !intersecting_x1.point_pos) {
+		extrapolate_normal_and_vertex(intersecting_x1, left_side_normal, left_side_pos);
+		intersecting_x1.point_normal = new Vector(left_side_normal);
+		intersecting_x1.point_pos = new Vector(left_side_pos);
+	}
+	else {
+		// We already calculated them in the past
+		left_side_normal = *intersecting_x1.point_normal;
+		left_side_pos = *intersecting_x1.point_pos;
+	}
+	if (!intersecting_x2.point_normal || !intersecting_x2.point_pos) {
+		extrapolate_normal_and_vertex(intersecting_x2, right_side_normal, right_side_pos);
+		intersecting_x2.point_normal = new Vector(right_side_normal);
+		intersecting_x2.point_pos = new Vector(right_side_pos);
+	}
+	else {
+		// We already calculated them in the past
+		right_side_normal = *intersecting_x2.point_normal;
+		right_side_pos = *intersecting_x2.point_pos;
+	}
 
 	// The 3D-normal and the 3D-position of our intersection point
 	point_normal = (left_side_normal * (1 - t)) + (right_side_normal * t) *sign;
@@ -123,9 +141,6 @@ Vector calculatePhongLight(struct IntersectionPoint &intersecting_x1, struct Int
 	light_to_point.Normalize();
 
 	double cos_theta = point_normal * point_to_light;
-
-	if(cos_theta > 0.95)
-		printf("Stop here\n");
 
 	if (cos_theta > 0) {
 		Vector diffusive = kd * point_source_intensity * cos_theta;

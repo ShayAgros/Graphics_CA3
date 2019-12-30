@@ -145,10 +145,14 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 				// Lines are parallel, we add X boundries as intersection point
 				intersecting_x[intersecting_x_nr].x = current_line.x1;
 				intersecting_x[intersecting_x_nr].y = y;
+				intersecting_x[intersecting_x_nr].point_pos = NULL;
+				intersecting_x[intersecting_x_nr].point_normal = NULL;
 				intersecting_x[intersecting_x_nr].containing_line = &current_line;
 				intersecting_x[intersecting_x_nr++].z = current_line.z1;
 				intersecting_x[intersecting_x_nr].x = current_line.x2;
 				intersecting_x[intersecting_x_nr].y = y;
+				intersecting_x[intersecting_x_nr].point_pos = NULL;
+				intersecting_x[intersecting_x_nr].point_normal = NULL;
 				intersecting_x[intersecting_x_nr].containing_line = &current_line;
 				intersecting_x[intersecting_x_nr++].z = current_line.z2;
 
@@ -161,6 +165,8 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 				double extrapolated_z;
 				intersecting_x[intersecting_x_nr].x = (int)((B2 * C1 - B1 * C2) / determinant);
 				intersecting_x[intersecting_x_nr].y = y;
+				intersecting_x[intersecting_x_nr].point_pos = NULL;
+				intersecting_x[intersecting_x_nr].point_normal = NULL;
 				intersecting_x[intersecting_x_nr].containing_line = &current_line;
 
 				if (current_line.x2 == current_line.x1) {
