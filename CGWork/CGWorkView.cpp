@@ -110,6 +110,8 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(IDD_STRETCH_IMAGE, OnUpdateStretchPNG)
 	ON_COMMAND(IDD_CANCEL_IMAGE, OnCancelPNG)
 	ON_UPDATE_COMMAND_UI(IDD_CANCEL_IMAGE, OnUpdateCancelPNG)
+	ON_COMMAND(IDD_SHOW_SILHOUETTE, OnShowSilhouette)
+	ON_UPDATE_COMMAND_UI(IDD_SHOW_SILHOUETTE, OnUpdateShowSilhouette)
 
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
@@ -998,6 +1000,15 @@ void CCGWorkView::OnCancelPNG() {
 
 void CCGWorkView::OnUpdateCancelPNG(CCmdUI* pCmdUI) {
 	pCmdUI->Enable(world.state.background_png);
+}
+
+void CCGWorkView::OnShowSilhouette() {
+	world.state.show_silhouette = !world.state.show_silhouette;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdateShowSilhouette(CCmdUI* pCmdUI) {
+	pCmdUI->SetCheck(world.state.show_silhouette);
 }
 
 //void CCGWorkView::OnLightShadingPhong()

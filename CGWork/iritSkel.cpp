@@ -14,8 +14,6 @@
 #define MIN(x, y) ((x) < (y)) ? (x) : (y)
 #define MAX(x, y) ((x) > (y)) ? (x) : (y)
 
-#define EPSILON 0.005
-
 bool areVerticesEqual(IPVertexStruct *first, IPVertexStruct *second);
 
 void updateBoundingFrameLimits(IPVertexStruct *vertex);
@@ -44,12 +42,11 @@ IPFreeformConvStateStruct CGSkelFFCState = {
 
 extern IritWorld world;
 
+VertexList *connectivity;
+PolygonList *all_polygons;
+
 bool is_first_polygon;
 bool is_first_figure;
-
-VertexList *connectivity;
-
-PolygonList *all_polygons;
 
 /*****************************************************************************
 * DESCRIPTION:                                                               *
@@ -85,8 +82,8 @@ bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
 	CGSkelFFCState.FourPerFlat = TRUE;/* 4 poly per ~flat patch, 2 otherwise.*/
 	CGSkelFFCState.LinearOnePolyFlag = TRUE;    /* Linear srf gen. one poly. */
 
-	// Need to be initialized before any object is proccesed;
-	if (world.isEmpty())
+	// Need to be initialized before any object is processed;
+	if (world.isEmpty()) 
 		is_first_polygon = true;
 
 	is_first_figure = true;
@@ -148,6 +145,11 @@ void CGSkelDumpOneTraversedObject(IPObjectStruct *PObj,
 *****************************************************************************/
 bool CGSkelStoreData(IPObjectStruct *PObj)
 {
+	if (PObj->ObjType != IP_OBJ_POLY) {
+		AfxMessageBox(_T("Non polygonal object detected and ignored"));
+		return true;
+	}
+
 	int num_of_vertices;
 	const char *Str;
 	double RGB[3], Transp,
@@ -167,13 +169,6 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	IritObject *irit_object = figure.createObject();
 
 	Vector first, second, third, vertex;
-
-	assert(irit_object);
-
-	if (PObj->ObjType != IP_OBJ_POLY) {
-		AfxMessageBox(_T("Non polygonal object detected and ignored"));
-		return true;
-	}
 
 	/* You can use IP_IS_POLYGON_OBJ(PObj) and IP_IS_POINTLIST_OBJ(PObj)
 	   to identify the type of the object*/
@@ -264,6 +259,8 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			PVertex = PVertex->Pnext;
 		} while (PVertex != nullptr && PVertex != PPolygon->PVertex);
 
+		// Only God knows why putting a printf here fixes this specific bug, 
+		// but ain't gonna look a gift horse in the mouth
 		printf("This fixes the bug");
 	}
 

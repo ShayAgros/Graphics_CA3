@@ -8,11 +8,12 @@
 #include "PngWrapper.h"
 #include "Light.h"
 
-// The color scheme here is    <B G R *reserved*>
-#define BG_DEFAULT_COLOR		{0, 0, 0, 0}       // Black
-#define WIRE_DEFAULT_COLOR		{128, 128, 128, 0} // Grey
-#define FRAME_DEFAULT_COLOR		{0, 0, 255, 0}     // Red
-#define NORMAL_DEFAULT_COLOR	{255, 255, 255, 0} // White
+// The color scheme here is			 <B G R *reserved*>
+#define BG_DEFAULT_COLOR			{0, 0, 0, 0}       // Black
+#define WIRE_DEFAULT_COLOR			{128, 128, 128, 0} // Grey
+#define FRAME_DEFAULT_COLOR			{0, 0, 255, 0}     // Red
+#define NORMAL_DEFAULT_COLOR		{255, 255, 255, 0} // White
+#define SILHOUETTE_DEFAULT_COLOR	{255, 255, 255, 0} // White
 
 #define DEFAULT_PROJECTION_PLANE_DISTANCE 20
 #define DEAULT_VIEW_PARAMETERS 0, 0, 10
@@ -23,11 +24,6 @@
 
 #define COLORREF_TO_RGBQUAD(x) {(BYTE)((x & 0xff0000) >> 16), (BYTE)((x & 0xff00) >> 8), (BYTE)(x & 0xff), 0}
 #define ARGB_TO_RGBA(x) (((x & 0xff000000) >> 24) + ((x & 0x00ff0000) << 8) + ((x & 0x0000ff00) << 8) + ((x & 0x000000ff) << 8))
-// 0x00ff0000 is G, mapped to R
-// 0x0000ff00 is B, mapped to G
-// 0x000000ff is nothing
-// 0xff000000 is nothing
-// -g-- to --g-
 #define RGBA_TO_ARGB(x) (((x & 0xff000000) >> 8) + ((x & 0x00ff0000) >> 8) + ((x & 0x0000ff00) >> 8)+ ((x & 0x000000ff) << 24))
 
 const RGBQUAD max_rgb = { 255, 255, 255, 0 };
@@ -81,6 +77,7 @@ struct State {
 	bool save_to_png;
 	bool png_stretch;
 	bool background_png;
+	bool show_silhouette;
 
 	double projection_plane_distance;
 	double sensitivity;
