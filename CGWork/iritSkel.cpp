@@ -263,6 +263,8 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 			}
 			PVertex = PVertex->Pnext;
 		} while (PVertex != nullptr && PVertex != PPolygon->PVertex);
+
+		printf("This fixes the bug");
 	}
 
 	// Second pass - calculate polygon normals
@@ -273,23 +275,20 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 		center_mass_z = 0;
 		IritPolygon *irit_polygon = current_polygon->polygon;
 		PPolygon = current_polygon->skel_polygon;
-		if (IP_HAS_PLANE_POLY(current_polygon->skel_polygon)) {
-			irit_polygon->is_irit_normal = true;
-			for (int j = 0; j < 3; j++) {
-				irit_polygon->normal[j] = current_polygon->skel_polygon->Plane[j];
-			}
-		} else {
-			PVertex = PPolygon->PVertex;
-			first = Vector(PVertex->Coord[0], PVertex->Coord[1], PVertex->Coord[2], 1);
-			PVertex = PVertex->Pnext;
-			second = Vector(PVertex->Coord[0], PVertex->Coord[1], PVertex->Coord[2], 1);
-			PVertex = PVertex->Pnext;
-			third = Vector(PVertex->Coord[0], PVertex->Coord[1], PVertex->Coord[2], 1);
-
-			irit_polygon->normal = (second - first) ^ (third - second);
-			irit_polygon->normal.Normalize();
-			irit_polygon->normal[3] = 1;
+		for (int j = 0; j < 3; j++) {
+			irit_polygon->normal_irit[j] = current_polygon->skel_polygon->Plane[j];
 		}
+		// We assume enough vertices for normal calculation
+		PVertex = PPolygon->PVertex;
+		first = Vector(PVertex->Coord[0], PVertex->Coord[1], PVertex->Coord[2], 1);
+		PVertex = PVertex->Pnext;
+		second = Vector(PVertex->Coord[0], PVertex->Coord[1], PVertex->Coord[2], 1);
+		PVertex = PVertex->Pnext;
+		third = Vector(PVertex->Coord[0], PVertex->Coord[1], PVertex->Coord[2], 1);
+
+		irit_polygon->normal_calc = (second - first) ^ (third - second);
+		irit_polygon->normal_calc.Normalize();
+		irit_polygon->normal_calc[3] = 1;
 
 		// Find center of mass
 		PVertex = PPolygon->PVertex;
@@ -315,7 +314,6 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	current_polygon = all_polygons;
 	do {
 		int polygon_count = 0;
-		bool is_irit_normal;
 		PolygonList *iterator;
 		Vector vertex_normal;
 
@@ -324,25 +322,21 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 		PVertex = current_polygon->skel_polygon->PVertex;
 		do { // Assume at least one vertex in the polygon
 			vertex_normal = Vector(0, 0, 0, 1);
-			is_irit_normal = false;
-			if (IP_HAS_NORMAL_VRTX(PVertex)) {
-				is_irit_normal = true;
-			} else {
-				// Find vertex in vertices list
-				current_vertex = connectivity;
-				while (current_vertex->vertex != PVertex) { // It should find it
-					current_vertex = current_vertex->next;
-				}
-				iterator = current_vertex->polygon_list;
-				while (iterator != nullptr) {
-					vertex_normal += current_polygon->polygon->normal;
-					polygon_count++;
-					iterator = iterator->next;
-				}
-				vertex_normal = vertex_normal * (1.0 / polygon_count);
-				vertex_normal.Normalize();
+			// Find vertex in vertices list
+			current_vertex = connectivity;
+			//while (current_vertex->vertex != PVertex) { // It should find it
+			while (!areVerticesEqual(current_vertex->vertex, PVertex)) {
+				current_vertex = current_vertex->next;
 			}
-			current_polygon->polygon->addPoint(PVertex, is_irit_normal, vertex_normal);
+			iterator = current_vertex->polygon_list;
+			while (iterator != nullptr) {
+				vertex_normal += iterator->polygon->normal_calc;
+				polygon_count++;
+				iterator = iterator->next;
+			}
+			vertex_normal = vertex_normal * (1.0 / polygon_count);
+			vertex_normal.Normalize();
+			current_polygon->polygon->addPoint(PVertex, vertex_normal);
 
 			if (is_first_polygon) {
 				is_first_polygon = false;

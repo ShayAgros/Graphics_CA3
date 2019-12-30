@@ -861,12 +861,12 @@ void CCGWorkView::OnSensDistance() {
 }
 
 void CCGWorkView::OnDifferentNormals() {
-	world.state.tell_normals_apart = !world.state.tell_normals_apart;
+	world.state.use_calc_normals = !world.state.use_calc_normals;
 	Invalidate();
 }
 
 void CCGWorkView::OnUpdateDifferentNormals(CCmdUI* pCmdUI) {
-	pCmdUI->SetCheck(world.state.tell_normals_apart);
+	pCmdUI->SetCheck(world.state.use_calc_normals);
 }
 
 void CCGWorkView::OnInvertNormals() {

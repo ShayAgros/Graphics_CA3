@@ -11,8 +11,6 @@
 #define BG_DEFAULT_COLOR		{0, 0, 0, 0}       // Black
 #define WIRE_DEFAULT_COLOR		{128, 128, 128, 0} // Grey
 #define FRAME_DEFAULT_COLOR		{0, 0, 255, 0}     // Red
-#define IRIT_NORMAL_COLOR		{0, 255, 255, 0}   // Yellow
-#define CALC_NORMAL_COLOR		{255, 0, 0, 0}     // Blue
 #define NORMAL_DEFAULT_COLOR	{255, 255, 255, 0} // White
 
 #define DEFAULT_PROJECTION_PLANE_DISTANCE 20
@@ -61,9 +59,9 @@ class IritPolygon;
 
 struct IritPoint {
 	Vector vertex;
-	Vector normal;
 
-	bool is_irit_normal;
+	Vector normal_irit;
+	Vector normal_calc;
 
 	struct IritPoint *next_point;
 };
@@ -75,7 +73,7 @@ struct State {
 	bool is_perspective_view;
 	bool object_transform;
 	bool is_default_color;
-	bool tell_normals_apart;
+	bool use_calc_normals;
 	bool invert_normals;
 	bool backface_culling;
 	bool only_mesh;
@@ -175,8 +173,9 @@ class IritPolygon {
 
 public:
 	Vector center_of_mass;
-	Vector normal;
-	bool is_irit_normal;
+
+	Vector normal_irit;
+	Vector normal_calc;
 
 	IritPolygon();
 
@@ -185,10 +184,11 @@ public:
 	bool addPoint(struct IritPoint &point);
 
 	/* Creates an homogenious with a normal */
-	bool addPoint(double &x, double &y, double &z, double &normal_x, double &normal_y,
-		double &normal_z);
+	bool addPoint(double &x, double &y, double &z, double &normal_irit_x, double &normal_irit_y,
+		double &normal_irit_z, double &normal_calc_x, double &normal_calc_y,
+		double &normal_calc_z);
 
-	bool addPoint(IPVertexStruct *vertex, bool is_irit_normal, Vector normal);
+	bool addPoint(IPVertexStruct *vertex, Vector normal_calc);
 
 	IritPolygon *getNextPolygon();
 

@@ -7,9 +7,10 @@ Matrix createTranslationMatrix(Vector &v);
 void lineDraw(int *bitmap, State state, int width, int height, RGBQUAD color, Vector first, Vector second);
 
 #define BOX_NUM_OF_VERTICES 8
+#define RELEVANT_NORMAL(x) ((state.use_calc_normals) ? x->normal_calc : x->normal_irit)
 
 IritPolygon::IritPolygon() : m_point_nr(0), m_points(nullptr), center_of_mass(Vector(0, 0, 0, 1)),
-			normal(Vector(0, 0, 0, 1)), is_irit_normal(false), m_next_polygon(nullptr) {
+			normal_irit(Vector(0, 0, 0, 1)), normal_calc(Vector(0,0,0,1)), m_next_polygon(nullptr) {
 }
 
 IritPolygon::~IritPolygon() {
@@ -44,32 +45,30 @@ bool IritPolygon::addPoint(struct IritPoint &point) {
 	return true;
 }
 
-bool IritPolygon::addPoint(double &x, double &y, double &z, double &normal_x, double &normal_y,
-	double &normal_z) {
+bool IritPolygon::addPoint(double &x, double &y, double &z, double &normal_irit_x, double &normal_irit_y,
+	double &normal_irit_z, double &normal_calc_x, double &normal_calc_y,
+	double &normal_calc_z) {
 	IritPoint new_point;
 	new_point.vertex = Vector(x, y, z, 1);
-	new_point.normal = Vector(normal_x, normal_y, normal_z, 1);
+	new_point.normal_irit = Vector(normal_irit_x, normal_irit_y, normal_irit_z, 1);
+	new_point.normal_calc = Vector(normal_calc_x, normal_calc_y, normal_calc_z, 1);
 
 	return addPoint(new_point);
 }
 
-bool IritPolygon::addPoint(IPVertexStruct *vertex, bool is_irit_normal, Vector normal) {
+bool IritPolygon::addPoint(IPVertexStruct *vertex, Vector normal_calc) {
 	IritPoint new_point;
-	new_point.is_irit_normal = is_irit_normal;
 
 	for (int i = 0; i < 3; i++) {
 		new_point.vertex[i] = vertex->Coord[i];
-
-		if (is_irit_normal) {
-			new_point.normal[i] = vertex->Normal[i];
-		} else {
-			new_point.normal[i] = normal[i];
-		}
+		new_point.normal_irit[i] = vertex->Normal[i];
+		new_point.normal_calc[i] = normal_calc[i];
 	}
 
 	// Homogeneous component
 	new_point.vertex[3] = 1;
-	new_point.normal[3] = 1;
+	new_point.normal_irit[3] = 1;
+	new_point.normal_calc[3] = 1;
 
 	return addPoint(new_point);
 }
@@ -227,7 +226,6 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 	Vector next_vertex;
 	Vector polygon_normal[2];
 	RGBQUAD current_color = (state.is_default_color) ? color : state.wire_color;
-	RGBQUAD normal_color;
 	struct threed_line line;
 	struct threed_line *prev_line = NULL;
 
@@ -235,7 +233,7 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 	int sign = (state.invert_normals) ? -1 : 1;
 
 	// Check backface culling
-	if (state.backface_culling && ((vertex_transform * this->normal * sign)[Z_AXIS] <= 0)) {
+	if (state.backface_culling && (vertex_transform * RELEVANT_NORMAL(this) * sign)[Z_AXIS] <= 0) {
 		return;
 	}
 
@@ -285,7 +283,7 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		line.z2 = (double)next_vertex.coordinates[Z_AXIS];
 
 		// Shrink normal to reduce cluttering, and invert if needed
-		normal = current_point->normal * 0.3 * sign;
+		normal = RELEVANT_NORMAL(current_point) * 0.3 * sign;
 
 		// Place normal in space
 		normal += current_point->vertex;
@@ -295,25 +293,16 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 			normal.Homogenize();
 
 
-		line.p1.normal = normal * sign;
+		line.p1.normal_irit = normal * sign;
 		// update normal for this point in the previous line as well
 		if (prev_line)
-			prev_line->p2.normal = line.p1.normal;
+			prev_line->p2.normal_irit = line.p1.normal_irit;
 
 		if (state.show_vertex_normal) {
 
 			normal = state.screen_mat * normal;
 
-			normal_color = state.normal_color;
-			// TODO: this part needs to be changed.
-			if (state.tell_normals_apart) {
-				if (current_point->is_irit_normal)
-					normal_color = IRIT_NORMAL_COLOR;
-				else
-					normal_color = CALC_NORMAL_COLOR;
-			}
-
-			lineDraw(bitmap, state, width, height, normal_color, current_vertex, normal);
+			lineDraw(bitmap, state, width, height, NORMAL_DEFAULT_COLOR, current_vertex, normal);
 		}
 
 		if (line.x1 != line.x2 || line.y1 != line.y2) {
@@ -331,7 +320,7 @@ pass_this_point:
 
 	if (state.show_polygon_normal) {
 		polygon_normal[0] = vertex_transform * center_of_mass;
-		polygon_normal[1] = vertex_transform * (center_of_mass + this->normal * sign * 0.3);
+		polygon_normal[1] = vertex_transform * (center_of_mass + RELEVANT_NORMAL(this) * sign * 0.3);
 
 		if (state.is_perspective_view) {
 			polygon_normal[0].Homogenize();
@@ -341,15 +330,7 @@ pass_this_point:
 		polygon_normal[0] = state.screen_mat * polygon_normal[0];
 		polygon_normal[1] = state.screen_mat * polygon_normal[1];
 		
-		normal_color = state.normal_color;
-		// TODO: this part needs to be changed as well
-		if (state.tell_normals_apart) {
-			if (this->is_irit_normal)
-				normal_color = IRIT_NORMAL_COLOR;
-			else
-				normal_color = CALC_NORMAL_COLOR;
-		}
-		lineDraw(bitmap, state, width, height, normal_color, polygon_normal[0], polygon_normal[1]);
+		lineDraw(bitmap, state, width, height, NORMAL_DEFAULT_COLOR, polygon_normal[0], polygon_normal[1]);
 	}
 
 	// close the figure by drawing line from last point to the first
@@ -384,7 +365,7 @@ pass_this_point:
 	line.z1 = current_vertex.coordinates[Z_AXIS];
 	line.z2 = (double)next_vertex.coordinates[Z_AXIS];
 
-	normal = current_point->normal * 0.3;
+	normal = RELEVANT_NORMAL(current_point) * 0.3;
 	normal += current_point->vertex;
 	normal = vertex_transform * normal;
 	if (state.is_perspective_view)
@@ -394,11 +375,11 @@ pass_this_point:
 	//// update normal for this point in the previous line as well
 	//if (prev_line)
 	//	prev_line->p2.normal = normal;
-	line.p1.normal = normal;
+	line.p1.normal_irit = normal;
 	//line.p1.normal.Homogenize();
 	// update normal for this point in the previous line as well
 	if (prev_line)
-		prev_line->p2.normal = line.p1.normal;
+		prev_line->p2.normal_irit = line.p1.normal_irit;
 
 	if (line.x1 != line.x2 || line.y1 != line.y2) {
 		// we ignore lines that only change in their z value since
@@ -603,7 +584,7 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.is_perspective_view = false;
 	state.object_transform = true;
 	state.is_default_color = true;
-	state.tell_normals_apart = false;
+	state.use_calc_normals = false;
 	state.invert_normals = false;
 	state.backface_culling = false;
 	state.only_mesh = false;
@@ -642,7 +623,7 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.lights_nr = 0;
 	state.shading_mode = SHADING_M_PHONG;
 
-	this->addLightSource(Vector(0, 0, 10), 50);
+	this->addLightSource(Vector(0, 0, 100), 50);
 }
 
 IritWorld::~IritWorld() {

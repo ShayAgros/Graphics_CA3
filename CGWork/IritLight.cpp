@@ -42,8 +42,8 @@ void extrapolate_normal_and_vertex(struct IntersectionPoint &intersecting_p, Vec
 	double right_2d_x = containing_line->x2;
 	double upper_2d_x = containing_line->y2;
 	double lower_2d_x = containing_line->y1;
-	Vector &left_x_normal = containing_line->p1.normal;
-	Vector &right_x_normal = containing_line->p2.normal;
+	Vector &left_x_normal = containing_line->p1.normal_irit;
+	Vector &right_x_normal = containing_line->p2.normal_irit;
 	Vector &left_x_vertex = containing_line->p1.vertex;
 	Vector &right_x_vertex = containing_line->p2.vertex;
 
@@ -68,10 +68,6 @@ void extrapolate_normal_and_vertex(struct IntersectionPoint &intersecting_p, Vec
 Vector calculatePhongLight(struct IntersectionPoint &intersecting_x1, struct IntersectionPoint &intersecting_x2,
 						   double t, struct State &state)
 {
-
-	// In case of inverted normals;
-	int sign = (state.invert_normals) ? -1 : 1;
-
 	/* General */
 	Vector light_source_pos = Vector(0, 0, 0.8);
 	Vector camera_position = Vector(0, 0, 2);
@@ -107,7 +103,7 @@ Vector calculatePhongLight(struct IntersectionPoint &intersecting_x1, struct Int
 	extrapolate_normal_and_vertex(intersecting_x2, right_side_normal, right_side_pos);
 
 	// The 3D-normal and the 3D-position of our intersection point
-	point_normal = (left_side_normal * (1 - t)) + (right_side_normal * t) *sign;
+	point_normal = (left_side_normal * (1 - t)) + (right_side_normal * t);
 	point_pos = (left_side_pos * (1 - t)) + (right_side_pos * t);
 
 	point_normal.Normalize();
