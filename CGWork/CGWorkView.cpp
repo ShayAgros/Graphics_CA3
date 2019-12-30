@@ -87,6 +87,8 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_FLAT, OnUpdateLightShadingFlat)
 	ON_COMMAND(ID_LIGHT_SHADING_GOURAUD, OnLightShadingGouraud)
 	ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_GOURAUD, OnUpdateLightShadingGouraud)
+	ON_COMMAND(ID_LIGHT_SHADING_PHONG, OnLightShadingPhong)
+	ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_PHONG, OnUpdateLightShadingPhong)
 	ON_COMMAND(ID_LIGHT_CONSTANTS, OnLightConstants)
 	ON_COMMAND(IDD_SENS_DISTANCE, OnSensDistance)
 	ON_COMMAND(IDD_DIFFERENT_NORMALS, OnDifferentNormals)
@@ -138,17 +140,30 @@ CCGWorkView::CCGWorkView()
 	// Init the state machine
 	resetWorld();
 
-	m_nLightShading = ID_LIGHT_SHADING_FLAT;
+	world.state.shading_mode = SHADING_M_PHONG;
 
-	m_lMaterialAmbient = 0.2;
-	m_lMaterialDiffuse = 0.8;
-	m_lMaterialSpecular = 1.0;
-	m_nMaterialCosineFactor = 32;
+	world.state.m_lMaterialAmbient = 0.2;
+	world.state.m_lMaterialDiffuse = 0.8;
+	world.state.m_lMaterialSpecular = 1.0;
+	world.state.m_nMaterialCosineFactor = 32;
 
 	//init the first light to be enabled
-	m_lights[LIGHT_ID_1].enabled=true;
+	world.state.m_lights[LIGHT_ID_1].enabled=true;
+	world.state.m_lights[LIGHT_ID_1].posX = 0;
+	world.state.m_lights[LIGHT_ID_1].posY = 0;
+	world.state.m_lights[LIGHT_ID_1].posZ = 100;
+	world.state.m_lights[LIGHT_ID_1].colorR = 100;
+	world.state.m_lights[LIGHT_ID_1].colorG = 100;
+	world.state.m_lights[LIGHT_ID_1].colorB = 100;
+
+	// init ambient intensity
+	world.state.m_ambientLight.colorR = 50;
+	world.state.m_ambientLight.colorG = 50;
+	world.state.m_ambientLight.colorB = 50;
+
 	m_pDbBitMap = NULL;
 	m_pDbDC = NULL;
+
 }
 
 CCGWorkView::~CCGWorkView()
@@ -578,23 +593,36 @@ void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI)
 
 void CCGWorkView::OnLightShadingFlat() 
 {
-	m_nLightShading = ID_LIGHT_SHADING_FLAT;
+	world.state.shading_mode = SHADING_M_FLAT;
+	Invalidate();
 }
 
 void CCGWorkView::OnUpdateLightShadingFlat(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(m_nLightShading == ID_LIGHT_SHADING_FLAT);
+	pCmdUI->SetCheck(world.state.shading_mode == SHADING_M_FLAT);
 }
 
 
 void CCGWorkView::OnLightShadingGouraud() 
 {
-	m_nLightShading = ID_LIGHT_SHADING_GOURAUD;
+	world.state.shading_mode = SHADING_M_GOURAUD;
+	Invalidate();
 }
 
 void CCGWorkView::OnUpdateLightShadingGouraud(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(m_nLightShading == ID_LIGHT_SHADING_GOURAUD);
+	pCmdUI->SetCheck(world.state.shading_mode == SHADING_M_GOURAUD);
+}
+
+void CCGWorkView::OnLightShadingPhong()
+{
+	world.state.shading_mode = SHADING_M_PHONG;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdateLightShadingPhong(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(world.state.shading_mode == SHADING_M_PHONG);
 }
 
 // LIGHT SETUP HANDLER ///////////////////////////////////////////
@@ -605,17 +633,17 @@ void CCGWorkView::OnLightConstants()
 
 	for (int id=LIGHT_ID_1;id<MAX_LIGHT;id++)
 	{	    
-	    dlg.SetDialogData((LightID)id,m_lights[id]);
+	    dlg.SetDialogData((LightID)id, world.state.m_lights[id]);
 	}
-	dlg.SetDialogData(LIGHT_ID_AMBIENT,m_ambientLight);
+	dlg.SetDialogData(LIGHT_ID_AMBIENT, world.state.m_ambientLight);
 
 	if (dlg.DoModal() == IDOK) 
 	{
 	    for (int id=LIGHT_ID_1;id<MAX_LIGHT;id++)
 	    {
-		m_lights[id] = dlg.GetDialogData((LightID)id);
+			world.state.m_lights[id] = dlg.GetDialogData((LightID)id);
 	    }
-	    m_ambientLight = dlg.GetDialogData(LIGHT_ID_AMBIENT);
+		world.state.m_ambientLight = dlg.GetDialogData(LIGHT_ID_AMBIENT);
 	}	
 	Invalidate();
 }
@@ -971,3 +999,14 @@ void CCGWorkView::OnCancelPNG() {
 void CCGWorkView::OnUpdateCancelPNG(CCmdUI* pCmdUI) {
 	pCmdUI->Enable(world.state.background_png);
 }
+
+//void CCGWorkView::OnLightShadingPhong()
+//{
+//	world.state.m_nLightShading = ID_LIGHT_SHADING_PHONG;
+//}
+//
+//
+//void CCGWorkView::OnUpdateLightShadingPhong(CCmdUI *pCmdUI)
+//{
+//	pCmdUI->SetCheck(world.state.m_nLightShading == ID_LIGHT_SHADING_PHONG);
+//}

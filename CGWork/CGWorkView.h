@@ -36,16 +36,6 @@ private:
 
 	CString m_strItdFileName;		// file name of IRIT data
 
-	int m_nLightShading;			// shading: Flat, Gouraud.
-
-	double m_lMaterialAmbient;		// The Ambient in the scene
-	double m_lMaterialDiffuse;		// The Diffuse in the scene
-	double m_lMaterialSpecular;		// The Specular in the scene
-	int m_nMaterialCosineFactor;		// The cosine factor for the specular
-
-	LightParams m_lights[MAX_LIGHT];	//configurable lights array
-	LightParams m_ambientLight;		//ambient light (only RGB is used)
-
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -109,6 +99,8 @@ protected:
 	afx_msg void OnUpdateLightShadingFlat(CCmdUI* pCmdUI);
 	afx_msg void OnLightShadingGouraud();
 	afx_msg void OnUpdateLightShadingGouraud(CCmdUI* pCmdUI);
+	afx_msg void OnLightShadingPhong();
+	afx_msg void OnUpdateLightShadingPhong(CCmdUI* pCmdUI);
 	afx_msg void OnLightConstants();
 	afx_msg void OnSensDistance();
 	//}}AFX_MSG

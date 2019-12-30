@@ -144,10 +144,14 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 				// Lines are parallel, we add X boundries as intersection point
 				intersecting_x[intersecting_x_nr].x = current_line.x1;
 				intersecting_x[intersecting_x_nr].y = y;
+				intersecting_x[intersecting_x_nr].point_pos = NULL;
+				intersecting_x[intersecting_x_nr].point_normal = NULL;
 				intersecting_x[intersecting_x_nr].containing_line = &current_line;
 				intersecting_x[intersecting_x_nr++].z = current_line.z1;
 				intersecting_x[intersecting_x_nr].x = current_line.x2;
 				intersecting_x[intersecting_x_nr].y = y;
+				intersecting_x[intersecting_x_nr].point_pos = NULL;
+				intersecting_x[intersecting_x_nr].point_normal = NULL;
 				intersecting_x[intersecting_x_nr].containing_line = &current_line;
 				intersecting_x[intersecting_x_nr++].z = current_line.z2;
 
@@ -160,6 +164,8 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 				double extrapolated_z;
 				intersecting_x[intersecting_x_nr].x = (int)((B2 * C1 - B1 * C2) / determinant);
 				intersecting_x[intersecting_x_nr].y = y;
+				intersecting_x[intersecting_x_nr].point_pos = NULL;
+				intersecting_x[intersecting_x_nr].point_normal = NULL;
 				intersecting_x[intersecting_x_nr].containing_line = &current_line;
 
 				if (current_line.x2 == current_line.x1) {
@@ -202,11 +208,11 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 				bool closer = extrapolated_z > state.z_buffer[y * width + x];
 				
 				if (closer) {
-					RGBQUAD light_color = calculateLight(intersecting_x[i], intersecting_x[i + 1], t, state);
+					Vector light_color = calculateLight(intersecting_x[i], intersecting_x[i + 1], t, state);
 					// the casting is needed, otherwise the addition of colors overflows
-					unsigned int new_red_c = min((unsigned int)color.rgbRed + (unsigned int)light_color.rgbRed, 255);
-					unsigned int new_green_c = min((unsigned int)color.rgbGreen + (unsigned int)light_color.rgbGreen, 255);
-					unsigned int new_blue_c = min((unsigned int)color.rgbBlue + (unsigned int)light_color.rgbBlue, 255);
+					unsigned int new_red_c = min((unsigned int)color.rgbRed + light_color[0], 255);
+					unsigned int new_green_c = min((unsigned int)color.rgbGreen + light_color[1], 255);
+					unsigned int new_blue_c = min((unsigned int)color.rgbBlue + light_color[2], 255);
 					RGBQUAD new_color = { new_red_c, new_green_c, new_blue_c, 0 };
 
 					bitmap[y * width + x] = *((int*)&new_color);
@@ -271,7 +277,9 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		current_vertex = state.screen_mat * current_vertex;
 		next_vertex = state.screen_mat * next_vertex;
 
-		lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
+		/* Don't draw mesh lines if we're painting the object as well */
+		if (state.only_mesh)
+			lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
 
 		// Add the drawn line to the list of lines on the screen
 		line.x1 = (int)current_vertex.coordinates[X_AXIS];
@@ -355,7 +363,9 @@ pass_this_point:
 	current_vertex = state.screen_mat * current_vertex;
 	next_vertex = state.screen_mat * next_vertex;
 
-	lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
+	/* Don't draw mesh lines if we're painting the object as well */
+	if (state.only_mesh)
+		lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
 	// Add the drawn line to the list of lines on the screen
 	line.x1 = (int)current_vertex.coordinates[X_AXIS];
 	line.y1 = (int)(int)current_vertex.coordinates[Y_AXIS];
@@ -618,12 +628,6 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.normal_color = NORMAL_DEFAULT_COLOR;
 
 	state.z_buffer = nullptr;
-
-	state.lights = NULL;
-	state.lights_nr = 0;
-	state.shading_mode = SHADING_M_PHONG;
-
-	this->addLightSource(Vector(0, 0, 100), 50);
 }
 
 IritWorld::~IritWorld() {
