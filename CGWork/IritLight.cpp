@@ -171,8 +171,8 @@ void get_intersection_point_shading(struct IntersectionPoint &intersecting_p, Ve
 	double right_2d_x = containing_line->x2;
 	double upper_2d_x = containing_line->y2;
 	double lower_2d_x = containing_line->y1;
-	Vector &left_x_normal = containing_line->p1.normal;
-	Vector &right_x_normal = containing_line->p2.normal;
+	Vector &left_x_normal = containing_line->p1.normal_irit;
+	Vector &right_x_normal = containing_line->p2.normal_irit;
 	Vector &left_x_vertex = containing_line->p1.vertex;
 	Vector &right_x_vertex = containing_line->p2.vertex;
 

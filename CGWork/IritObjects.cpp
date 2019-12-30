@@ -213,7 +213,7 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 					unsigned int new_red_c = min((unsigned int)color.rgbRed + light_color[0], 255);
 					unsigned int new_green_c = min((unsigned int)color.rgbGreen + light_color[1], 255);
 					unsigned int new_blue_c = min((unsigned int)color.rgbBlue + light_color[2], 255);
-					RGBQUAD new_color = { new_red_c, new_green_c, new_blue_c, 0 };
+					RGBQUAD new_color = { (BYTE)new_red_c, (BYTE)new_green_c, (BYTE)new_blue_c, 0 };
 
 					bitmap[y * width + x] = *((int*)&new_color);
 					//bitmap[y * width + x] = *((int*)&color);
