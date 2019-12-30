@@ -279,7 +279,9 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		current_vertex = state.screen_mat * current_vertex;
 		next_vertex = state.screen_mat * next_vertex;
 
-		lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
+		/* Don't draw mesh lines if we're painting the object as well */
+		if (state.only_mesh)
+			lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
 
 		// Add the drawn line to the list of lines on the screen
 		line.x1 = (int)current_vertex.coordinates[X_AXIS];
@@ -380,7 +382,9 @@ pass_this_point:
 	current_vertex = state.screen_mat * current_vertex;
 	next_vertex = state.screen_mat * next_vertex;
 
-	lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
+	/* Don't draw mesh lines if we're painting the object as well */
+	if (state.only_mesh)
+		lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
 	// Add the drawn line to the list of lines on the screen
 	line.x1 = (int)current_vertex.coordinates[X_AXIS];
 	line.y1 = (int)(int)current_vertex.coordinates[Y_AXIS];

@@ -151,7 +151,7 @@ CCGWorkView::CCGWorkView()
 	world.state.m_lights[LIGHT_ID_1].enabled=true;
 	world.state.m_lights[LIGHT_ID_1].posX = 0;
 	world.state.m_lights[LIGHT_ID_1].posY = 0;
-	world.state.m_lights[LIGHT_ID_1].posZ = 3;
+	world.state.m_lights[LIGHT_ID_1].posZ = 100;
 	world.state.m_lights[LIGHT_ID_1].colorR = 100;
 	world.state.m_lights[LIGHT_ID_1].colorG = 100;
 	world.state.m_lights[LIGHT_ID_1].colorB = 100;
