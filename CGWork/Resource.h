@@ -7,18 +7,18 @@
 #define IDR_CGWorkTYPE                  129
 #define IDD_LIGHTS_DLG                  134
 #define IDD_MATERIAL_DLG                136
-#define IDD_SENS_DISTANCE				137
-#define IDD_DIFFERENT_NORMALS			138
-#define IDD_ON_SCREEN					139
-#define IDD_SAVE_TO_PNG					140
-#define IDD_BACKFACE_CULLING			141
-#define IDD_INVERT_NORMALS				142
-#define IDD_PNG_BACKGROUND				143
-#define IDD_SHOW_SILHOUTTE				144
-#define IDD_STRETCH_IMAGE				145
-#define IDD_REPEAT_IMAGE				146
-#define IDD_CANCEL_IMAGE				147
-#define IDD_ONLY_MESH					148
+#define IDD_SENS_DISTANCE               137
+#define IDD_DIFFERENT_NORMALS           138
+#define IDD_ON_SCREEN                   139
+#define IDD_SAVE_TO_PNG                 140
+#define IDD_BACKFACE_CULLING            141
+#define IDD_INVERT_NORMALS              142
+#define IDD_PNG_BACKGROUND              143
+#define IDD_SHOW_SILHOUTTE              144
+#define IDD_STRETCH_IMAGE               145
+#define IDD_REPEAT_IMAGE                146
+#define IDD_CANCEL_IMAGE                147
+#define IDD_ONLY_MESH                   148
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -43,14 +43,19 @@
 #define IDC_LIGHT_DIR_Z                 1037
 #define IDC_LIGHT_TYPE                  1038
 #define IDC_MATERIAL_AMBIENT            1039
+#define IDC_KA                          1039
 #define IDC_MATERIAL_DIFFUSE            1040
+#define IDC_KD                          1040
 #define IDC_MATERIAL_SHININESS          1041
+#define IDC_KS                          1041
 #define IDC_MATERIAL_SPECULAR           1042
-#define IDC_SENS						1043
-#define IDC_DISTANCE					1044
-#define IDC_FINENESS					1045
-#define IDC_PNG_HEIGHT					1046
-#define IDC_PNG_WIDTH					1047
+#define IDC_AMBL_COLOR_B3               1042
+#define IDC_COSN                        1042
+#define IDC_SENS                        1043
+#define IDC_DISTANCE                    1044
+#define IDC_FINENESS                    1045
+#define IDC_PNG_HEIGHT                  1046
+#define IDC_PNG_WIDTH                   1047
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -69,21 +74,21 @@
 #define ID_BUTTON_SUBDIVIDE             32797
 #define ID_OPTIONS_PERSPECTIVECONTROL   32798
 #define ID_OPTIONS_MOUSESENSITIVITY     32799
-#define ID_OBJECT_FRAME					32800
-#define ID_POLYGON_NORMAL				32801
-#define ID_VERTEX_NORMAL				32802
-#define	ID_WORLD_TRANSFORM				32803
-#define ID_OBJECT_TRANSFORM				32804
-#define ID_OBJECT_COLOR					32805
-#define ID_BG_COLOR						32806
-#define ID_NORMAL_COLOR					32807
-#define ID_LIGHT_SHADING_PHONG 32808
+#define ID_OBJECT_FRAME                 32800
+#define ID_POLYGON_NORMAL               32801
+#define ID_VERTEX_NORMAL                32802
+#define ID_WORLD_TRANSFORM              32803
+#define ID_OBJECT_TRANSFORM             32804
+#define ID_OBJECT_COLOR                 32805
+#define ID_BG_COLOR                     32806
+#define ID_NORMAL_COLOR                 32807
+#define ID_LIGHT_SHADING_PHONG          32808
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        149
+#define _APS_NEXT_RESOURCE_VALUE        150
 #define _APS_NEXT_COMMAND_VALUE         32805
 #define _APS_NEXT_CONTROL_VALUE         1040
 #define _APS_NEXT_SYMED_VALUE           101

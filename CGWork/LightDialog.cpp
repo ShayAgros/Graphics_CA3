@@ -42,6 +42,11 @@ void CLightDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_LIGHT_DIR_Y, m_lights[m_currentLightIdx].dirY);
 	DDX_Text(pDX, IDC_LIGHT_DIR_Z, m_lights[m_currentLightIdx].dirZ);
 
+	DDX_Text(pDX, IDC_KA, ka);
+	DDX_Text(pDX, IDC_KD, kd);
+	DDX_Text(pDX, IDC_KS, ks);
+	DDX_Text(pDX, IDC_COSN, cosn);
+
 	//NOTE:Add more dialog controls which are associated with the structure below this line		
 	//...
 
@@ -84,7 +89,7 @@ void CLightDialog::SetDialogData( LightID id,const LightParams& light )
 
 LightParams CLightDialog::GetDialogData( LightID id )
 {
-    if (id==LIGHT_ID_AMBIENT)
+    if (id == LIGHT_ID_AMBIENT)
 	return m_ambiant;
     else
 	return m_lights[id];
