@@ -77,6 +77,7 @@
 #define ID_OBJECT_COLOR					32805
 #define ID_BG_COLOR						32806
 #define ID_NORMAL_COLOR					32807
+#define ID_LIGHT_SHADING_PHONG 32808
 
 // Next default values for new objects
 // 

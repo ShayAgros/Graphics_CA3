@@ -99,6 +99,8 @@ protected:
 	afx_msg void OnUpdateLightShadingFlat(CCmdUI* pCmdUI);
 	afx_msg void OnLightShadingGouraud();
 	afx_msg void OnUpdateLightShadingGouraud(CCmdUI* pCmdUI);
+	afx_msg void OnLightShadingPhong();
+	afx_msg void OnUpdateLightShadingPhong(CCmdUI* pCmdUI);
 	afx_msg void OnLightConstants();
 	afx_msg void OnSensDistance();
 	//}}AFX_MSG

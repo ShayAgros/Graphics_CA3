@@ -87,6 +87,8 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_FLAT, OnUpdateLightShadingFlat)
 	ON_COMMAND(ID_LIGHT_SHADING_GOURAUD, OnLightShadingGouraud)
 	ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_GOURAUD, OnUpdateLightShadingGouraud)
+	ON_COMMAND(ID_LIGHT_SHADING_PHONG, OnLightShadingPhong)
+	ON_UPDATE_COMMAND_UI(ID_LIGHT_SHADING_PHONG, OnUpdateLightShadingPhong)
 	ON_COMMAND(ID_LIGHT_CONSTANTS, OnLightConstants)
 	ON_COMMAND(IDD_SENS_DISTANCE, OnSensDistance)
 	ON_COMMAND(IDD_DIFFERENT_NORMALS, OnDifferentNormals)
@@ -592,6 +594,7 @@ void CCGWorkView::OnUpdateAxisZ(CCmdUI* pCmdUI)
 void CCGWorkView::OnLightShadingFlat() 
 {
 	world.state.shading_mode = SHADING_M_FLAT;
+	Invalidate();
 }
 
 void CCGWorkView::OnUpdateLightShadingFlat(CCmdUI* pCmdUI) 
@@ -603,6 +606,7 @@ void CCGWorkView::OnUpdateLightShadingFlat(CCmdUI* pCmdUI)
 void CCGWorkView::OnLightShadingGouraud() 
 {
 	world.state.shading_mode = SHADING_M_GOURAUD;
+	Invalidate();
 }
 
 void CCGWorkView::OnUpdateLightShadingGouraud(CCmdUI* pCmdUI) 
@@ -610,10 +614,16 @@ void CCGWorkView::OnUpdateLightShadingGouraud(CCmdUI* pCmdUI)
 	pCmdUI->SetCheck(world.state.shading_mode == SHADING_M_GOURAUD);
 }
 
-//void CCGWorkView::OnLightShadingPhong()
-//{
-//	world.state.shading_mode = SHADING_M_PHONG;
-//}
+void CCGWorkView::OnLightShadingPhong()
+{
+	world.state.shading_mode = SHADING_M_PHONG;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdateLightShadingPhong(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(world.state.shading_mode == SHADING_M_PHONG);
+}
 
 // LIGHT SETUP HANDLER ///////////////////////////////////////////
 

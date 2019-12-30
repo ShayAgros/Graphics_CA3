@@ -176,6 +176,7 @@ BEGIN
         BEGIN
             MENUITEM "&Flat",                       ID_LIGHT_SHADING_FLAT
             MENUITEM "&Gouraud",                    ID_LIGHT_SHADING_GOURAUD
+            MENUITEM "&Phong",                      ID_LIGHT_SHADING_PHONG
         END
         MENUITEM "&Parameters...",              ID_LIGHT_CONSTANTS
     END
