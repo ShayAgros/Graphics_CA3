@@ -6,6 +6,7 @@
 #include "Matrix.h"
 #include "IritLight.h"
 #include "PngWrapper.h"
+#include "Light.h"
 
 // The color scheme here is    <B G R *reserved*>
 #define BG_DEFAULT_COLOR		{0, 0, 0, 0}       // Black
@@ -53,7 +54,7 @@ enum Axis {
 
 enum ShadingMode {
 	SHADING_M_FLAT,
-	SHADING_M_GOURD,
+	SHADING_M_GOURAUD,
 	SHADING_M_PHONG,
 };
 
@@ -109,10 +110,17 @@ struct State {
 	// For hidden face removal
 	double* z_buffer;
 
-	// lights
-	struct light *lights;
-	int lights_nr;
 	enum ShadingMode shading_mode;
+
+	int m_nLightShading;			// shading: Flat, Gouraud.
+
+	double m_lMaterialAmbient;		// The Ambient in the scene
+	double m_lMaterialDiffuse;		// The Diffuse in the scene
+	double m_lMaterialSpecular;		// The Specular in the scene
+	int m_nMaterialCosineFactor;		// The cosine factor for the specular
+
+	LightParams m_lights[MAX_LIGHT];	//configurable lights array
+	LightParams m_ambientLight;		//ambient light (only RGB is used)
 };
 
 struct PolygonList {
@@ -406,10 +414,4 @@ public:
 	bool isEmpty();
 
 	void draw(int *bitmap, int width, int height);
-
-	/* Add a light source to the IritWorld
-	 * @pos - the position of the camera in *clipping space*
-	 * @intensity - the light intensity of the light source
-	*/
-	void addLightSource(Vector &pos, int intensity);
 };

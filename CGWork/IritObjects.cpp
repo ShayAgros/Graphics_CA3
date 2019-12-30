@@ -209,11 +209,11 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 				bool closer = extrapolated_z > state.z_buffer[y * width + x];
 				
 				if (closer) {
-					RGBQUAD light_color = calculateLight(intersecting_x[i], intersecting_x[i + 1], t, state);
+					Vector light_color = calculateLight(intersecting_x[i], intersecting_x[i + 1], t, state);
 					// the casting is needed, otherwise the addition of colors overflows
-					unsigned int new_red_c = min((unsigned int)color.rgbRed + (unsigned int)light_color.rgbRed, 255);
-					unsigned int new_green_c = min((unsigned int)color.rgbGreen + (unsigned int)light_color.rgbGreen, 255);
-					unsigned int new_blue_c = min((unsigned int)color.rgbBlue + (unsigned int)light_color.rgbBlue, 255);
+					unsigned int new_red_c = min((unsigned int)color.rgbRed + light_color[0], 255);
+					unsigned int new_green_c = min((unsigned int)color.rgbGreen + light_color[1], 255);
+					unsigned int new_blue_c = min((unsigned int)color.rgbBlue + light_color[2], 255);
 					RGBQUAD new_color = { new_red_c, new_green_c, new_blue_c, 0 };
 
 					bitmap[y * width + x] = *((int*)&new_color);
@@ -643,12 +643,6 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.normal_color = NORMAL_DEFAULT_COLOR;
 
 	state.z_buffer = nullptr;
-
-	state.lights = NULL;
-	state.lights_nr = 0;
-	state.shading_mode = SHADING_M_PHONG;
-
-	this->addLightSource(Vector(0, 0, 10), 50);
 }
 
 IritWorld::~IritWorld() {
