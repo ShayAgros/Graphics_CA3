@@ -113,24 +113,15 @@ void bucketSortAndUnique(IntersectionPoint arr[], int &arr_sz, int min_val, int 
 
 	// fill bucket with the number of iteration for each value
 	for (i = 0; i < arr_sz; i++) {
-		//bucket_arr[arr[i] - offset]++;
+		bucket_arr[arr[i].x - offset] = arr[i];
 		bucket_arr[arr[i].x - offset].x = 1;
-		bucket_arr[arr[i].x - offset].z = arr[i].z;
-		bucket_arr[arr[i].x - offset].y = arr[i].y;
-		bucket_arr[arr[i].x - offset].point_normal = arr[i].point_normal;
-		bucket_arr[arr[i].x - offset].point_pos = arr[i].point_pos;
-		bucket_arr[arr[i].x - offset].containing_line = arr[i].containing_line;
 	}
 
 	arr_sz = 0;
 	for (i = 0; i < max_val + 1; i++) {
 		if (bucket_arr[i].x) {
-			arr[arr_sz].x = i + offset;
-			arr[arr_sz].y = bucket_arr[i].y;
-			arr[arr_sz].point_normal = bucket_arr[i].point_normal;
-			arr[arr_sz].point_pos = bucket_arr[i].point_pos;
-			arr[arr_sz].containing_line = bucket_arr[i].containing_line;
-			arr[arr_sz++].z = bucket_arr[i].z;
+			arr[arr_sz] = bucket_arr[i];
+			arr[arr_sz++].x = i + offset;
 		}
 	}
 

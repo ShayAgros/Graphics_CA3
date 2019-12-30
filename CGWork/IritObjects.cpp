@@ -91,7 +91,8 @@ bool isOutsideClippingBoundries(Vector &vertex)
  * two lines. For more info see
  * https://www.geeksforgeeks.org/program-for-point-of-intersection-of-two-lines/
 */
-void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color, State &state) {
+void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color, State &state,
+							   Vector &polygon_normal, Vector p_center_of_mass) {
 
 	int y_max = (int)(state.screen_mat * Vector(0, 1, 0, 1))[Y_AXIS];
 	double A1, B1, C1; // We represent our lines by A1*X + B1*Y = C1
@@ -147,14 +148,17 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 				intersecting_x[intersecting_x_nr].point_pos = NULL;
 				intersecting_x[intersecting_x_nr].point_normal = NULL;
 				intersecting_x[intersecting_x_nr].containing_line = &current_line;
-				intersecting_x[intersecting_x_nr++].z = current_line.z1;
+				intersecting_x[intersecting_x_nr].z = current_line.z1;
+				calculate_normals_and_shading(intersecting_x[intersecting_x_nr], state, polygon_normal, p_center_of_mass);
+				intersecting_x_nr++;
 				intersecting_x[intersecting_x_nr].x = current_line.x2;
 				intersecting_x[intersecting_x_nr].y = y;
 				intersecting_x[intersecting_x_nr].point_pos = NULL;
 				intersecting_x[intersecting_x_nr].point_normal = NULL;
 				intersecting_x[intersecting_x_nr].containing_line = &current_line;
-				intersecting_x[intersecting_x_nr++].z = current_line.z2;
-
+				intersecting_x[intersecting_x_nr].z = current_line.z2;
+				calculate_normals_and_shading(intersecting_x[intersecting_x_nr], state, polygon_normal, p_center_of_mass);
+				intersecting_x_nr++;
 
 				min_x = min(min_x, min(current_line.x1, current_line.x2));
 				max_x = max(max_x, max(current_line.x1, current_line.x2));
@@ -167,6 +171,7 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 				intersecting_x[intersecting_x_nr].point_pos = NULL;
 				intersecting_x[intersecting_x_nr].point_normal = NULL;
 				intersecting_x[intersecting_x_nr].containing_line = &current_line;
+				calculate_normals_and_shading(intersecting_x[intersecting_x_nr], state, polygon_normal, p_center_of_mass);
 
 				if (current_line.x2 == current_line.x1) {
 					t = (double)(intersecting_x[intersecting_x_nr].y - current_line.y1) / (double)(current_line.y2 - current_line.y1);
@@ -226,7 +231,7 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 }
 
 void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct State &state,
-					   Matrix &vertex_transform, Vector &ambient_reflection) {
+					   Matrix &vertex_transform) {
 	struct IritPoint *current_point = m_points;
 	Vector current_vertex = current_point->vertex;
 	Vector next_vertex;
@@ -399,7 +404,9 @@ pass_this_point:
 paint_polygon:
 	// paint the polygon
 	if (!state.only_mesh) {
-		paintPolygon(bitmap, width, height, current_color, state);
+		polygon_normal[0] = vertex_transform * (RELEVANT_NORMAL(this) * sign);
+		paintPolygon(bitmap, width, height, current_color, state, polygon_normal[0],
+					 vertex_transform * center_of_mass);
 	}
 	delete[] lines;
 }
@@ -414,7 +421,6 @@ IritPolygon &IritPolygon::operator++() {
 
 IritObject::IritObject() : m_polygons_nr(0), m_polygons(nullptr), m_iterator(nullptr) {
 	object_color = WIRE_DEFAULT_COLOR;
-	kd = Vector(0.5);
 }
 
 IritObject::~IritObject() {
@@ -456,7 +462,7 @@ void IritObject::draw(int *bitmap, int width, int height, State &state,
 
 	m_iterator = m_polygons;
 	while (m_iterator) {
-		m_iterator->draw(bitmap, width, height, object_color, state, vertex_transform, kd);
+		m_iterator->draw(bitmap, width, height, object_color, state, vertex_transform);
 		m_iterator = m_iterator->getNextPolygon();
 	}
 }
