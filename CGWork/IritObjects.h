@@ -24,7 +24,7 @@
 
 #define COLORREF_TO_RGBQUAD(x) {(BYTE)((x & 0xff0000) >> 16), (BYTE)((x & 0xff00) >> 8), (BYTE)(x & 0xff), 0}
 #define ARGB_TO_RGBA(x) (((x & 0xff000000) >> 24) + ((x & 0x00ff0000) << 8) + ((x & 0x0000ff00) << 8) + ((x & 0x000000ff) << 8))
-#define RGBA_TO_ARGB(x) (((x & 0xff000000) >> 8) + ((x & 0x00ff0000) >> 8) + ((x & 0x0000ff00) >> 8)+ ((x & 0x000000ff) << 24))
+#define RGBA_TO_ARGB(x) (((x & 0xff000000) >> 8) + ((x & 0x00ff0000) >> 8) + ((x & 0x0000ff00) >> 8) + ((x & 0x000000ff) << 24))
 
 const RGBQUAD max_rgb = { 255, 255, 255, 0 };
 //const unsigned int max_rgb_uint = ((unsigned int *)&max_rgb)
@@ -139,21 +139,12 @@ struct IntersectionPoint {
 	struct threed_line *containing_line;
 
 	// These hold the intersection point's 3D normal and position
-	Vector *point_normal;
-	Vector *point_pos;
+	Vector point_normal;
+	Vector point_pos;
 
-	IntersectionPoint() {
-		point_normal = NULL;
-		point_pos = NULL;
-	}
-
-	~IntersectionPoint() {
-		// If these resources aren't allocated, then will be NULL
-		delete point_normal;
-		point_normal = NULL;
-		delete point_pos;
-		point_pos = NULL;
-	}
+	/* Light related variables */
+	Vector polygon_shade;
+	Vector point_shade;
 };
 
 /* Represents a 3 dimensional line
@@ -167,6 +158,8 @@ struct threed_line {
 	IritPoint p1;
 	IritPoint p2;
 	
+	Vector polygon_normal;
+
 	bool operator<(threed_line &l1) {
 		return this->ymin() < l1.ymin();
 	}
@@ -191,7 +184,8 @@ class IritPolygon {
 
 	/* This function uses the lines array to do a
 	   scan conversion painting of the figure */
-	void paintPolygon(int *bitmap, int width, int height, RGBQUAD color, State &state);
+	void paintPolygon(int *bitmap, int width, int height, RGBQUAD color, State &state,
+					  Vector &polygon_normal, Vector p_center_of_mass);
 
 public:
 	Vector center_of_mass;
@@ -227,7 +221,7 @@ public:
 	 *						vertex is multiplied by this matrix before being drawn
 	*/
 	void draw(int *bitmap, int width, int height, RGBQUAD color, struct State &state,
-			  Matrix &vertex_transform, Vector &ambient_reflection);
+			  Matrix &vertex_transform);
 
 	// Operators overriding
 	IritPolygon &operator++();
@@ -242,10 +236,6 @@ class IritObject {
 	int m_polygons_nr;
 	IritPolygon *m_polygons;
 	IritPolygon *m_iterator;
-
-	/* light */
-	/*surface diffuse reflection coeffients */
-	Vector kd;
 
 public:
 	RGBQUAD object_color;

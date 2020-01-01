@@ -17,3 +17,6 @@
 */
 Vector calculateLight(struct IntersectionPoint &intersecting_x1, struct IntersectionPoint &intersecting_x2,
 					  double t, struct State &state);
+
+void calculate_normals_and_shading(struct IntersectionPoint &intersection_p, struct State &state,
+								   Vector &polygon_normal, Vector &center_of_mass);

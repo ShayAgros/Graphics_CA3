@@ -7,16 +7,10 @@
 #include "IritLight.h"
 #include "Light.h"
 
+void extrapolate_normal_and_vertex(struct IntersectionPoint &intersecting_p, Vector &extrapolated_normal, Vector &extrapolated_pos);
+void get_intersection_point_shading(struct IntersectionPoint &intersecting_p, Vector &shading, struct State &state);
+
 // ============================================ General functions ================================================================
-
-RGBQUAD vector_to_rgbq(Vector &vector)
-{
-	BYTE red = (BYTE)vector[0];
-	BYTE green = (BYTE)vector[1];
-	BYTE blue = (BYTE)vector[2];
-
-	return { red, green, blue, 0 };
-}
 
 /* Calculate ambient, diffusive, and specular light of a point */
 Vector calculate_point_shading(Vector &point_pos, Vector &point_normal, struct State &state)
@@ -57,7 +51,10 @@ Vector calculate_point_shading(Vector &point_pos, Vector &point_normal, struct S
 			continue;
 
 		Vector light_source_pos(light.posX, light.posY, light.posZ);
+		Vector light_source_direction(light.dirX, light.dirY, light.dirZ);
 		Vector point_source_intensity(light.colorR, light.colorG, light.colorB);
+
+		bool is_light_directional = light.type == LIGHT_TYPE_DIRECTIONAL;
 
 		point_to_light = light_source_pos - point_pos;
 		light_to_point = point_to_light * (-1);
@@ -67,21 +64,40 @@ Vector calculate_point_shading(Vector &point_pos, Vector &point_normal, struct S
 		point_to_light.Normalize();
 		reflected_vector.Normalize();
 		light_to_point.Normalize();
+		light_source_direction.Normalize();
 
-		double cos_theta = point_normal * point_to_light;
+		double cos_theta;
+		if (!is_light_directional)
+			cos_theta = point_normal * point_to_light;
+		else
+			cos_theta = point_normal * (light_source_direction * (-1));
+
 		if (cos_theta > 0) {
 
 			Vector diffusive_light = point_source_intensity * kd * cos_theta;
 			overall_lighting += diffusive_light;
 
 			double alpha = reflected_vector * point_to_eye;
-			if (alpha > 0) {
+			if (alpha > 0 && !is_light_directional) {
 				Vector specular_light = point_source_intensity * ks * (pow(alpha, cosine_factor));
 				overall_lighting += specular_light;
 			}
 		}
 	}
 	return overall_lighting;
+}
+
+void calculate_normals_and_shading(struct IntersectionPoint &intersection_p, struct State &state,
+								   Vector &polygon_normal, Vector &center_of_mass) {
+	if (state.shading_mode == SHADING_M_FLAT) {
+		intersection_p.polygon_shade = calculate_point_shading(center_of_mass, polygon_normal, state);
+	}
+	else if (state.shading_mode == SHADING_M_PHONG) {
+		extrapolate_normal_and_vertex(intersection_p, intersection_p.point_normal, intersection_p.point_pos);
+	}
+	else if (state.shading_mode == SHADING_M_GOURAUD) {
+		get_intersection_point_shading(intersection_p, intersection_p.point_shade, state);
+	}
 }
 
 // ============================================ PHONG Shading ================================================================
@@ -118,38 +134,19 @@ void extrapolate_normal_and_vertex(struct IntersectionPoint &intersecting_p, Vec
 	extrapolated_pos = (left_x_vertex * (1 - t)) + (right_x_vertex * t);
 }
 
-void get_point_normal_and_position(struct IntersectionPoint &intersecting_p, Vector &extrapolated_normal, Vector &extrapolated_pos) {
-	// extrapolate the normals and position of the containing lines boundries
-	if (!intersecting_p.point_normal || !intersecting_p.point_pos) {
-		extrapolate_normal_and_vertex(intersecting_p, extrapolated_normal, extrapolated_pos);
-		intersecting_p.point_normal = new Vector(extrapolated_normal);
-		intersecting_p.point_pos = new Vector(extrapolated_pos);
-	}
-	else {
-		// We already calculated them in the past
-		extrapolated_normal = *intersecting_p.point_normal;
-		extrapolated_pos = *intersecting_p.point_pos;
-	}
-}
-
 /* See http://www.ogldev.org/www/tutorial19/tutorial19.html for reflection calculations */
 Vector calculatePhongLight(struct IntersectionPoint &intersecting_x1, struct IntersectionPoint &intersecting_x2,
 						   double t, struct State &state)
 {
-
 	/* Positional vectors */
-	Vector left_side_normal;
-	Vector left_side_pos;
+	Vector &left_side_normal = intersecting_x1.point_normal;
+	Vector &left_side_pos = intersecting_x1.point_pos;
 
-	Vector right_side_normal;
-	Vector right_side_pos;
+	Vector &right_side_normal = intersecting_x2.point_normal;
+	Vector &right_side_pos = intersecting_x2.point_pos;
 
 	Vector point_normal;
 	Vector point_pos;
-
-	get_point_normal_and_position(intersecting_x1, left_side_normal, left_side_pos);
-
-	get_point_normal_and_position(intersecting_x2, right_side_normal, right_side_pos);
 
 	// The 3D-normal and the 3D-position of our intersection point
 	point_normal = (left_side_normal * (1 - t)) + (right_side_normal * t);
@@ -199,12 +196,15 @@ Vector calculateGouraudLight(struct IntersectionPoint &intersecting_x1, struct I
 	Vector left_side_shading;
 	Vector right_side_shading;
 
-	get_intersection_point_shading(intersecting_x1, left_side_shading, state);
-	get_intersection_point_shading(intersecting_x2, right_side_shading, state);
-
-
-	return (left_side_shading * (1 - t)) + (right_side_shading * t);
+	return (intersecting_x1.point_shade * (1 - t)) + (intersecting_x2.point_shade * t);
 }
+
+Vector calculateFlatLight(struct IntersectionPoint &intersecting_x1, struct IntersectionPoint &intersecting_x2,
+						  double t, struct State &state)
+{
+	return (intersecting_x1.polygon_shade * (1 - t)) + (intersecting_x2.polygon_shade * t);
+}
+
 
 Vector calculateLight(struct IntersectionPoint &intersecting_x1, struct IntersectionPoint &intersecting_x2,
 					  double t, struct State &state)
@@ -215,6 +215,8 @@ Vector calculateLight(struct IntersectionPoint &intersecting_x1, struct Intersec
 		returned_color = calculatePhongLight(intersecting_x1, intersecting_x2, t, state);
 	else if(state.shading_mode == SHADING_M_GOURAUD) {
 		returned_color = calculateGouraudLight(intersecting_x1, intersecting_x2, t, state);
+	} else if (state.shading_mode == SHADING_M_FLAT) {
+		returned_color = calculateFlatLight(intersecting_x1, intersecting_x2, t, state);
 	}
 
 	if (returned_color[0] > 128 || returned_color[1] > 128 || returned_color[2] > 128)

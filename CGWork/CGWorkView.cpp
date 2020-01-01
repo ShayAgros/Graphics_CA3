@@ -157,6 +157,11 @@ CCGWorkView::CCGWorkView()
 	world.state.m_lights[LIGHT_ID_1].colorR = 100;
 	world.state.m_lights[LIGHT_ID_1].colorG = 100;
 	world.state.m_lights[LIGHT_ID_1].colorB = 100;
+	world.state.m_lights[LIGHT_ID_1].type = LIGHT_TYPE_POINT;
+	world.state.m_lights[LIGHT_ID_1].dirX = 0;
+	world.state.m_lights[LIGHT_ID_1].dirY = 0;
+	world.state.m_lights[LIGHT_ID_1].dirZ = -1;
+
 
 	// init ambient intensity
 	world.state.m_ambientLight.colorR = 50;
@@ -638,6 +643,10 @@ void CCGWorkView::OnLightConstants()
 	    dlg.SetDialogData((LightID)id, world.state.m_lights[id]);
 	}
 	dlg.SetDialogData(LIGHT_ID_AMBIENT, world.state.m_ambientLight);
+	dlg.set_ka(world.state.m_lMaterialAmbient);
+	dlg.set_kd(world.state.m_lMaterialDiffuse);
+	dlg.set_ks(world.state.m_lMaterialSpecular);
+	dlg.set_cosn(world.state.m_nMaterialCosineFactor);
 
 	if (dlg.DoModal() == IDOK) 
 	{
@@ -646,7 +655,11 @@ void CCGWorkView::OnLightConstants()
 			world.state.m_lights[id] = dlg.GetDialogData((LightID)id);
 	    }
 		world.state.m_ambientLight = dlg.GetDialogData(LIGHT_ID_AMBIENT);
-	}	
+	}
+	world.state.m_lMaterialAmbient = dlg.get_ka();
+	world.state.m_lMaterialDiffuse = dlg.get_kd();
+	world.state.m_lMaterialSpecular = dlg.get_ks();
+	world.state.m_nMaterialCosineFactor = dlg.get_cosn();
 	Invalidate();
 }
 
@@ -1010,14 +1023,3 @@ void CCGWorkView::OnShowSilhouette() {
 void CCGWorkView::OnUpdateShowSilhouette(CCmdUI* pCmdUI) {
 	pCmdUI->SetCheck(world.state.show_silhouette);
 }
-
-//void CCGWorkView::OnLightShadingPhong()
-//{
-//	world.state.m_nLightShading = ID_LIGHT_SHADING_PHONG;
-//}
-//
-//
-//void CCGWorkView::OnUpdateLightShadingPhong(CCmdUI *pCmdUI)
-//{
-//	pCmdUI->SetCheck(world.state.m_nLightShading == ID_LIGHT_SHADING_PHONG);
-//}
