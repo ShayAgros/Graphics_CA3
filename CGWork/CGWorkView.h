@@ -142,6 +142,8 @@ public:
 	afx_msg void OnUpdateRepeatPNG(CCmdUI* pCmdUI);
 	afx_msg void OnCancelPNG();
 	afx_msg void OnUpdateCancelPNG(CCmdUI* pCmdUI);
+	afx_msg void OnShowSilhouette();
+	afx_msg void OnUpdateShowSilhouette(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

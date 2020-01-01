@@ -1,13 +1,19 @@
 #include "IritObjects.h"
 #include "aux_functions.h"
 #include "PngWrapper.h"
+#include "iritSkel.h"
 
 Matrix createTranslationMatrix(double x, double y, double z = 0);
 Matrix createTranslationMatrix(Vector &v);
+
+bool isSilhouette(State state, Matrix &vertex_transform, IritPoint *first, IritPoint *second);
 void lineDraw(int *bitmap, State state, int width, int height, RGBQUAD color, Vector first, Vector second);
 
 #define BOX_NUM_OF_VERTICES 8
 #define RELEVANT_NORMAL(x) ((state.use_calc_normals) ? x->normal_calc : x->normal_irit)
+
+extern VertexList *connectivity;
+extern PolygonList *all_polygons;
 
 IritPolygon::IritPolygon() : m_point_nr(0), m_points(nullptr), center_of_mass(Vector(0, 0, 0, 1)),
 			normal_irit(Vector(0, 0, 0, 1)), normal_calc(Vector(0,0,0,1)), m_next_polygon(nullptr) {
@@ -218,7 +224,14 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 					unsigned int new_red_c = min((unsigned int)color.rgbRed + light_color[0], 255);
 					unsigned int new_green_c = min((unsigned int)color.rgbGreen + light_color[1], 255);
 					unsigned int new_blue_c = min((unsigned int)color.rgbBlue + light_color[2], 255);
-					RGBQUAD new_color = { (BYTE)new_red_c, (BYTE)new_green_c, (BYTE)new_blue_c, 0 };
+					/*
+					// When using light, object color shouldn't matter.
+					unsigned int new_red_c = min(light_color[0], 255);
+					unsigned int new_green_c = min(light_color[1], 255);
+					unsigned int new_blue_c = min(light_color[2], 255);
+					*/
+					// RGBQUAD format is  <B G R A>
+					RGBQUAD new_color = { (BYTE)new_blue_c, (BYTE)new_green_c, (BYTE)new_red_c, 0 };
 
 					bitmap[y * width + x] = *((int*)&new_color);
 					//bitmap[y * width + x] = *((int*)&color);
@@ -235,16 +248,25 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 	struct IritPoint *current_point = m_points;
 	Vector current_vertex = current_point->vertex;
 	Vector next_vertex;
+	Vector backface[2];
 	Vector polygon_normal[2];
 	RGBQUAD current_color = (state.is_default_color) ? color : state.wire_color;
 	struct threed_line line;
 	struct threed_line *prev_line = NULL;
+	bool is_silhouette;
 
 	// Used to invert normals if needed
 	int sign = (state.invert_normals) ? -1 : 1;
 
 	// Check backface culling
-	if (state.backface_culling && (vertex_transform * RELEVANT_NORMAL(this) * sign)[Z_AXIS] <= 0) {
+	backface[0] = vertex_transform * ((RELEVANT_NORMAL(this) + this->center_of_mass) * sign);
+	backface[1] = (vertex_transform * this->center_of_mass);
+	if (state.is_perspective_view) {
+		backface[0].Homogenize();
+		backface[1].Homogenize();
+	}
+	backface[0] = backface[0] - backface[1];
+	if (state.backface_culling && backface[0][Z_AXIS] <= 0) {
 		return;
 	}
 
@@ -285,6 +307,21 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		/* Don't draw mesh lines if we're painting the object as well */
 		if (state.only_mesh)
 			lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
+
+		if (state.show_silhouette) {
+			is_silhouette = isSilhouette(state, vertex_transform, current_point, current_point->next_point);
+
+			if (is_silhouette) {
+				Vector first_silhouette = current_vertex,
+					second_silhouette = next_vertex;
+
+				first_silhouette[Z_AXIS] = first_silhouette[Z_AXIS] + EPSILON;
+				second_silhouette[Z_AXIS] = second_silhouette[Z_AXIS] + EPSILON;
+
+				lineDraw(bitmap, state, width, height, SILHOUETTE_DEFAULT_COLOR,
+					first_silhouette, second_silhouette);
+			}
+		}
 
 		// Add the drawn line to the list of lines on the screen
 		line.x1 = (int)current_vertex.coordinates[X_AXIS];
@@ -371,6 +408,22 @@ pass_this_point:
 	/* Don't draw mesh lines if we're painting the object as well */
 	if (state.only_mesh)
 		lineDraw(bitmap, state, width, height, current_color, current_vertex, next_vertex);
+
+	if (state.show_silhouette) {
+		is_silhouette = isSilhouette(state, vertex_transform, current_point, m_points);
+
+		if (is_silhouette) {
+			Vector first_silhouette = current_vertex,
+				second_silhouette = next_vertex;
+
+			first_silhouette[Z_AXIS] = first_silhouette[Z_AXIS] + EPSILON;
+			second_silhouette[Z_AXIS] = second_silhouette[Z_AXIS] + EPSILON;
+
+			lineDraw(bitmap, state, width, height, SILHOUETTE_DEFAULT_COLOR,
+				first_silhouette, second_silhouette);
+		}
+	}
+
 	// Add the drawn line to the list of lines on the screen
 	line.x1 = (int)current_vertex.coordinates[X_AXIS];
 	line.y1 = (int)(int)current_vertex.coordinates[Y_AXIS];
@@ -405,6 +458,8 @@ paint_polygon:
 	// paint the polygon
 	if (!state.only_mesh) {
 		polygon_normal[0] = vertex_transform * (RELEVANT_NORMAL(this) * sign);
+		if (state.is_perspective_view)
+			polygon_normal[0].Homogenize();
 		paintPolygon(bitmap, width, height, current_color, state, polygon_normal[0],
 					 vertex_transform * center_of_mass);
 	}
@@ -605,6 +660,7 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.backface_culling = false;
 	state.only_mesh = false;
 	state.save_to_png = false;
+	state.show_silhouette = false;
 
 	background = new PngWrapper();
 
@@ -932,4 +988,103 @@ void lineDraw(int *bitmap, State state, int width, int height, RGBQUAD color, Ve
 	} else {									   // Octant 6
 		lineDrawOct6(bitmap, state, width, height, color, first, second);
 	}
+}
+
+bool arePointsEqual(VertexList *vertex, IritPoint *point) {
+	for (int i = 0; i < 3; i++) {
+		if (vertex->vertex->Coord[i] != point->vertex[i])
+			return false;
+	}
+	return true;
+}
+
+bool arePolygonsEqual(PolygonList *first, PolygonList *second) {
+	// While technically center_of_mass should be enough,
+	// we compare normals just to be on the safe side
+	for (int i = 0; i < 4; i++) {
+		if (first->polygon->center_of_mass[i] != second->polygon->center_of_mass[i])
+			return false;
+		if (first->polygon->normal_irit[i] != second->polygon->normal_irit[i])
+			return false;
+	}
+	return true;
+}
+
+// Technically, we can keep a list of shared edges to save complexity.
+// No time for that though, so i'll skip it for now
+bool isSilhouette(State state, Matrix &vertex_transform, IritPoint *first, IritPoint *second) {
+	VertexList *first_vertex,
+		*second_vertex,
+		*current_vertex;
+	int num_of_shared_polygons = 0;
+	PolygonList *first_list, *second_list, *iterator;
+	IritPolygon *first_polygon, *second_polygon;
+	Vector first_normal, second_normal, first_center, second_center;
+
+	// Find the vertices in the connectivity list
+	current_vertex = connectivity;
+	while (!arePointsEqual(current_vertex, first) && current_vertex->next != nullptr) {
+		current_vertex = current_vertex->next;
+	}
+	first_vertex = current_vertex;
+
+	current_vertex = connectivity;
+	while (!arePointsEqual(current_vertex, second) && current_vertex->next != nullptr) {
+		current_vertex = current_vertex->next;
+	}
+	second_vertex = current_vertex;
+
+	first_list = first_vertex->polygon_list;
+	second_list = second_vertex->polygon_list;
+
+	// 0 Shared polygons is boring
+	// 1 Shared polygons means were are a border.
+	// 2 Shared polygons means we might be a silhouette
+	do {
+		iterator = second_list;
+		do {
+			if (arePolygonsEqual(first_list, iterator)) {
+				num_of_shared_polygons++;
+				if (num_of_shared_polygons == 1) {
+					first_polygon = first_list->polygon;
+				} else {
+					second_polygon = first_list->polygon;
+				}
+			}
+			iterator = iterator->next;
+		} while (iterator != nullptr);
+		first_list = first_list->next;
+	} while (first_list != nullptr);
+
+	if (num_of_shared_polygons != 2)
+		return false;
+
+	// Now we transform the polygons normals
+	// no need for sign, because both normals will be inverted, so the result is the same
+	first_center = first_polygon->center_of_mass;
+	first_normal = first_center + RELEVANT_NORMAL(first_polygon);
+	first_center = vertex_transform * first_center;
+	first_normal = vertex_transform * first_normal;
+
+	second_center = second_polygon->center_of_mass;
+	second_normal = second_center + RELEVANT_NORMAL(second_polygon);
+	second_center = vertex_transform * second_center;
+	second_normal = vertex_transform * second_normal;
+
+	if (state.is_perspective_view) {
+		first_center.Homogenize();
+		first_normal.Homogenize();
+		second_center.Homogenize();
+		second_normal.Homogenize();
+	}
+
+	// Return to only normals
+	first_normal = first_normal - first_center;
+	second_normal = second_normal - second_center;
+
+	// One should be positive and the other negative.
+	if (first_normal[Z_AXIS] * second_normal[Z_AXIS] <= 0)
+		return true;
+
+	return false;
 }
