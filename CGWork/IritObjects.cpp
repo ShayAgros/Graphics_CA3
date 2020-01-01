@@ -12,8 +12,8 @@ void lineDraw(int *bitmap, State state, int width, int height, RGBQUAD color, Ve
 #define BOX_NUM_OF_VERTICES 8
 #define RELEVANT_NORMAL(x) ((state.use_calc_normals) ? x->normal_calc : x->normal_irit)
 
-extern VertexList *connectivity;
-extern PolygonList *all_polygons;
+VertexList *object_vertex_list;
+PolygonList *object_polygon_list;
 
 IritPolygon::IritPolygon() : m_point_nr(0), m_points(nullptr), center_of_mass(Vector(0, 0, 0, 1)),
 			normal_irit(Vector(0, 0, 0, 1)), normal_calc(Vector(0,0,0,1)), m_next_polygon(nullptr) {
@@ -221,15 +221,15 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 				if (closer) {
 					Vector light_color = calculateLight(intersecting_x[i], intersecting_x[i + 1], t, state);
 					// the casting is needed, otherwise the addition of colors overflows
+					/*
 					unsigned int new_red_c = min((unsigned int)color.rgbRed + light_color[0], 255);
 					unsigned int new_green_c = min((unsigned int)color.rgbGreen + light_color[1], 255);
 					unsigned int new_blue_c = min((unsigned int)color.rgbBlue + light_color[2], 255);
-					/*
+					*/
 					// When using light, object color shouldn't matter.
 					unsigned int new_red_c = min(light_color[0], 255);
 					unsigned int new_green_c = min(light_color[1], 255);
 					unsigned int new_blue_c = min(light_color[2], 255);
-					*/
 					// RGBQUAD format is  <B G R A>
 					RGBQUAD new_color = { (BYTE)new_blue_c, (BYTE)new_green_c, (BYTE)new_red_c, 0 };
 
@@ -512,6 +512,10 @@ IritPolygon *IritObject::createPolygon() {
 
 void IritObject::draw(int *bitmap, int width, int height, State &state,
 					  Matrix &vertex_transform) {
+	// set the current connectivity lists
+	object_vertex_list = this->vertex_connection;
+	object_polygon_list = this->polygon_connection;
+
 	int points_nr = 0;
 	m_iterator = m_polygons;
 
@@ -1022,13 +1026,13 @@ bool isSilhouette(State state, Matrix &vertex_transform, IritPoint *first, IritP
 	Vector first_normal, second_normal, first_center, second_center;
 
 	// Find the vertices in the connectivity list
-	current_vertex = connectivity;
+	current_vertex = object_vertex_list;
 	while (!arePointsEqual(current_vertex, first) && current_vertex->next != nullptr) {
 		current_vertex = current_vertex->next;
 	}
 	first_vertex = current_vertex;
 
-	current_vertex = connectivity;
+	current_vertex = object_vertex_list;
 	while (!arePointsEqual(current_vertex, second) && current_vertex->next != nullptr) {
 		current_vertex = current_vertex->next;
 	}

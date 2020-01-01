@@ -240,6 +240,9 @@ class IritObject {
 public:
 	RGBQUAD object_color;
 
+	VertexList *vertex_connection;
+	PolygonList *polygon_connection;
+
 	IritObject();
 	
 	~IritObject();

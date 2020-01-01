@@ -42,9 +42,6 @@ IPFreeformConvStateStruct CGSkelFFCState = {
 
 extern IritWorld world;
 
-VertexList *connectivity;
-PolygonList *all_polygons;
-
 bool is_first_polygon;
 bool is_first_figure;
 
@@ -157,8 +154,8 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	IPPolygonStruct *PPolygon;
 	IPVertexStruct *PVertex;
 
-	connectivity = new VertexList();
-	all_polygons = new PolygonList();
+	VertexList *connectivity = new VertexList();
+	PolygonList *all_polygons = new PolygonList();
 
 	PolygonList *current_polygon;
 	VertexList *current_vertex;
@@ -352,6 +349,9 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 
 		current_polygon = current_polygon->next;
 	} while (current_polygon != nullptr);
+
+	irit_object->polygon_connection = all_polygons;
+	irit_object->vertex_connection = connectivity;
 
 	/* Close the object. */
 	return true;
