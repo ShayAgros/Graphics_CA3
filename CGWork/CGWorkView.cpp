@@ -112,6 +112,9 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(IDD_CANCEL_IMAGE, OnUpdateCancelPNG)
 	ON_COMMAND(IDD_SHOW_SILHOUETTE, OnShowSilhouette)
 	ON_UPDATE_COMMAND_UI(IDD_SHOW_SILHOUETTE, OnUpdateShowSilhouette)
+	ON_COMMAND(IDD_FOG, OnFog)
+	ON_UPDATE_COMMAND_UI(IDD_FOG, OnUpdateFog)
+	ON_COMMAND(IDD_FOG_COLOR, OnFogColor)
 
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
@@ -405,6 +408,24 @@ void CCGWorkView::OnDraw(CDC* pDC)
 
 	if (!world.isEmpty())
 		world.draw(bitmap, w, h);
+
+	// After all drawing is done, add a fog effect. 
+	if (world.state.fog) {
+		RGBQUAD fogged_color;
+		double fog_t;
+		BYTE red, blue, green;
+		for (int i = 0; i < w * h; i++) {
+			// The further we are from the camera, the color should be more fog		
+			fog_t = CLAMP((world.state.z_buffer[i] - FOG_END) / (FOG_START - FOG_END));
+
+			red = fog_t * RED(bitmap[i]) + (1 - fog_t) * RED(*((int*)&world.state.fog_color));
+			green = fog_t * GREEN(bitmap[i]) + (1 - fog_t) * GREEN(*((int*)&world.state.fog_color));
+			blue = fog_t * BLUE(bitmap[i]) + (1 - fog_t) * BLUE(*((int*)&world.state.fog_color));
+
+			fogged_color = { blue, green, red, 0 };
+			bitmap[i] = *((int*)&fogged_color);
+		}
+	}
 
 	SetDIBits(hdcMem, bm, 0, h, bitmap, &bminfo, DIB_RGB_COLORS);
 	
@@ -1022,4 +1043,24 @@ void CCGWorkView::OnShowSilhouette() {
 
 void CCGWorkView::OnUpdateShowSilhouette(CCmdUI* pCmdUI) {
 	pCmdUI->SetCheck(world.state.show_silhouette);
+}
+
+void CCGWorkView::OnFog() {
+	world.state.fog = !world.state.fog;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdateFog(CCmdUI* pCmdUI) {
+	pCmdUI->SetCheck(world.state.fog);
+}
+
+void CCGWorkView::OnFogColor() {
+	CColorDialog diag;
+	COLORREF color;
+	if (diag.DoModal() == IDOK)
+	{
+		color = diag.GetColor();
+		world.state.fog_color = COLORREF_TO_RGBQUAD(color);
+		Invalidate();
+	}
 }

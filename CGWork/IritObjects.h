@@ -14,17 +14,27 @@
 #define FRAME_DEFAULT_COLOR			{0, 0, 255, 0}     // Red
 #define NORMAL_DEFAULT_COLOR		{255, 255, 255, 0} // White
 #define SILHOUETTE_DEFAULT_COLOR	{255, 255, 255, 0} // White
+#define FOG_DEFAULT_COLOR			{200, 200, 200, 0} // Light Grey
 
 #define DEFAULT_PROJECTION_PLANE_DISTANCE 20
+// We start the fog at the start of the camera, please change both together.
 #define DEAULT_VIEW_PARAMETERS 0, 0, 10
+#define FOG_START					 10.0
+#define FOG_END						-5.0
 
 #define DEFAULT_FINENESS 20.0
 
 #define DEFAULT_DEPTH -500.0
 
+// Various color masking
 #define COLORREF_TO_RGBQUAD(x) {(BYTE)((x & 0xff0000) >> 16), (BYTE)((x & 0xff00) >> 8), (BYTE)(x & 0xff), 0}
 #define ARGB_TO_RGBA(x) (((x & 0xff000000) >> 24) + ((x & 0x00ff0000) << 8) + ((x & 0x0000ff00) << 8) + ((x & 0x000000ff) << 8))
 #define RGBA_TO_ARGB(x) (((x & 0xff000000) >> 8) + ((x & 0x00ff0000) >> 8) + ((x & 0x0000ff00) >> 8) + ((x & 0x000000ff) << 24))
+// FOR RGBQUAD
+#define RED(x)		((BYTE)((x & 0x00ff0000) >> 16))
+#define GREEN(x)	((BYTE)((x & 0x0000ff00) >> 8))
+#define BLUE(x)		((BYTE)((x & 0x000000ff) >> 0))
+#define CLAMP(x)    ((x > 1) ? 1 : (x < 0) ? 0 : x)
 
 const RGBQUAD max_rgb = { 255, 255, 255, 0 };
 //const unsigned int max_rgb_uint = ((unsigned int *)&max_rgb)
@@ -78,6 +88,7 @@ struct State {
 	bool png_stretch;
 	bool background_png;
 	bool show_silhouette;
+	bool fog;
 
 	double projection_plane_distance;
 	double sensitivity;
@@ -101,6 +112,7 @@ struct State {
 	RGBQUAD frame_color;
 	RGBQUAD bg_color;
 	RGBQUAD normal_color;
+	RGBQUAD fog_color;
 
 	// For hidden face removal
 	double* z_buffer;

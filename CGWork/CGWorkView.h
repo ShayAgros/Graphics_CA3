@@ -144,6 +144,9 @@ public:
 	afx_msg void OnUpdateCancelPNG(CCmdUI* pCmdUI);
 	afx_msg void OnShowSilhouette();
 	afx_msg void OnUpdateShowSilhouette(CCmdUI* pCmdUI);
+	afx_msg void OnFog();
+	afx_msg void OnUpdateFog(CCmdUI* pCmdUI);
+	afx_msg void OnFogColor();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

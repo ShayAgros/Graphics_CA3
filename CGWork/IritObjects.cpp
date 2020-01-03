@@ -236,6 +236,7 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 					bitmap[y * width + x] = *((int*)&new_color);
 					//bitmap[y * width + x] = *((int*)&color);
 					state.z_buffer[y * width + x] = extrapolated_z;
+
 				}
 			}
 		}
@@ -665,6 +666,7 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.only_mesh = false;
 	state.save_to_png = false;
 	state.show_silhouette = false;
+	state.fog = false;
 
 	background = new PngWrapper();
 
@@ -692,6 +694,7 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.wire_color = WIRE_DEFAULT_COLOR;
 	state.frame_color = FRAME_DEFAULT_COLOR;
 	state.normal_color = NORMAL_DEFAULT_COLOR;
+	state.fog_color = FOG_DEFAULT_COLOR;
 
 	state.z_buffer = nullptr;
 }
