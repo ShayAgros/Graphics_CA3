@@ -297,6 +297,7 @@ public:
 
 	Matrix world_mat;
 	Matrix object_mat;
+	Matrix normalization_mat;
 
 	Matrix backup_transformation_matrix;
 

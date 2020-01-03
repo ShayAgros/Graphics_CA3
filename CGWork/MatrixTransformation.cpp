@@ -15,17 +15,23 @@ void IritFigure::normalizeFigure()
 	max_z = max_bound_coord[Z_AXIS],
 	min_z = min_bound_coord[Z_AXIS];
 
-	Matrix normalization(Matrix::Identity());
+	//double max_val = max(max_x, max_y);
+	//max_val = max(max_val, max_z);
+	//double min_val = min(min_x, min_y);
+	//min_val = min(min_val, min_z);
 
-	normalization.array[X_AXIS][0] = 2 / (max_x - min_x);
-	normalization.array[Y_AXIS][1] = 2 / (max_y - min_y);
-	normalization.array[Z_AXIS][2] = 2 / (max_z - min_z);
+	//min_x = min_y = min_z = min_val;
+	//max_x = max_y = max_z = max_val;
 
-	normalization.array[X_AXIS][3] = -(max_x + min_x) / (max_x - min_x);
-	normalization.array[Y_AXIS][3] = -(max_y + min_y) / (max_y - min_y);
-	normalization.array[Z_AXIS][3] = -(max_z + min_z) / (max_z - min_z);
+	this->normalization_mat = Matrix::Identity();
 
-	this->object_mat = this->object_mat * normalization;
+	this->normalization_mat.array[X_AXIS][0] = 2 / (max_x - min_x);
+	this->normalization_mat.array[Y_AXIS][1] = 2 / (max_y - min_y);
+	this->normalization_mat.array[Z_AXIS][2] = 2 / (max_z - min_z);
+
+	this->normalization_mat.array[X_AXIS][3] = -(max_x + min_x) / (max_x - min_x);
+	this->normalization_mat.array[Y_AXIS][3] = -(max_y + min_y) / (max_y - min_y);
+	this->normalization_mat.array[Z_AXIS][3] = -(max_z + min_z) / (max_z - min_z);
 }
 
 void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int screen_width, int screen_height) {

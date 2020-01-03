@@ -526,23 +526,6 @@ void IritObject::draw(int *bitmap, int width, int height, State &state,
 	}
 }
 
-IritFigure::IritFigure() : m_objects_nr(0), m_objects_arr(nullptr) {
-
-	max_bound_coord = Vector();
-	max_bound_coord[3] = 1;
-	min_bound_coord = Vector();
-	min_bound_coord[3] = 1;
-
-	object_mat = Matrix::Identity();
-
-	// We draw an object in a 1/2 of its size. No need to fill the whole screen
-	world_mat = Matrix::createScaleMatrix((double)(1) /2, (double)(1) /2, (double)(1) / 2) * Matrix::Identity();
-}
-
-IritFigure::~IritFigure() {
-	delete[] m_objects_arr;
-}
-
 IritObject *IritFigure::createObject() {
 	IritObject *new_object = new IritObject();
 	if (!new_object)
@@ -572,9 +555,9 @@ bool IritFigure::addObjectP(IritObject *p_object) {
 }
 
 void IritFigure::draw(int *bitmap, int width, int height, Matrix transform, State &state) {
-	Matrix shrink = Matrix::Identity() * (1.0 / 10.0);
+	Matrix shrink = Matrix::createScaleMatrix((double)(1) / 2, (double)(1) / 2, (double)(1) / 2);
 
-	Matrix vertex_transform = transform * world_mat * object_mat;
+	Matrix vertex_transform = transform * shrink * normalization_mat * world_mat * object_mat;
 
 	// Draw all objects
 	for (int i = 0; i < m_objects_nr; i++)
@@ -650,6 +633,23 @@ void IritFigure::backup_transformation(State &state) {
 	} else {
 		backup_transformation_matrix = world_mat;
 	}
+}
+
+IritFigure::IritFigure() : m_objects_nr(0), m_objects_arr(nullptr) {
+
+	max_bound_coord = Vector();
+	max_bound_coord[3] = 1;
+	min_bound_coord = Vector();
+	min_bound_coord[3] = 1;
+
+	object_mat = Matrix::Identity();
+
+	// We draw an object in a 1/2 of its size. No need to fill the whole screen
+	world_mat = Matrix::Identity();
+}
+
+IritFigure::~IritFigure() {
+	delete[] m_objects_arr;
 }
 
 IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
