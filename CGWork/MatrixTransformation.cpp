@@ -6,7 +6,27 @@
 #include "Vector.h"
 #include "iritSkel.h"
 
+void IritFigure::normalizeFigure()
+{
+	double max_x = max_bound_coord[X_AXIS],
+	min_x = min_bound_coord[X_AXIS],
+	max_y = max_bound_coord[Y_AXIS],
+	min_y = min_bound_coord[Y_AXIS],
+	max_z = max_bound_coord[Z_AXIS],
+	min_z = min_bound_coord[Z_AXIS];
 
+	Matrix normalization(Matrix::Identity());
+
+	normalization.array[X_AXIS][0] = 2 / (max_x - min_x);
+	normalization.array[Y_AXIS][1] = 2 / (max_y - min_y);
+	normalization.array[Z_AXIS][2] = 2 / (max_z - min_z);
+
+	normalization.array[X_AXIS][3] = -(max_x + min_x) / (max_x - min_x);
+	normalization.array[Y_AXIS][3] = -(max_y + min_y) / (max_y - min_y);
+	normalization.array[Z_AXIS][3] = -(max_z + min_z) / (max_z - min_z);
+
+	this->object_mat = this->object_mat * normalization;
+}
 
 void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int screen_width, int screen_height) {
 	Matrix coor_mat;
@@ -39,18 +59,15 @@ void IritWorld::setScreenMat(Vector axes[NUM_OF_AXES], Vector &axes_origin, int 
 */
 void IritWorld::setOrthoMat()
 {
-
-	double max_x = max_bound_coord[X_AXIS],
-		min_x = min_bound_coord[X_AXIS],
-		max_y = max_bound_coord[Y_AXIS],
-		min_y = min_bound_coord[Y_AXIS],
-		max_z = max_bound_coord[Z_AXIS],
-		min_z = min_bound_coord[Z_AXIS];
+	double max_x = 1,
+		min_x = -1,
+		max_y = 1,
+		min_y = -1,
+		max_z = 1,
+		min_z = -1;
 
 	state.ortho_mat = Matrix::Identity();
 
-	/*max_z = (state.view_mat * Vector(0, 0, max_z, 1))[Z_AXIS] * 1.75;
-	min_z = (state.view_mat * Vector(0, 0, min_z, 1))[Z_AXIS] * 0.25;*/
 	max_z = (state.view_mat * Vector(0, 0, max_z, 1))[Z_AXIS];
 	min_z = (state.view_mat * Vector(0, 0, min_z, 1))[Z_AXIS];
 

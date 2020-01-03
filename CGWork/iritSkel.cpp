@@ -90,6 +90,7 @@ bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles)
         CGSkelDumpOneTraversedObject);
 
 	world.setOrthoMat();
+	world.getLastFigure().normalizeFigure();
 
 	return true;
 }

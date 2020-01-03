@@ -331,6 +331,9 @@ public:
 
 	void draw(int *bitmap, int width, int height, Matrix transform, State &state);
 
+	/* Adjust figures points so that it is bounded in a [-1,1]^3 cube */
+	void normalizeFigure();
+
 	bool isEmpty();
 };
 
