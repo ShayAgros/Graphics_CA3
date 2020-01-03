@@ -352,8 +352,10 @@ class IritWorld {
 
 	/* Project a point to screen space using the given transformation and
 	 * the world's screen matrix.
+	 * This transformation is done in *screen axes*, which means that the (0,0) point
+	 * is at the upper-left side of the screen and that the y values grow down
 	 */
-	Vector projectPoint(Vector &td_point, Matrix &transformation);
+	Vector projectPoint_in_screen_axes(Vector &td_point, Matrix &transformation);
 
 public:
 	// World state

@@ -733,11 +733,11 @@ bool IritWorld::isEmpty() {
 };
 
 
-Vector IritWorld::projectPoint(Vector &td_point, Matrix &transformation) {
+Vector IritWorld::projectPoint_in_screen_axes(Vector &td_point, Matrix &transformation) {
 	Vector transformed_point = transformation * td_point;
-	if (state.is_perspective_view) 
+	if (state.is_perspective_view)
 		transformed_point.Homogenize();
-	return state.screen_mat * transformed_point;
+	return state.screen_mat * Matrix::createScaleMatrix(1, -1, 1) * transformed_point;
 }
 
 void IritWorld::draw(int *bitmap, int width, int height) {
@@ -755,28 +755,26 @@ void IritWorld::draw(int *bitmap, int width, int height) {
 
 IritFigure *IritWorld::getFigureInPoint(CPoint &point) {
 	IritFigure *figure;
-	Matrix projection_mat = createProjectionMatrix();
+	Matrix shrink = Matrix::createScaleMatrix((double)(1) / 2, (double)(1) / 2, (double)(1) / 2);
+	Matrix projection_mat = createProjectionMatrix() * state.ortho_mat;
+	Matrix world_transformation = projection_mat * state.view_mat * shrink;
+	Matrix figure_transformation;
 	Matrix transformation_mat;
 
 	Vector min_2d_point, max_2d_point;
 
 	int max_x, min_x, max_y, min_y;
-	
-	// TODO: remove these lines
-	if (!m_figures_nr)
-		return NULL;
-	
-	return m_figures_arr[0];
 
 	for (int i = 0; i < m_figures_nr; i++) {
 		figure = m_figures_arr[i];
 		/* The received point assumes that the point is given in a coordinate system in which 
 		 * the y value grows down (left-upper corner is (0, 0) ). To match our coordinate system
 		   to the point's, we rotate the object by 'coord_mat' */
-		transformation_mat = projection_mat * state.coord_mat * figure->world_mat * figure->object_mat;
+		figure_transformation = figure->normalization_mat * figure->world_mat * figure->object_mat;
+		transformation_mat = world_transformation * figure_transformation;
 
-		min_2d_point = projectPoint(figure->min_bound_coord, transformation_mat);
-		max_2d_point = projectPoint(figure->max_bound_coord, transformation_mat);
+		min_2d_point = projectPoint_in_screen_axes(figure->min_bound_coord, transformation_mat);
+		max_2d_point = projectPoint_in_screen_axes(figure->max_bound_coord, transformation_mat);
 
 		max_x = (int)max(min_2d_point[X_AXIS], max_2d_point[X_AXIS]);
 		min_x = (int)min(min_2d_point[X_AXIS], max_2d_point[X_AXIS]);
