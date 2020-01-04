@@ -147,6 +147,10 @@ public:
 	afx_msg void OnFog();
 	afx_msg void OnUpdateFog(CCmdUI* pCmdUI);
 	afx_msg void OnFogColor();
+	afx_msg void OnTransparency();
+	afx_msg void OnUpdateTransparency(CCmdUI* pCmdUI);
+	afx_msg void OnSetTransparency();
+	afx_msg void OnUpdateSetTransparency(CCmdUI* pCmdUI);
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

@@ -6,6 +6,43 @@
 
 #include "CGDialog.h"
 
+// Transparency Dialog
+
+IMPLEMENT_DYNAMIC(CTransDialog, CDialog)
+
+CTransDialog::CTransDialog(CWnd* pParent /* = NULL */)
+	: CDialog(IDD_SET_TRANSPARENCY, pParent),
+	m_alpha(1)
+{
+}
+
+CTransDialog::CTransDialog(double alpha)
+{
+	m_alpha = alpha;
+}
+
+CTransDialog::~CTransDialog()
+{
+}
+
+BOOL CTransDialog::OnInitDialog()
+{
+	CString string;
+	BOOL result = CDialog::OnInitDialog();
+
+	string.Format(_T("%f"), m_alpha);
+	GetDlgItem(IDC_TRANSPARENCY)->SetWindowText(string);
+
+	return result;
+}
+
+void CTransDialog::DoDataExchange(CDataExchange* pDX)
+{
+	CDialog::DoDataExchange(pDX);
+	DDX_Text(pDX, IDC_TRANSPARENCY, m_alpha);
+	DDV_MinMaxDouble(pDX, m_alpha, 0, 1);
+}
+
 // PNG DIALOG
 
 IMPLEMENT_DYNAMIC(CPngDialog, CDialog)
@@ -99,6 +136,8 @@ void CEx2Dialog::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxDouble(pDX, m_fineness, 2.0, INT_MAX);
 }
 
+BEGIN_MESSAGE_MAP(CTransDialog, CDialog)
+END_MESSAGE_MAP()
 BEGIN_MESSAGE_MAP(CPngDialog, CDialog)
 END_MESSAGE_MAP()
 BEGIN_MESSAGE_MAP(CEx2Dialog, CDialog)

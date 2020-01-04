@@ -4,6 +4,26 @@
 
 /*****  Header for all the Dialog classes *****/
 
+class CTransDialog : public CDialog
+{
+	DECLARE_DYNAMIC(CTransDialog)
+
+public:
+	double m_alpha;
+
+	CTransDialog(CWnd* pParent = NULL);   // standard constructor
+	CTransDialog(double alpha);
+
+
+	virtual ~CTransDialog();
+
+protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+	virtual BOOL OnInitDialog();
+
+	DECLARE_MESSAGE_MAP()
+};
+
 class CPngDialog : public CDialog
 {
 	DECLARE_DYNAMIC(CPngDialog)

@@ -41,6 +41,7 @@ static bool is_mouse_down;
 IritFigure *chosen_figure;
 
 void resetWorld(void);
+void recursiveDeleteZBuffer(int height, int width);
 
 /////////////////////////////////////////////////////////////////////////////
 // CCGWorkView
@@ -115,6 +116,10 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_COMMAND(IDD_FOG, OnFog)
 	ON_UPDATE_COMMAND_UI(IDD_FOG, OnUpdateFog)
 	ON_COMMAND(IDD_FOG_COLOR, OnFogColor)
+	ON_COMMAND(IDD_TRANSPARENCY, OnTransparency)
+	ON_UPDATE_COMMAND_UI(IDD_TRANSPARENCY, OnUpdateTransparency)
+	ON_COMMAND(IDD_SET_TRANSPARENCY, OnSetTransparency)
+	ON_UPDATE_COMMAND_UI(IDD_SET_TRANSPARENCY, OnUpdateSetTransparency)
 
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
@@ -346,21 +351,21 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	if (world.state.save_to_png) {
 		h = world.png_height;
 		w = world.png_width;
-
-		origin = Vector(floor(w / 2), floor(h / 2), 0, 1); // x, y, z, w
 	} else {
 		h = rect.bottom - rect.top,
 		w = rect.right - rect.left;
-
-		origin = Vector(floor(w / 2), floor(h / 2), 0, 1); // x, y, z, w
 	}
+	origin = Vector(floor(w / 2), floor(h / 2), 0, 1); // x, y, z, w
 
 	world.setScreenMat(axes, origin, w, h);
 
 	int *bitmap = new int[w * h];
 
 	delete(world.state.z_buffer);
-	world.state.z_buffer = new double[w * h];
+	world.state.z_buffer = new PixelNode*[w * h];
+	for (int i = 0; i < w * h; i++) {
+		world.state.z_buffer[i] = nullptr;
+	}
 
 	HDC hdcMem = CreateCompatibleDC(pDC->m_hDC);
 	HBITMAP bm = CreateCompatibleBitmap(pDC->m_hDC, w, h);
@@ -380,6 +385,12 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	bminfo.bmiHeader.biClrImportant = 0;
 
 	for (int i = 0; i < w * h; i++) {
+		// background should be compeletely opaque
+		PixelNode* current_node = new PixelNode;
+		current_node->depth = DEFAULT_DEPTH;
+		current_node->alpha = 1.0;
+		current_node->next = nullptr;
+
 		if (world.state.background_png) {
 			PngWrapper *p = world.background;
 
@@ -399,15 +410,25 @@ void CCGWorkView::OnDraw(CDC* pDC)
 			}
 			// Screen is inverted compared to PNG
 			y = png_height - y - 1;
-			bitmap[i] = RGBA_TO_ARGB(p->GetValue(x, y));
+			current_node->color = RGBA_TO_ARGB(p->GetValue(x, y));
 		} else {
-			bitmap[i] = *((int*)&static_background);
+			current_node->color = *((int*)&static_background);
 		}
-		world.state.z_buffer[i] = DEFAULT_DEPTH;
+		world.state.z_buffer[i] = current_node;
 	}
 
 	if (!world.isEmpty())
 		world.draw(bitmap, w, h);
+
+	// In case we use transparency, we need to calculate the final color of each pixel based on the linked list of said pixel
+	// Fun times <3
+	if (world.state.transparency) {
+		for (int i = 0; i < w * h; i++) {
+			PixelNode* current_node = world.state.z_buffer[i];
+			unsigned int color = recursiveGetColor(current_node);
+			bitmap[i] = color;
+		}
+	}
 
 	// After all drawing is done, add a fog effect. 
 	if (world.state.fog) {
@@ -416,7 +437,7 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		BYTE red, blue, green;
 		for (int i = 0; i < w * h; i++) {
 			// The further we are from the camera, the color should be more fog		
-			fog_t = CLAMP((world.state.z_buffer[i] - FOG_END) / (FOG_START - FOG_END));
+			fog_t = CLAMP((world.state.z_buffer[i]->depth - FOG_END) / (FOG_START - FOG_END));
 
 			red = fog_t * RED(bitmap[i]) + (1 - fog_t) * RED(*((int*)&world.state.fog_color));
 			green = fog_t * GREEN(bitmap[i]) + (1 - fog_t) * GREEN(*((int*)&world.state.fog_color));
@@ -443,6 +464,8 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		png->WritePng();
 		delete(png);
 	}
+
+	recursiveDeleteZBuffer(h, w);
 
 	SelectObject(hdcMem, hOld);
 	DeleteDC(hdcMem);
@@ -709,6 +732,20 @@ void resetWorld() {
 	world.state.view_mat = createViewMatrix(DEAULT_VIEW_PARAMETERS);
 
 	world.state.projection_plane_distance = DEFAULT_PROJECTION_PLANE_DISTANCE;
+
+	chosen_figure = nullptr;
+}
+
+void recursiveDeleteZBuffer(int height, int width) {
+	for (int i = 0; i < height * width; i++) {
+		PixelNode *current_node = world.state.z_buffer[i];
+		PixelNode *temp_node;
+		while (current_node != nullptr) {
+			temp_node = current_node->next;
+			delete(current_node);
+			current_node = temp_node;
+		}
+	}
 }
 
 // TODO: tweak sensitivity
@@ -816,10 +853,13 @@ void CCGWorkView::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	is_mouse_down = false;
 
+	// We want to remember the selected figure so we could change its alpha
+	/* 
 	if (chosen_figure) {
-//		chosen_figure->restore_transformation(world.state);
+		chosen_figure->restore_transformation(world.state);
 		chosen_figure = NULL;
 	}
+	*/
 
 	CView::OnLButtonUp(nFlags, point);
 }
@@ -1063,4 +1103,29 @@ void CCGWorkView::OnFogColor() {
 		world.state.fog_color = COLORREF_TO_RGBQUAD(color);
 		Invalidate();
 	}
+}
+
+void CCGWorkView::OnTransparency() {
+	world.state.transparency = !world.state.transparency;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdateTransparency(CCmdUI* pCmdUI) {
+	pCmdUI->SetCheck(world.state.transparency);
+}
+
+void CCGWorkView::OnSetTransparency() {
+	double alpha = (chosen_figure->has_global_alpha) ? chosen_figure->alpha : 1;
+	CTransDialog diag;
+	diag.m_alpha = alpha;
+
+	if (diag.DoModal() == IDOK) {
+		chosen_figure->alpha = diag.m_alpha;
+		chosen_figure->has_global_alpha = true;
+		Invalidate();
+	}
+}
+
+void CCGWorkView::OnUpdateSetTransparency(CCmdUI* pCmdUI) {
+	pCmdUI->Enable(chosen_figure != nullptr);
 }

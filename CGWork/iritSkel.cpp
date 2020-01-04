@@ -144,7 +144,8 @@ void CGSkelDumpOneTraversedObject(IPObjectStruct *PObj,
 bool CGSkelStoreData(IPObjectStruct *PObj)
 {
 	if (PObj->ObjType != IP_OBJ_POLY) {
-		AfxMessageBox(_T("Non polygonal object detected and ignored"));
+		// THE MESSAGE IS SO FREAKING ANNOYING, I HAD TO REMOVE IT.
+		// AfxMessageBox(_T("Non polygonal object detected and ignored"));
 		return true;
 	}
 
@@ -177,7 +178,7 @@ bool CGSkelStoreData(IPObjectStruct *PObj)
 	}
 	if (CGSkelGetObjectTransp(PObj, &Transp))
 	{
-		/* transparency code */
+		irit_object->alpha = Transp;
 	}
 	if ((Str = CGSkelGetObjectTexture(PObj)) != NULL)
 	{

@@ -39,7 +39,7 @@
 const RGBQUAD max_rgb = { 255, 255, 255, 0 };
 //const unsigned int max_rgb_uint = ((unsigned int *)&max_rgb)
 
-// Declerations
+// Declarations
 /* Creates a view matrix which simulates changing the position of the camera
  * @x,y,z - camera coordinates in *world* view system
  * returns a matrix which maps every object to view space
@@ -47,6 +47,8 @@ const RGBQUAD max_rgb = { 255, 255, 255, 0 };
 Matrix createViewMatrix(double x, double y, double z);
 Matrix createTranslationMatrix(Vector &v);
 Matrix createTranslationMatrix(double x, double y, double z);
+
+unsigned int recursiveGetColor(struct PixelNode *node);
 
 // this enum prob isnt needed, beacuse of built in axis info - m_nAxis
 enum Axis {
@@ -89,6 +91,7 @@ struct State {
 	bool background_png;
 	bool show_silhouette;
 	bool fog;
+	bool transparency;
 
 	double projection_plane_distance;
 	double sensitivity;
@@ -114,8 +117,8 @@ struct State {
 	RGBQUAD normal_color;
 	RGBQUAD fog_color;
 
-	// For hidden face removal
-	double* z_buffer;
+	// For hidden face removal and transparency
+	struct PixelNode **z_buffer;
 
 	enum ShadingMode shading_mode;
 
@@ -140,6 +143,13 @@ struct VertexList {
 	IPVertexStruct *vertex;
 	PolygonList *polygon_list;
 	VertexList *next;
+};
+
+struct PixelNode {
+	unsigned int color; // Technically RGBQUAD
+	double alpha;
+	double depth;
+	PixelNode* next;
 };
 
 struct IntersectionPoint {
@@ -197,7 +207,7 @@ class IritPolygon {
 	/* This function uses the lines array to do a
 	   scan conversion painting of the figure */
 	void paintPolygon(int *bitmap, int width, int height, RGBQUAD color, State &state,
-					  Vector &polygon_normal, Vector p_center_of_mass);
+					  Vector &polygon_normal, Vector p_center_of_mass, double alpha);
 
 public:
 	Vector center_of_mass;
@@ -233,7 +243,7 @@ public:
 	 *						vertex is multiplied by this matrix before being drawn
 	*/
 	void draw(int *bitmap, int width, int height, RGBQUAD color, struct State &state,
-			  Matrix &vertex_transform);
+			  Matrix &vertex_transform, double alpha);
 
 	// Operators overriding
 	IritPolygon &operator++();
@@ -254,6 +264,8 @@ public:
 
 	VertexList *vertex_connection;
 	PolygonList *polygon_connection;
+
+	double alpha;
 
 	IritObject();
 	
@@ -285,7 +297,7 @@ public:
 	 *						vertex is multiplied by this matrix before being drawn
 	*/
 	void draw(int *bitmap, int width, int height, State &state,
-			  Matrix &vertex_transform);
+			  Matrix &vertex_transform, double figure_alpha, bool global_alpha);
 };
 
 /* This class represents an Irit Figure which is build from many objects, which have many
@@ -312,6 +324,9 @@ public:
 	Matrix normalization_mat;
 
 	Matrix backup_transformation_matrix;
+
+	double alpha;
+	bool has_global_alpha;
 
 	// Bounding frame params
 	Vector max_bound_coord,
