@@ -211,6 +211,9 @@ class IritPolygon {
 	/* Transform polygon's normal according to a given transformation */
 	Vector transformPolygonNormal(Matrix &transformation, struct State &state, int &sign);
 
+	/* Transform polygon's normal according to a given transformation */
+	Vector transformPolygonNormal(Matrix &transformation, struct State &state, int &sign);
+
 public:
 	Vector center_of_mass;
 
