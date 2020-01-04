@@ -6,6 +6,43 @@
 
 #include "CGDialog.h"
 
+// Motion Blur Dialog
+
+IMPLEMENT_DYNAMIC(CMotionBlurDialog, CDialog)
+
+CMotionBlurDialog::CMotionBlurDialog(CWnd* pParent /* = NULL */)
+	: CDialog(IDD_SET_MOTION_BLUR, pParent),
+	m_motion_drag(DEFAULT_MOTION_BLUR)
+{
+}
+
+CMotionBlurDialog::CMotionBlurDialog(double drag)
+{
+	m_motion_drag = drag;
+}
+
+CMotionBlurDialog::~CMotionBlurDialog()
+{
+}
+
+BOOL CMotionBlurDialog::OnInitDialog()
+{
+	CString string;
+	BOOL result = CDialog::OnInitDialog();
+
+	string.Format(_T("%f"), m_motion_drag);
+	GetDlgItem(IDC_MOTION_BLUR)->SetWindowText(string);
+
+	return result;
+}
+
+void CMotionBlurDialog::DoDataExchange(CDataExchange* pDX)
+{
+	CDialog::DoDataExchange(pDX);
+	DDX_Text(pDX, IDC_MOTION_BLUR, m_motion_drag);
+	DDV_MinMaxDouble(pDX, m_motion_drag, 0, 1);
+}
+
 // Transparency Dialog
 
 IMPLEMENT_DYNAMIC(CTransDialog, CDialog)
@@ -136,6 +173,8 @@ void CEx2Dialog::DoDataExchange(CDataExchange* pDX)
 	DDV_MinMaxDouble(pDX, m_fineness, 2.0, INT_MAX);
 }
 
+BEGIN_MESSAGE_MAP(CMotionBlurDialog, CDialog)
+END_MESSAGE_MAP()
 BEGIN_MESSAGE_MAP(CTransDialog, CDialog)
 END_MESSAGE_MAP()
 BEGIN_MESSAGE_MAP(CPngDialog, CDialog)

@@ -721,6 +721,7 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.show_silhouette = false;
 	state.fog = false;
 	state.transparency = false;
+	state.motion_blur = false;
 
 	background = new PngWrapper();
 
@@ -743,6 +744,7 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.projection_plane_distance = DEFAULT_PROJECTION_PLANE_DISTANCE;
 	state.sensitivity = 1.0;
 	state.fineness = DEFAULT_FINENESS;
+	state.motion_blur_drag = DEFAULT_MOTION_BLUR;
 
 	state.bg_color = BG_DEFAULT_COLOR;
 	state.wire_color = WIRE_DEFAULT_COLOR;
@@ -751,6 +753,7 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 	state.fog_color = FOG_DEFAULT_COLOR;
 
 	state.z_buffer = nullptr;
+	motion_blur_bitmap = nullptr;
 }
 
 IritWorld::~IritWorld() {
@@ -798,6 +801,10 @@ Vector IritWorld::projectPoint_in_screen_axes(Vector &td_point, Matrix &transfor
 }
 
 void IritWorld::draw(int *bitmap, int width, int height) {
+		static bool first_frame = true;
+		BYTE red, blue, green;
+		RGBQUAD motion_blur_color;
+
 		Matrix partial_projection_mat = createProjectionMatrix();
 		Matrix projection_mat = partial_projection_mat * state.ortho_mat;
 		Matrix transformation = projection_mat * state.view_mat;
@@ -816,11 +823,12 @@ void IritWorld::draw(int *bitmap, int width, int height) {
 			bitmap[i] = color;
 		}
 
-		// Finally, add fog
+		// POST EFFECTS SECTION... YAY!
+
+		// Add fog
 		if (state.fog) {
 			RGBQUAD fogged_color;
 			double fog_t;
-			BYTE red, blue, green;
 			for (int i = 0; i < width * height; i++) {
 				// The further we are from the camera, the color should be more fog		
 				fog_t = CLAMP((state.z_buffer[i]->depth - FOG_END) / (FOG_START - FOG_END));
@@ -832,6 +840,39 @@ void IritWorld::draw(int *bitmap, int width, int height) {
 				fogged_color = { blue, green, red, 0 };
 				bitmap[i] = *((int*)&fogged_color);
 			}
+		}
+
+		// Create motion blur
+		if (state.motion_blur) {
+			double t = state.motion_blur_drag;
+
+			if (first_frame) {
+				// First frame, copy the image
+				motion_blur_bitmap = new unsigned int[width * height];
+				for (int i = 0; i < width* height; i++) {
+					motion_blur_bitmap[i] = bitmap[i];
+				}
+				first_frame = false;
+			} else {
+				// Any other frame, extrapolate with existing image.
+				for (int i = 0; i < width* height; i++) {
+					red = t * RED(motion_blur_bitmap[i]) + (1 - t) * RED(bitmap[i]);
+					green = t * GREEN(motion_blur_bitmap[i]) + (1 - t) * GREEN(bitmap[i]);
+					blue = t * BLUE(motion_blur_bitmap[i]) + (1 - t) * BLUE(bitmap[i]);
+					
+					// RGBQUAD is <B G R A>
+					motion_blur_color = { blue, green, red, 0 };
+
+					// Remember the new frame
+					motion_blur_bitmap[i] = *((int*)&motion_blur_color);
+					// Update to the new frame
+					bitmap[i] = *((int*)&motion_blur_color);
+				}
+			}
+		} else {
+			delete(motion_blur_bitmap);
+			motion_blur_bitmap = nullptr;
+			first_frame = true;
 		}
 }
 

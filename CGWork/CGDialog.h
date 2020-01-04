@@ -1,8 +1,29 @@
 #pragma once
 
 #include "stdafx.h"
+#include "IritObjects.h"
 
 /*****  Header for all the Dialog classes *****/
+
+class CMotionBlurDialog : public CDialog
+{
+	DECLARE_DYNAMIC(CMotionBlurDialog)
+
+public:
+	double m_motion_drag;
+
+	CMotionBlurDialog(CWnd* pParent = NULL);   // standard constructor
+	CMotionBlurDialog(double drag);
+
+
+	virtual ~CMotionBlurDialog();
+
+protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+	virtual BOOL OnInitDialog();
+
+	DECLARE_MESSAGE_MAP()
+};
 
 class CTransDialog : public CDialog
 {

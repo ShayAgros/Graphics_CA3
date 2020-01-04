@@ -151,6 +151,9 @@ public:
 	afx_msg void OnUpdateTransparency(CCmdUI* pCmdUI);
 	afx_msg void OnSetTransparency();
 	afx_msg void OnUpdateSetTransparency(CCmdUI* pCmdUI);
+	afx_msg void OnMotionBlur();
+	afx_msg void OnUpdateMotionBlur(CCmdUI* pCmdUI);
+	afx_msg void OnSetMotionBlur();
 };
 
 #ifndef _DEBUG  // debug version in CGWorkView.cpp

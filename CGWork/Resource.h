@@ -23,6 +23,8 @@
 #define IDD_FOG_COLOR					150
 #define IDD_TRANSPARENCY				151
 #define IDD_SET_TRANSPARENCY			152
+#define IDD_MOTION_BLUR					153
+#define IDD_SET_MOTION_BLUR				154
 #define IDC_LIGHT_SPACE                 1010
 #define IDC_RADIO_LIGHT1                1017
 #define IDC_RADIO_LIGHT2                1018
@@ -61,6 +63,7 @@
 #define IDC_PNG_HEIGHT                  1051
 #define IDC_PNG_WIDTH                   1052
 #define IDC_TRANSPARENCY				1053
+#define	IDC_MOTION_BLUR					1054
 #define ID_FILE_LOAD                    32771
 #define ID_VIEW_ORTHOGRAPHIC            32772
 #define ID_VIEW_PERSPECTIVE             32773
@@ -93,9 +96,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        153
+#define _APS_NEXT_RESOURCE_VALUE        155
 #define _APS_NEXT_COMMAND_VALUE         32805
-#define _APS_NEXT_CONTROL_VALUE         1054
+#define _APS_NEXT_CONTROL_VALUE         1055
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

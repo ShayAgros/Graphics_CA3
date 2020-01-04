@@ -26,6 +26,8 @@
 
 #define DEFAULT_DEPTH -500.0
 
+#define DEFAULT_MOTION_BLUR 0.25
+
 // Various color masking
 #define COLORREF_TO_RGBQUAD(x) {(BYTE)((x & 0xff0000) >> 16), (BYTE)((x & 0xff00) >> 8), (BYTE)(x & 0xff), 0}
 #define ARGB_TO_RGBA(x) (((x & 0xff000000) >> 24) + ((x & 0x00ff0000) << 8) + ((x & 0x0000ff00) << 8) + ((x & 0x000000ff) << 8))
@@ -92,10 +94,12 @@ struct State {
 	bool show_silhouette;
 	bool fog;
 	bool transparency;
+	bool motion_blur;
 
 	double projection_plane_distance;
 	double sensitivity;
 	double fineness;
+	double motion_blur_drag;
 
 	bool is_axis_active[3];
 
@@ -385,6 +389,9 @@ class IritWorld {
 	 * is at the upper-left side of the screen and that the y values grow down
 	 */
 	Vector projectPoint_in_screen_axes(Vector &td_point, Matrix &transformation);
+
+	// A private bitmap to create motion blur
+	unsigned int *motion_blur_bitmap;
 
 public:
 	// World state

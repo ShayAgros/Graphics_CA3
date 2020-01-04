@@ -120,6 +120,9 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(IDD_TRANSPARENCY, OnUpdateTransparency)
 	ON_COMMAND(IDD_SET_TRANSPARENCY, OnSetTransparency)
 	ON_UPDATE_COMMAND_UI(IDD_SET_TRANSPARENCY, OnUpdateSetTransparency)
+	ON_COMMAND(IDD_MOTION_BLUR, OnMotionBlur)
+	ON_UPDATE_COMMAND_UI(IDD_MOTION_BLUR, OnUpdateMotionBlur)
+	ON_COMMAND(IDD_SET_MOTION_BLUR, OnSetMotionBlur)
 
 	//}}AFX_MSG_MAP
 	ON_WM_TIMER()
@@ -296,6 +299,9 @@ void CCGWorkView::OnSize(UINT nType, int cx, int cy)
 	axes[Z_AXIS] = Vector(0, 0, 1, 0);
 
 	world.setScreenMat(axes, origin, cx, cy);
+
+	// Disable motion blur so it wont smudge the screen
+	world.state.motion_blur = false;
 }
 
 BOOL CCGWorkView::SetupViewingFrustum(void)
@@ -1100,4 +1106,22 @@ void CCGWorkView::OnSetTransparency() {
 
 void CCGWorkView::OnUpdateSetTransparency(CCmdUI* pCmdUI) {
 	pCmdUI->Enable(chosen_figure != nullptr);
+}
+
+void CCGWorkView::OnMotionBlur() {
+	world.state.motion_blur = !world.state.motion_blur;
+	Invalidate();
+}
+
+void CCGWorkView::OnUpdateMotionBlur(CCmdUI* pCmdUI) {
+	pCmdUI->SetCheck(world.state.motion_blur);
+}
+
+void CCGWorkView::OnSetMotionBlur() {
+	CMotionBlurDialog diag;
+	diag.m_motion_drag = world.state.motion_blur_drag;
+	if (diag.DoModal() == IDOK) {
+		world.state.motion_blur_drag = diag.m_motion_drag;
+		Invalidate();
+	}
 }
