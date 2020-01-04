@@ -420,34 +420,6 @@ void CCGWorkView::OnDraw(CDC* pDC)
 	if (!world.isEmpty())
 		world.draw(bitmap, w, h);
 
-	// In case we use transparency, we need to calculate the final color of each pixel based on the linked list of said pixel
-	// Fun times <3
-	if (world.state.transparency) {
-		for (int i = 0; i < w * h; i++) {
-			PixelNode* current_node = world.state.z_buffer[i];
-			unsigned int color = recursiveGetColor(current_node);
-			bitmap[i] = color;
-		}
-	}
-
-	// After all drawing is done, add a fog effect. 
-	if (world.state.fog) {
-		RGBQUAD fogged_color;
-		double fog_t;
-		BYTE red, blue, green;
-		for (int i = 0; i < w * h; i++) {
-			// The further we are from the camera, the color should be more fog		
-			fog_t = CLAMP((world.state.z_buffer[i]->depth - FOG_END) / (FOG_START - FOG_END));
-
-			red = fog_t * RED(bitmap[i]) + (1 - fog_t) * RED(*((int*)&world.state.fog_color));
-			green = fog_t * GREEN(bitmap[i]) + (1 - fog_t) * GREEN(*((int*)&world.state.fog_color));
-			blue = fog_t * BLUE(bitmap[i]) + (1 - fog_t) * BLUE(*((int*)&world.state.fog_color));
-
-			fogged_color = { blue, green, red, 0 };
-			bitmap[i] = *((int*)&fogged_color);
-		}
-	}
-
 	SetDIBits(hdcMem, bm, 0, h, bitmap, &bminfo, DIB_RGB_COLORS);
 	
 	if (!world.state.save_to_png) {

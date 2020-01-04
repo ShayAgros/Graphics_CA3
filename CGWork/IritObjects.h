@@ -206,8 +206,10 @@ class IritPolygon {
 
 	/* This function uses the lines array to do a
 	   scan conversion painting of the figure */
-	void paintPolygon(int *bitmap, int width, int height, RGBQUAD color, State &state,
+	void paintPolygon(int width, int height, RGBQUAD color, State &state,
 					  Vector &polygon_normal, Vector p_center_of_mass, double alpha);
+	/* Transform polygon's normal according to a given transformation */
+	Vector transformPolygonNormal(Matrix &transformation, struct State &state, int &sign);
 
 public:
 	Vector center_of_mass;
@@ -242,7 +244,7 @@ public:
 	 * @vertex_transform - a transformation matrix for the the vertices (each
 	 *						vertex is multiplied by this matrix before being drawn
 	*/
-	void draw(int *bitmap, int width, int height, RGBQUAD color, struct State &state,
+	void draw(int width, int height, RGBQUAD color, struct State &state,
 			  Matrix &vertex_transform, double alpha);
 
 	// Operators overriding
@@ -296,7 +298,7 @@ public:
 	 * @vertex_transform - a transformation matrix for the the vertices (each
 	 *						vertex is multiplied by this matrix before being drawn
 	*/
-	void draw(int *bitmap, int width, int height, State &state,
+	void draw(int width, int height, State &state,
 			  Matrix &vertex_transform, double figure_alpha, bool global_alpha);
 };
 
@@ -315,7 +317,7 @@ class IritFigure {
 	int m_objects_nr;
 	IritObject **m_objects_arr;
 
-	void drawFrame(int *bitmap, int width, int height, struct State state, Matrix &transform);
+	void drawFrame(int width, int height, struct State state, Matrix &transform);
 
 public:
 
@@ -357,7 +359,7 @@ public:
 	*/
 	IritObject *createObject();
 
-	void draw(int *bitmap, int width, int height, Matrix transform, State &state);
+	void draw(int width, int height, Matrix transform, State &state);
 
 	/* Adjust figures points so that it is bounded in a [-1,1]^3 cube */
 	void normalizeFigure();

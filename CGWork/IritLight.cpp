@@ -16,7 +16,7 @@ void get_intersection_point_shading(struct IntersectionPoint &intersecting_p, Ve
 Vector calculate_point_shading(Vector &point_pos, Vector &point_normal, struct State &state)
 {
 	/* General */
-	Vector camera_position = Vector(0, 0, 2);
+	Vector camera_position = Vector(0, 0, 10);
 
 	/* Ambient */
 	Vector ambient_intensity(state.m_ambientLight.colorR, state.m_ambientLight.colorG, state.m_ambientLight.colorB);
@@ -57,7 +57,7 @@ Vector calculate_point_shading(Vector &point_pos, Vector &point_normal, struct S
 		bool is_light_directional = light.type == LIGHT_TYPE_DIRECTIONAL;
 
 		point_to_light = light_source_pos - point_pos;
-		light_to_point = point_to_light * (-1);
+		light_to_point = point_pos - light_source_pos;
 
 		reflected_vector = light_to_point - (point_normal * (point_normal * light_to_point) * 2);
 
@@ -117,18 +117,12 @@ void extrapolate_normal_and_vertex(struct IntersectionPoint &intersecting_p, Vec
 	Vector &left_x_vertex = containing_line->p1.vertex;
 	Vector &right_x_vertex = containing_line->p2.vertex;
 
-	if (left_2d_x == right_2d_x && upper_2d_x == lower_2d_x)
-		printf("Error\n");
-
 	// We find which axis has more difference between its two boundries, to
 	// get a more fine-grained normal change
 	if (abs(right_2d_x - left_2d_x) > abs(lower_2d_x - upper_2d_x))
 		t = (intersecting_2d_x - left_2d_x) / (right_2d_x - left_2d_x);
 	else
 		t = (intersecting_2d_y - lower_2d_x) / (upper_2d_x - lower_2d_x);
-
-	if (t < 0 || t > 1)
-		printf("STOP\n");
 
 	extrapolated_normal = (left_x_normal * (1 - t)) + (right_x_normal * t);
 	extrapolated_pos = (left_x_vertex * (1 - t)) + (right_x_vertex * t);
@@ -183,9 +177,6 @@ void get_intersection_point_shading(struct IntersectionPoint &intersecting_p, Ve
 	else
 		t = (intersecting_2d_y - lower_2d_x) / (upper_2d_x - lower_2d_x);
 
-	if (t < 0 || t > 1)
-		printf("STOP\n");
-
 	shading = (left_shading * (1 - t)) + (right_shading	 * t);
 }
 
@@ -218,9 +209,6 @@ Vector calculateLight(struct IntersectionPoint &intersecting_x1, struct Intersec
 	} else if (state.shading_mode == SHADING_M_FLAT) {
 		returned_color = calculateFlatLight(intersecting_x1, intersecting_x2, t, state);
 	}
-
-	if (returned_color[0] > 128 || returned_color[1] > 128 || returned_color[2] > 128)
-		printf("Here starts trouble\n");
 
 	return returned_color;
 }

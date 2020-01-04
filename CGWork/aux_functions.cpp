@@ -100,9 +100,11 @@ void bucketSortAndUnique(IntersectionPoint arr[], int &arr_sz, int min_val, int 
 	max_val -= offset;
 
 	// If max = 0 than all the values in the array are the same. No need
-	// to sort
-	if (!max_val)
+	// to sort, but need to unique
+	if (!max_val) {
+		arr_sz = 1;
 		return;
+	}
 
 	bucket_arr = new struct IntersectionPoint[max_val + 1];
 	
@@ -113,6 +115,8 @@ void bucketSortAndUnique(IntersectionPoint arr[], int &arr_sz, int min_val, int 
 
 	// fill bucket with the number of iteration for each value
 	for (i = 0; i < arr_sz; i++) {
+		if (bucket_arr[arr[i].x - offset].x > 0)
+			continue;
 		bucket_arr[arr[i].x - offset] = arr[i];
 		bucket_arr[arr[i].x - offset].x = 1;
 	}

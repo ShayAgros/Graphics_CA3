@@ -7,7 +7,7 @@ Matrix createTranslationMatrix(double x, double y, double z = 0);
 Matrix createTranslationMatrix(Vector &v);
 
 bool isSilhouette(State state, Matrix &vertex_transform, IritPoint *first, IritPoint *second);
-void lineDraw(int *bitmap, State state, double alpha, int width, int height, RGBQUAD color, Vector first, Vector second);
+void lineDraw(State state, double alpha, int width, int height, RGBQUAD color, Vector first, Vector second);
 
 #define BOX_NUM_OF_VERTICES 8
 #define RELEVANT_NORMAL(x) ((state.use_calc_normals) ? x->normal_calc : x->normal_irit)
@@ -94,11 +94,38 @@ bool isOutsideClippingBoundries(Vector &vertex)
 		   vertex[Z_AXIS] > 1 /* ||vertex[Z_AXIS] < -1 */;
 }
 
+void set_line_normals(threed_line &line, IritPoint *current_point, IritPoint *next_point, Vector &current_vertex,
+	Vector &next_vertex, Matrix &vertex_transform, int &sign, struct State &state)
+{
+	line.p1.normal_irit = vertex_transform * (RELEVANT_NORMAL(current_point) * sign + current_point->vertex);
+	line.p1.normal_irit.Homogenize();
+	line.p1.normal_irit = line.p1.normal_irit - current_vertex;
+	line.p2.normal_irit = vertex_transform * (RELEVANT_NORMAL(next_point) * sign + next_point->vertex);
+	line.p2.normal_irit.Homogenize();
+	line.p2.normal_irit = line.p2.normal_irit - next_vertex;
+}
+
+Vector IritPolygon::transformPolygonNormal(Matrix &transformation, struct State &state, int &sign)
+{
+	Vector vertex;
+	Vector normal;
+
+	vertex = transformation * center_of_mass;
+	normal = transformation * (center_of_mass + RELEVANT_NORMAL(this) * sign * 0.3);
+
+	if (state.is_perspective_view) {
+		vertex.Homogenize();
+		normal.Homogenize();
+	}
+
+	return normal - vertex;
+}
+
 /* This function uses an algorithm to find intersection between
  * two lines. For more info see
  * https://www.geeksforgeeks.org/program-for-point-of-intersection-of-two-lines/
 */
-void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color, State &state,
+void IritPolygon::paintPolygon(int width, int height, RGBQUAD color, State &state,
 							   Vector &polygon_normal, Vector p_center_of_mass, double alpha) {
 
 	int y_max = (int)(state.screen_mat * Vector(0, 1, 0, 1))[Y_AXIS];
@@ -209,7 +236,7 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 		for (int i = 0; i < intersecting_x_nr - 1; i += 2) {
 
 			double t = 0;
-			double t_step = 1.0 / (intersecting_x[i + 1].x - intersecting_x[i].x);
+			double t_step = 1.0 / (intersecting_x[i + 1].x - intersecting_x[i].x + 1);
 
 			// paint all the pixels between the two adjact x values (inclusive)
 			for (int x = intersecting_x[i].x; x <= intersecting_x[i + 1].x; x++) {
@@ -270,7 +297,7 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 						// RGBQUAD format is  <B G R A>
 						new_color = { (BYTE)new_blue_c, (BYTE)new_green_c, (BYTE)new_red_c, 0 };
 
-						bitmap[y * width + x] = *((int*)&new_color);
+						state.z_buffer[y * width + x]->color = *((int*)&new_color);
 						//bitmap[y * width + x] = *((int*)&color);
 						state.z_buffer[y * width + x]->depth = extrapolated_z;
 					}
@@ -281,7 +308,7 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 	delete[] intersecting_x;
 }
 
-void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct State &state,
+void IritPolygon::draw(int width, int height, RGBQUAD color, struct State &state,
 					   Matrix &vertex_transform, double alpha) {
 	struct IritPoint *current_point = m_points;
 	Vector current_vertex = current_point->vertex;
@@ -332,9 +359,11 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 
 		// Clipping. Don't draw points that are outside of our view volume
 		if (isOutsideClippingBoundries(current_vertex) || isOutsideClippingBoundries(next_vertex)) {
-			prev_line = NULL;
 			goto pass_this_point;
 		}
+
+		set_line_normals(line, current_point, current_point->next_point, current_vertex, next_vertex,
+						 vertex_transform, sign, state);
 
 		line.p1.vertex = current_vertex;
 		line.p2.vertex = next_vertex;
@@ -344,7 +373,7 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 
 		/* Don't draw mesh lines if we're painting the object as well */
 		if (state.only_mesh)
-			lineDraw(bitmap, state, alpha, width, height, current_color, current_vertex, next_vertex);
+			lineDraw(state, alpha, width, height, current_color, current_vertex, next_vertex);
 
 		if (state.show_silhouette) {
 			is_silhouette = isSilhouette(state, vertex_transform, current_point, current_point->next_point);
@@ -356,7 +385,7 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 				first_silhouette[Z_AXIS] = first_silhouette[Z_AXIS] + EPSILON;
 				second_silhouette[Z_AXIS] = second_silhouette[Z_AXIS] + EPSILON;
 
-				lineDraw(bitmap, state, alpha, width, height, SILHOUETTE_DEFAULT_COLOR,
+				lineDraw(state, alpha, width, height, SILHOUETTE_DEFAULT_COLOR,
 					first_silhouette, second_silhouette);
 			}
 		}
@@ -370,25 +399,19 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		line.z1 = (double)current_vertex.coordinates[Z_AXIS];
 		line.z2 = (double)next_vertex.coordinates[Z_AXIS];
 
-		// Shrink normal to reduce cluttering, and invert if needed
-		normal = RELEVANT_NORMAL(current_point) * 0.3 * sign;
-
-		// Place normal in space
-		normal += current_point->vertex;
-		normal = vertex_transform * normal;
-
-		if (state.is_perspective_view)
-			normal.Homogenize();
-
-
-		line.p1.normal_irit = normal * sign;
-		// update normal for this point in the previous line as well
-		if (prev_line)
-			prev_line->p2.normal_irit = line.p1.normal_irit;
-
 		if (state.show_vertex_normal) {
+
+			// Shrink normal to reduce cluttering, and invert if needed
+			normal = RELEVANT_NORMAL(current_point) * 0.3 * sign;
+
+			// Place normal in space
+			normal += current_point->vertex;
+			normal = vertex_transform * normal;
+
+			if (state.is_perspective_view)
+				normal.Homogenize();
 			normal = state.screen_mat * normal;
-			lineDraw(bitmap, state, alpha, width, height, NORMAL_DEFAULT_COLOR, current_vertex, normal);
+			lineDraw(state, alpha, width, height, NORMAL_DEFAULT_COLOR, current_vertex, normal);
 		}
 
 		if (line.x1 != line.x2 || line.y1 != line.y2) {
@@ -398,8 +421,6 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 			prev_line = &lines[lines_nr];
 			lines_nr++;
 		}
-		else
-			prev_line = NULL;
 pass_this_point:
 		current_point = current_point->next_point;
 	}
@@ -416,7 +437,7 @@ pass_this_point:
 		polygon_normal[0] = state.screen_mat * polygon_normal[0];
 		polygon_normal[1] = state.screen_mat * polygon_normal[1];
 		
-		lineDraw(bitmap, state, alpha, width, height, NORMAL_DEFAULT_COLOR, polygon_normal[0], polygon_normal[1]);
+		lineDraw(state, alpha, width, height, NORMAL_DEFAULT_COLOR, polygon_normal[0], polygon_normal[1]);
 	}
 
 	// close the figure by drawing line from last point to the first
@@ -438,12 +459,15 @@ pass_this_point:
 	line.p1.vertex = current_vertex;
 	line.p2.vertex = next_vertex;
 
+	set_line_normals(line, current_point, m_points, current_vertex, next_vertex,
+					 vertex_transform, sign, state);
+
 	current_vertex = state.screen_mat * current_vertex;
 	next_vertex = state.screen_mat * next_vertex;
 
 	/* Don't draw mesh lines if we're painting the object as well */
 	if (state.only_mesh)
-		lineDraw(bitmap, state, alpha, width, height, current_color, current_vertex, next_vertex);
+		lineDraw(state, alpha, width, height, current_color, current_vertex, next_vertex);
 
 	if (state.show_silhouette) {
 		is_silhouette = isSilhouette(state, vertex_transform, current_point, m_points);
@@ -455,7 +479,7 @@ pass_this_point:
 			first_silhouette[Z_AXIS] = first_silhouette[Z_AXIS] + EPSILON;
 			second_silhouette[Z_AXIS] = second_silhouette[Z_AXIS] + EPSILON;
 
-			lineDraw(bitmap, state, alpha, width, height, SILHOUETTE_DEFAULT_COLOR,
+			lineDraw(state, alpha, width, height, SILHOUETTE_DEFAULT_COLOR,
 				first_silhouette, second_silhouette);
 		}
 	}
@@ -475,16 +499,6 @@ pass_this_point:
 	if (state.is_perspective_view)
 		normal.Homogenize();
 
-	//line.p1.normal = normal;
-	//// update normal for this point in the previous line as well
-	//if (prev_line)
-	//	prev_line->p2.normal = normal;
-	line.p1.normal_irit = normal;
-	//line.p1.normal.Homogenize();
-	// update normal for this point in the previous line as well
-	if (prev_line)
-		prev_line->p2.normal_irit = line.p1.normal_irit;
-
 	if (line.x1 != line.x2 || line.y1 != line.y2) {
 		// we ignore lines that only change in their z value since
 		// its won't be a line in 2d space
@@ -493,10 +507,8 @@ pass_this_point:
 paint_polygon:
 	// paint the polygon
 	if (!state.only_mesh) {
-		polygon_normal[0] = vertex_transform * (RELEVANT_NORMAL(this) * sign);
-		if (state.is_perspective_view)
-			polygon_normal[0].Homogenize();
-		paintPolygon(bitmap, width, height, current_color, state, polygon_normal[0],
+		polygon_normal[0] = transformPolygonNormal(vertex_transform, state, sign);
+		paintPolygon(width, height, current_color, state, polygon_normal[0],
 					 vertex_transform * center_of_mass, alpha);
 	}
 	delete[] lines;
@@ -547,7 +559,7 @@ IritPolygon *IritObject::createPolygon() {
 	return new_polygon;
 }
 
-void IritObject::draw(int *bitmap, int width, int height, State &state,
+void IritObject::draw(int width, int height, State &state,
 					  Matrix &vertex_transform, double figure_alpha, bool global_alpha) {
 	double current_alpha = (global_alpha) ? figure_alpha : this->alpha;
 	// set the current connectivity lists
@@ -559,7 +571,7 @@ void IritObject::draw(int *bitmap, int width, int height, State &state,
 
 	m_iterator = m_polygons;
 	while (m_iterator) {
-		m_iterator->draw(bitmap, width, height, object_color, state, vertex_transform, current_alpha);
+		m_iterator->draw(width, height, object_color, state, vertex_transform, current_alpha);
 		m_iterator = m_iterator->getNextPolygon();
 	}
 }
@@ -592,21 +604,21 @@ bool IritFigure::addObjectP(IritObject *p_object) {
 	return true;
 }
 
-void IritFigure::draw(int *bitmap, int width, int height, Matrix transform, State &state) {
+void IritFigure::draw(int width, int height, Matrix transform, State &state) {
 	Matrix shrink = Matrix::createScaleMatrix((double)(1) / 2, (double)(1) / 2, (double)(1) / 2);
 
 	Matrix vertex_transform = transform * shrink * normalization_mat * world_mat * object_mat;
 
 	// Draw all objects
 	for (int i = 0; i < m_objects_nr; i++)
-		m_objects_arr[i]->draw(bitmap, width, height, state, vertex_transform, alpha, has_global_alpha);
+		m_objects_arr[i]->draw(width, height, state, vertex_transform, alpha, has_global_alpha);
 
 	// Draw a frame around all objects
 	if (state.object_frame)
-		drawFrame(bitmap, width, height, state, vertex_transform);
+		drawFrame(width, height, state, vertex_transform);
 }
 
-void IritFigure::drawFrame(int *bitmap, int width, int height, struct State state, Matrix &transform) {
+void IritFigure::drawFrame(int width, int height, struct State state, Matrix &transform) {
 	double frame_max_x = max_bound_coord[0],
 		frame_max_y = max_bound_coord[1],
 		frame_max_z = max_bound_coord[2],
@@ -638,28 +650,28 @@ void IritFigure::drawFrame(int *bitmap, int width, int height, struct State stat
 
 	// Draw "front side"
 
-	lineDraw(bitmap, state, 1.0, width, height, state.frame_color, coords[0], coords[1]);
-	lineDraw(bitmap, state, 1.0, width, height, state.frame_color, coords[1], coords[3]);
-	lineDraw(bitmap, state, 1.0, width, height, state.frame_color, coords[3], coords[2]);
-	lineDraw(bitmap, state, 1.0, width, height, state.frame_color, coords[2], coords[0]);
+	lineDraw(state, 1.0, width, height, state.frame_color, coords[0], coords[1]);
+	lineDraw(state, 1.0, width, height, state.frame_color, coords[1], coords[3]);
+	lineDraw(state, 1.0, width, height, state.frame_color, coords[3], coords[2]);
+	lineDraw(state, 1.0, width, height, state.frame_color, coords[2], coords[0]);
 
 	// Draw "back side"
 
-	lineDraw(bitmap, state, 1.0, width, height, state.frame_color, coords[4], coords[5]);
-	lineDraw(bitmap, state, 1.0, width, height, state.frame_color, coords[5], coords[7]);
-	lineDraw(bitmap, state, 1.0, width, height, state.frame_color, coords[7], coords[6]);
-	lineDraw(bitmap, state, 1.0, width, height, state.frame_color, coords[6], coords[4]);
+	lineDraw(state, 1.0, width, height, state.frame_color, coords[4], coords[5]);
+	lineDraw(state, 1.0, width, height, state.frame_color, coords[5], coords[7]);
+	lineDraw(state, 1.0, width, height, state.frame_color, coords[7], coords[6]);
+	lineDraw(state, 1.0, width, height, state.frame_color, coords[6], coords[4]);
 
 	// Draw "sides"
 
 	// Top right
-	lineDraw(bitmap, state, 1.0, width, height, state.frame_color, coords[0], coords[4]);
+	lineDraw(state, 1.0, width, height, state.frame_color, coords[0], coords[4]);
 	// Bottom right
-	lineDraw(bitmap, state, 1.0, width, height, state.frame_color, coords[1], coords[5]);
+	lineDraw(state, 1.0, width, height, state.frame_color, coords[1], coords[5]);
 	// Top left
-	lineDraw(bitmap, state, 1.0, width, height, state.frame_color, coords[2], coords[6]);
+	lineDraw(state, 1.0, width, height, state.frame_color, coords[2], coords[6]);
 	// Bottom left
-	lineDraw(bitmap, state, 1.0, width, height, state.frame_color, coords[3], coords[7]);
+	lineDraw(state, 1.0, width, height, state.frame_color, coords[3], coords[7]);
 }
 
 bool IritFigure::isEmpty() {
@@ -786,17 +798,41 @@ Vector IritWorld::projectPoint_in_screen_axes(Vector &td_point, Matrix &transfor
 }
 
 void IritWorld::draw(int *bitmap, int width, int height) {
-	Matrix partial_projection_mat = createProjectionMatrix();
-	Matrix projection_mat = partial_projection_mat * state.ortho_mat;
-	Matrix transformation = projection_mat * state.view_mat;
+		Matrix partial_projection_mat = createProjectionMatrix();
+		Matrix projection_mat = partial_projection_mat * state.ortho_mat;
+		Matrix transformation = projection_mat * state.view_mat;
 
-	this->state.orthogonal_to_perspective = partial_projection_mat;
-	this->state.screen_mat = state.center_mat * state.ratio_mat;
+		this->state.orthogonal_to_perspective = partial_projection_mat;
+		this->state.screen_mat = state.center_mat * state.ratio_mat;
 
-	// Draw all objects
-	for (int i = 0; i < m_figures_nr; i++) {
-		m_figures_arr[i]->draw(bitmap, width, height, transformation, state);
-	}
+		// Draw all objects
+		for (int i = 0; i < m_figures_nr; i++)
+			m_figures_arr[i]->draw(width, height, transformation, state);
+
+		// After all drawing is done, calculate final color of each pixel based on transparency
+		for (int i = 0; i < width * height; i++) {
+			PixelNode* current_node = state.z_buffer[i];
+			unsigned int color = recursiveGetColor(current_node);
+			bitmap[i] = color;
+		}
+
+		// Finally, add fog
+		if (state.fog) {
+			RGBQUAD fogged_color;
+			double fog_t;
+			BYTE red, blue, green;
+			for (int i = 0; i < width * height; i++) {
+				// The further we are from the camera, the color should be more fog		
+				fog_t = CLAMP((state.z_buffer[i]->depth - FOG_END) / (FOG_START - FOG_END));
+
+				red = fog_t * RED(bitmap[i]) + (1 - fog_t) * RED(*((int*)&state.fog_color));
+				green = fog_t * GREEN(bitmap[i]) + (1 - fog_t) * GREEN(*((int*)&state.fog_color));
+				blue = fog_t * BLUE(bitmap[i]) + (1 - fog_t) * BLUE(*((int*)&state.fog_color));
+
+				fogged_color = { blue, green, red, 0 };
+				bitmap[i] = *((int*)&fogged_color);
+			}
+		}
 }
 
 IritFigure *IritWorld::getFigureInPoint(CPoint &point) {
@@ -842,7 +878,7 @@ IritFigure &IritWorld::getLastFigure() {
 }
 
 
-void lineDrawOct0(int *bitmap, State state, double alpha, int width, int height, RGBQUAD color, Vector first, Vector second) {
+void lineDrawOct0(State state, double alpha, int width, int height, RGBQUAD color, Vector first, Vector second) {
 	PixelNode *new_node;
 	PixelNode *current_node, *next_node;
 	int dx = (int)(second[0] - first[0]),
@@ -895,7 +931,7 @@ void lineDrawOct0(int *bitmap, State state, double alpha, int width, int height,
 				bool closer = current_z > state.z_buffer[y * width + x]->depth;
 
 				if (closer) {
-					bitmap[y * width + x] = *((int*)&color);
+					state.z_buffer[y * width + x]->color = *((int*)&color);
 					state.z_buffer[y * width + x]->depth = current_z;
 				}
 			}
@@ -912,7 +948,7 @@ void lineDrawOct0(int *bitmap, State state, double alpha, int width, int height,
 	}
 }
 
-void lineDrawOct1(int *bitmap, State state, double alpha, int width, int height, RGBQUAD color, Vector first, Vector second) {
+void lineDrawOct1(State state, double alpha, int width, int height, RGBQUAD color, Vector first, Vector second) {
 	PixelNode *new_node;
 	PixelNode *current_node, *next_node;
 	int dx = (int)(second[0] - first[0]),
@@ -965,7 +1001,7 @@ void lineDrawOct1(int *bitmap, State state, double alpha, int width, int height,
 				bool closer = current_z > state.z_buffer[y * width + x]->depth;
 
 				if (closer) {
-					bitmap[y * width + x] = *((int*)&color);
+					state.z_buffer[y * width + x]->color = *((int*)&color);
 					state.z_buffer[y * width + x]->depth = current_z;
 				}
 			}
@@ -982,7 +1018,7 @@ void lineDrawOct1(int *bitmap, State state, double alpha, int width, int height,
 	}
 }
 
-void lineDrawOct6(int *bitmap, State state, double alpha, int width, int height, RGBQUAD color, Vector first, Vector second) {
+void lineDrawOct6(State state, double alpha, int width, int height, RGBQUAD color, Vector first, Vector second) {
 	PixelNode *new_node;
 	PixelNode *current_node, *next_node;
 	int dx = (int)(second[0] - first[0]),
@@ -1035,7 +1071,7 @@ void lineDrawOct6(int *bitmap, State state, double alpha, int width, int height,
 				bool closer = current_z > state.z_buffer[y * width + x]->depth;
 
 				if (closer) {
-					bitmap[y * width + x] = *((int*)&color);
+					state.z_buffer[y * width + x]->color = *((int*)&color);
 					state.z_buffer[y * width + x]->depth = current_z;
 				}
 			}
@@ -1052,7 +1088,7 @@ void lineDrawOct6(int *bitmap, State state, double alpha, int width, int height,
 	}
 }
 
-void lineDrawOct7(int *bitmap, State state, double alpha, int width, int height, RGBQUAD color, Vector first, Vector second) {
+void lineDrawOct7(State state, double alpha, int width, int height, RGBQUAD color, Vector first, Vector second) {
 	PixelNode *new_node;
 	PixelNode *current_node, *next_node;
 	int dx = (int)(second[0] - first[0]),
@@ -1105,7 +1141,7 @@ void lineDrawOct7(int *bitmap, State state, double alpha, int width, int height,
 				bool closer = current_z > state.z_buffer[y * width + x]->depth;
 
 				if (closer) {
-					bitmap[y * width + x] = *((int*)&color);
+					state.z_buffer[y * width + x]->color = *((int*)&color);
 					state.z_buffer[y * width + x]->depth = current_z;
 				}
 			}
@@ -1122,16 +1158,16 @@ void lineDrawOct7(int *bitmap, State state, double alpha, int width, int height,
 	}
 }
 
-void lineDraw(int *bitmap, State state, double alpha, int width, int height, RGBQUAD color, Vector first, Vector second) {
+void lineDraw(State state, double alpha, int width, int height, RGBQUAD color, Vector first, Vector second) {
 	double delta_x, delta_y, ratio;
 
 	// Handle case where they are vertical
 	if (first[0] == second[0]) {
 		if (first[1] < second[1]) {
-			lineDrawOct1(bitmap, state, alpha, width, height, color, first, second);
+			lineDrawOct1(state, alpha, width, height, color, first, second);
 		} else {
 			if (first[1] > second[2]) {
-				lineDrawOct6(bitmap, state, alpha, width, height, color, first, second);
+				lineDrawOct6(state, alpha, width, height, color, first, second);
 			} else {
 				return; // They are the same point
 			}
@@ -1152,13 +1188,13 @@ void lineDraw(int *bitmap, State state, double alpha, int width, int height, RGB
 	ratio = delta_y / delta_x;
 
 	if (ratio >= 1.0) {							   // Octant 1
-		lineDrawOct1(bitmap, state, alpha, width, height, color, first, second);
+		lineDrawOct1(state, alpha, width, height, color, first, second);
 	} else if ((ratio >= 0.0) && (ratio < 1.0)) {  // Octant 0
-		lineDrawOct0(bitmap, state, alpha, width, height, color, first, second);
+		lineDrawOct0(state, alpha, width, height, color, first, second);
 	} else if ((ratio >= -1.0) && (ratio < 0.0)) { // Octant 7
-		lineDrawOct7(bitmap, state, alpha, width, height, color, first, second);
+		lineDrawOct7(state, alpha, width, height, color, first, second);
 	} else {									   // Octant 6
-		lineDrawOct6(bitmap, state, alpha, width, height, color, first, second);
+		lineDrawOct6(state, alpha, width, height, color, first, second);
 	}
 }
 
