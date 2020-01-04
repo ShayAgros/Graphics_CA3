@@ -199,6 +199,9 @@ class IritPolygon {
 	void paintPolygon(int *bitmap, int width, int height, RGBQUAD color, State &state,
 					  Vector &polygon_normal, Vector p_center_of_mass);
 
+	/* Transform polygon's normal according to a given transformation */
+	Vector transformPolygonNormal(Matrix &transformation, struct State &state, int &sign);
+
 public:
 	Vector center_of_mass;
 

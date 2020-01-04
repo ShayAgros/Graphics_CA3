@@ -89,8 +89,35 @@ void IritPolygon::setNextPolygon(IritPolygon *polygon) {
 
 bool isOutsideClippingBoundries(Vector &vertex)
 {
-	return vertex[X_AXIS] > 1 || vertex[X_AXIS] < -1 || vertex[Y_AXIS] > 1 || vertex[Y_AXIS] < -1 /*||
-		   vertex[Z_AXIS] > 1 || vertex[Z_AXIS] < -1*/;
+	return vertex[X_AXIS] > 1 || vertex[X_AXIS] < -1 || vertex[Y_AXIS] > 1 || vertex[Y_AXIS] < -1 ||
+		   vertex[Z_AXIS] > 1 || vertex[Z_AXIS] < -1;
+}
+
+void set_line_normals(threed_line &line, IritPoint *current_point, IritPoint *next_point, Vector &current_vertex,
+	Vector &next_vertex, Matrix &vertex_transform, int &sign, struct State &state)
+{
+	line.p1.normal_irit = vertex_transform * (RELEVANT_NORMAL(current_point) * sign + current_point->vertex);
+	line.p1.normal_irit.Homogenize();
+	line.p1.normal_irit = line.p1.normal_irit - current_vertex;
+	line.p2.normal_irit = vertex_transform * (RELEVANT_NORMAL(next_point) * sign + next_point->vertex);
+	line.p2.normal_irit.Homogenize();
+	line.p2.normal_irit = line.p2.normal_irit - next_vertex;
+}
+
+Vector IritPolygon::transformPolygonNormal(Matrix &transformation, struct State &state, int &sign)
+{
+	Vector vertex;
+	Vector normal;
+
+	vertex = transformation * center_of_mass;
+	normal = transformation * (center_of_mass + RELEVANT_NORMAL(this) * sign * 0.3);
+
+	if (state.is_perspective_view) {
+		vertex.Homogenize();
+		normal.Homogenize();
+	}
+
+	return normal - vertex;
 }
 
 /* This function uses an algorithm to find intersection between
@@ -207,7 +234,7 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 		for (int i = 0; i < intersecting_x_nr - 1; i += 2) {
 
 			double t = 0;
-			double t_step = 1.0 / (intersecting_x[i + 1].x - intersecting_x[i].x);
+			double t_step = 1.0 / (intersecting_x[i + 1].x - intersecting_x[i].x + 1);
 
 			// paint all the pixels between the two adjact x values (inclusive)
 			for (int x = intersecting_x[i].x; x <= intersecting_x[i + 1].x; x++) {
@@ -230,6 +257,7 @@ void IritPolygon::paintPolygon(int *bitmap, int width, int height, RGBQUAD color
 					unsigned int new_red_c = min(light_color[0], 255);
 					unsigned int new_green_c = min(light_color[1], 255);
 					unsigned int new_blue_c = min(light_color[2], 255);
+
 					// RGBQUAD format is  <B G R A>
 					RGBQUAD new_color = { (BYTE)new_blue_c, (BYTE)new_green_c, (BYTE)new_red_c, 0 };
 
@@ -295,9 +323,11 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 
 		// Clipping. Don't draw points that are outside of our view volume
 		if (isOutsideClippingBoundries(current_vertex) || isOutsideClippingBoundries(next_vertex)) {
-			prev_line = NULL;
 			goto pass_this_point;
 		}
+
+		set_line_normals(line, current_point, current_point->next_point, current_vertex, next_vertex,
+						 vertex_transform, sign, state);
 
 		line.p1.vertex = current_vertex;
 		line.p2.vertex = next_vertex;
@@ -333,24 +363,17 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 		line.z1 = (double)current_vertex.coordinates[Z_AXIS];
 		line.z2 = (double)next_vertex.coordinates[Z_AXIS];
 
-		// Shrink normal to reduce cluttering, and invert if needed
-		normal = RELEVANT_NORMAL(current_point) * 0.3 * sign;
-
-		// Place normal in space
-		normal += current_point->vertex;
-		normal = vertex_transform * normal;
-
-		if (state.is_perspective_view)
-			normal.Homogenize();
-
-
-		line.p1.normal_irit = normal * sign;
-		// update normal for this point in the previous line as well
-		if (prev_line)
-			prev_line->p2.normal_irit = line.p1.normal_irit;
-
 		if (state.show_vertex_normal) {
 
+			// Shrink normal to reduce cluttering, and invert if needed
+			normal = RELEVANT_NORMAL(current_point) * 0.3 * sign;
+
+			// Place normal in space
+			normal += current_point->vertex;
+			normal = vertex_transform * normal;
+
+			if (state.is_perspective_view)
+				normal.Homogenize();
 			normal = state.screen_mat * normal;
 
 			lineDraw(bitmap, state, width, height, NORMAL_DEFAULT_COLOR, current_vertex, normal);
@@ -363,8 +386,6 @@ void IritPolygon::draw(int *bitmap, int width, int height, RGBQUAD color, struct
 			prev_line = &lines[lines_nr];
 			lines_nr++;
 		}
-		else
-			prev_line = NULL;
 pass_this_point:
 		current_point = current_point->next_point;
 	}
@@ -403,6 +424,9 @@ pass_this_point:
 	line.p1.vertex = current_vertex;
 	line.p2.vertex = next_vertex;
 
+	set_line_normals(line, current_point, m_points, current_vertex, next_vertex,
+					 vertex_transform, sign, state);
+
 	current_vertex = state.screen_mat * current_vertex;
 	next_vertex = state.screen_mat * next_vertex;
 
@@ -440,16 +464,6 @@ pass_this_point:
 	if (state.is_perspective_view)
 		normal.Homogenize();
 
-	//line.p1.normal = normal;
-	//// update normal for this point in the previous line as well
-	//if (prev_line)
-	//	prev_line->p2.normal = normal;
-	line.p1.normal_irit = normal;
-	//line.p1.normal.Homogenize();
-	// update normal for this point in the previous line as well
-	if (prev_line)
-		prev_line->p2.normal_irit = line.p1.normal_irit;
-
 	if (line.x1 != line.x2 || line.y1 != line.y2) {
 		// we ignore lines that only change in their z value since
 		// its won't be a line in 2d space
@@ -458,9 +472,7 @@ pass_this_point:
 paint_polygon:
 	// paint the polygon
 	if (!state.only_mesh) {
-		polygon_normal[0] = vertex_transform * (RELEVANT_NORMAL(this) * sign);
-		if (state.is_perspective_view)
-			polygon_normal[0].Homogenize();
+		polygon_normal[0] = transformPolygonNormal(vertex_transform, state, sign);
 		paintPolygon(bitmap, width, height, current_color, state, polygon_normal[0],
 					 vertex_transform * center_of_mass);
 	}
