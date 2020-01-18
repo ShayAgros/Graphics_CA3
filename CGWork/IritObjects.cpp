@@ -605,9 +605,11 @@ bool IritFigure::addObjectP(IritObject *p_object) {
 }
 
 void IritFigure::draw(int width, int height, Matrix transform, State &state) {
+	double ratio = (max_bound_coord[Y_AXIS] - min_bound_coord[Y_AXIS]) / (max_bound_coord[X_AXIS] - min_bound_coord[X_AXIS]);
+	Matrix fix_ortho_ratio = Matrix::createScaleMatrix(1, ratio, 1);
 	Matrix shrink = Matrix::createScaleMatrix((double)(1) / 2, (double)(1) / 2, (double)(1) / 2);
 
-	Matrix vertex_transform = transform * shrink * normalization_mat * world_mat * object_mat;
+	Matrix vertex_transform = transform * shrink * normalization_mat * world_mat * object_mat * fix_ortho_ratio;
 
 	// Draw all objects
 	for (int i = 0; i < m_objects_nr; i++)
