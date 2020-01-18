@@ -246,13 +246,24 @@ void IritPolygon::paintPolygon(int width, int height, RGBQUAD color, State &stat
 				extrapolated_z = (1 - t) * intersecting_x[i].z + t * intersecting_x[i + 1].z;
 				t += t_step;
 
-				if (state.transparency) {
-					Vector light_color = calculateLight(intersecting_x[i], intersecting_x[i + 1], t, state);
-					unsigned int new_red_c = min(light_color[0], 255);
-					unsigned int new_green_c = min(light_color[1], 255);
-					unsigned int new_blue_c = min(light_color[2], 255);
-					new_color = { (BYTE)new_blue_c, (BYTE)new_green_c, (BYTE)new_red_c, 0 };
+				Vector light_color = calculateLight(intersecting_x[i], intersecting_x[i + 1], t, state);
+				unsigned int new_red_c = min(light_color[0], 255);
+				unsigned int new_green_c = min(light_color[1], 255);
+				unsigned int new_blue_c = min(light_color[2], 255);
 
+				if (state.fog) {
+					// The further we are from the camera, the color should be more fog	
+					double fog_t = CLAMP((extrapolated_z - FOG_END) / (FOG_START - FOG_END));
+
+					new_red_c = fog_t * new_red_c + (1 - fog_t) * RED(*((int*)&state.fog_color));
+					new_green_c = fog_t * new_green_c + (1 - fog_t) * GREEN(*((int*)&state.fog_color));
+					new_blue_c = fog_t * new_blue_c + (1 - fog_t) * BLUE(*((int*)&state.fog_color));
+				}
+
+				// RGBQUAD format is  <B G R A>
+				new_color = { (BYTE)new_blue_c, (BYTE)new_green_c, (BYTE)new_red_c, 0 };
+
+				if (state.transparency) {
 					new_node = new PixelNode;
 					new_node->depth = extrapolated_z;
 					new_node->alpha = alpha;
@@ -283,20 +294,6 @@ void IritPolygon::paintPolygon(int width, int height, RGBQUAD color, State &stat
 					bool closer = extrapolated_z > state.z_buffer[y * width + x]->depth;
 
 					if (closer) {
-						Vector light_color = calculateLight(intersecting_x[i], intersecting_x[i + 1], t, state);
-						// the casting is needed, otherwise the addition of colors overflows
-						/*
-						unsigned int new_red_c = min((unsigned int)color.rgbRed + light_color[0], 255);
-						unsigned int new_green_c = min((unsigned int)color.rgbGreen + light_color[1], 255);
-						unsigned int new_blue_c = min((unsigned int)color.rgbBlue + light_color[2], 255);
-						*/
-						// When using light, object color shouldn't matter.
-						unsigned int new_red_c = min(light_color[0], 255);
-						unsigned int new_green_c = min(light_color[1], 255);
-						unsigned int new_blue_c = min(light_color[2], 255);
-						// RGBQUAD format is  <B G R A>
-						new_color = { (BYTE)new_blue_c, (BYTE)new_green_c, (BYTE)new_red_c, 0 };
-
 						state.z_buffer[y * width + x]->color = *((int*)&new_color);
 						//bitmap[y * width + x] = *((int*)&color);
 						state.z_buffer[y * width + x]->depth = extrapolated_z;
@@ -563,7 +560,7 @@ void IritObject::draw(int width, int height, State &state,
 					  Matrix &vertex_transform, double figure_alpha, bool global_alpha) {
 	double current_alpha = (global_alpha) ? figure_alpha : this->alpha;
 	// set the current connectivity lists
-	object_vertex_list = this->vertex_connection;
+	object_vertex_list = this->vertex_connection; 
 	object_polygon_list = this->polygon_connection;
 
 	int points_nr = 0;
@@ -794,7 +791,6 @@ bool IritWorld::isEmpty() {
 	return m_figures_nr == 0;
 };
 
-
 Vector IritWorld::projectPoint_in_screen_axes(Vector &td_point, Matrix &transformation) {
 	Vector transformed_point = transformation * td_point;
 	if (state.is_perspective_view)
@@ -826,23 +822,6 @@ void IritWorld::draw(int *bitmap, int width, int height) {
 		}
 
 		// POST EFFECTS SECTION... YAY!
-
-		// Add fog
-		if (state.fog) {
-			RGBQUAD fogged_color;
-			double fog_t;
-			for (int i = 0; i < width * height; i++) {
-				// The further we are from the camera, the color should be more fog		
-				fog_t = CLAMP((state.z_buffer[i]->depth - FOG_END) / (FOG_START - FOG_END));
-
-				red = fog_t * RED(bitmap[i]) + (1 - fog_t) * RED(*((int*)&state.fog_color));
-				green = fog_t * GREEN(bitmap[i]) + (1 - fog_t) * GREEN(*((int*)&state.fog_color));
-				blue = fog_t * BLUE(bitmap[i]) + (1 - fog_t) * BLUE(*((int*)&state.fog_color));
-
-				fogged_color = { blue, green, red, 0 };
-				bitmap[i] = *((int*)&fogged_color);
-			}
-		}
 
 		// Create motion blur
 		if (state.motion_blur) {

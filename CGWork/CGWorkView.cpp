@@ -399,7 +399,9 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		current_node->alpha = 1.0;
 		current_node->next = nullptr;
 
-		if (world.state.background_png) {
+		if (world.state.fog) {
+			current_node->color = *((int*)&world.state.fog_color);
+		} else if (world.state.background_png) {
 			PngWrapper *p = world.background;
 
 			int png_width = p->GetWidth(),
