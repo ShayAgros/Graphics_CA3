@@ -53,6 +53,9 @@ public:
     double dirX;
     double dirY;
     double dirZ;
+
+    double m_spotlight_angle_degrees;
+    double m_cos_spotlight_angle;
     
     LightParams():
 	enabled(false),type(LIGHT_TYPE_DIRECTIONAL),space(LIGHT_SPACE_VIEW),

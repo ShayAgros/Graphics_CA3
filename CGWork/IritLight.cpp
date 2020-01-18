@@ -37,6 +37,8 @@ Vector calculate_point_shading(Vector &point_pos, Vector &point_normal, struct S
 	Vector point_to_eye;
 	Vector reflected_vector;
 
+	double light_point_angle_cos;
+	double spotlight_difference_angle;
 
 	point_normal.Normalize();
 
@@ -59,29 +61,46 @@ Vector calculate_point_shading(Vector &point_pos, Vector &point_normal, struct S
 		point_to_light = light_source_pos - point_pos;
 		light_to_point = point_pos - light_source_pos;
 
-		reflected_vector = light_to_point - (point_normal * (point_normal * light_to_point) * 2);
-
 		point_to_light.Normalize();
-		reflected_vector.Normalize();
 		light_to_point.Normalize();
 		light_source_direction.Normalize();
 
+		reflected_vector = light_to_point - (point_normal * (point_normal * light_to_point) * 2);
+
+		reflected_vector.Normalize();
+
 		double cos_theta;
-		if (!is_light_directional)
+		if (!is_light_directional) /* point source or spotlight */
 			cos_theta = point_normal * point_to_light;
 		else
 			cos_theta = point_normal * (light_source_direction * (-1));
 
 		if (cos_theta > 0) {
+			/* If Spotlight is enabled this value defines the difuse of the light */
+			spotlight_difference_angle = 1;
+
+			if (light.type == LIGHT_TYPE_SPOT) {
+				/* calculate the angle between the point-light_source vecotr
+				   and the light source direction */
+				light_point_angle_cos = light_to_point * light_source_direction;
+
+				/* If the point is outside the "Cone" created by the spotlight, don't
+				   light it */
+				if (light_point_angle_cos < light.m_cos_spotlight_angle)
+					continue;
+
+				spotlight_difference_angle = (light_point_angle_cos - light.m_cos_spotlight_angle) / (1 - light.m_cos_spotlight_angle);
+			}
 
 			Vector diffusive_light = point_source_intensity * kd * cos_theta;
-			overall_lighting += diffusive_light;
+			overall_lighting += diffusive_light * spotlight_difference_angle;
 
 			double alpha = reflected_vector * point_to_eye;
 			if (alpha > 0 && !is_light_directional) {
 				Vector specular_light = point_source_intensity * ks * (pow(alpha, cosine_factor));
-				overall_lighting += specular_light;
+				overall_lighting += specular_light * spotlight_difference_angle;
 			}
+
 		}
 	}
 	return overall_lighting;
@@ -189,6 +208,8 @@ Vector calculateGouraudLight(struct IntersectionPoint &intersecting_x1, struct I
 
 	return (intersecting_x1.point_shade * (1 - t)) + (intersecting_x2.point_shade * t);
 }
+
+// ============================================ Flat Shading ================================================================
 
 Vector calculateFlatLight(struct IntersectionPoint &intersecting_x1, struct IntersectionPoint &intersecting_x2,
 						  double t, struct State &state)

@@ -20,6 +20,58 @@ CLightDialog::~CLightDialog()
 {
 }
 
+void CLightDialog::updatePositionDirectionOptions()
+{
+	LightType type = (LightType)((CComboBox*)this->GetDlgItem(IDC_LIGHT_TYPE))->GetCurSel();
+	//int type = m_lights[m_currentLightIdx].type;
+	//DDX_CBIndex(pDX, IDC_LIGHT_TYPE, type);
+
+	if (type == LIGHT_TYPE_DIRECTIONAL) {
+		// disable position control
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_POS_X)->EnableWindow(false);
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_POS_Y)->EnableWindow(false);
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_POS_Z)->EnableWindow(false);
+
+		// enable direction control
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_DIR_X)->EnableWindow(true);
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_DIR_Y)->EnableWindow(true);
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_DIR_Z)->EnableWindow(true);
+
+		// disable spotlight angle control
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_SPOTLIGHT_ANGLE)->EnableWindow(false);
+	}
+	else if (type == LIGHT_TYPE_POINT)
+	{
+		// disable Direction control
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_DIR_X)->EnableWindow(false);
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_DIR_Y)->EnableWindow(false);
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_DIR_Z)->EnableWindow(false);
+
+		// enable position control
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_POS_X)->EnableWindow(true);
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_POS_Y)->EnableWindow(true);
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_POS_Z)->EnableWindow(true);
+
+		// disable spotlight angle control
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_SPOTLIGHT_ANGLE)->EnableWindow(false);
+	}
+	else // type == LIGHT_TYPE_SPOT)
+	{
+		// disable Direction control
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_DIR_X)->EnableWindow(true);
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_DIR_Y)->EnableWindow(true);
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_DIR_Z)->EnableWindow(true);
+
+		// enable position control
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_POS_X)->EnableWindow(true);
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_POS_Y)->EnableWindow(true);
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_POS_Z)->EnableWindow(true);
+
+		// enable spotlight angle control
+		(CEdit*)this->GetDlgItem(IDC_LIGHT_SPOTLIGHT_ANGLE)->EnableWindow(true);
+	}
+}
+
 void CLightDialog::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
@@ -42,6 +94,9 @@ void CLightDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_LIGHT_DIR_Y, m_lights[m_currentLightIdx].dirY);
 	DDX_Text(pDX, IDC_LIGHT_DIR_Z, m_lights[m_currentLightIdx].dirZ);
 
+	DDX_Text(pDX, IDC_LIGHT_SPOTLIGHT_ANGLE, m_lights[m_currentLightIdx].m_spotlight_angle_degrees);
+
+
 	DDX_Text(pDX, IDC_KA, ka);
 	DDX_Text(pDX, IDC_KD, kd);
 	DDX_Text(pDX, IDC_KS, ks);
@@ -61,6 +116,9 @@ void CLightDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_CBIndex(pDX,IDC_LIGHT_TYPE,helper);
 	m_lights[m_currentLightIdx].type = (LightType)helper;
 
+	// If light is position, no need to enable direction twinking, and vice versa
+	updatePositionDirectionOptions();
+
 	helper = m_lights[m_currentLightIdx].space;
 	DDX_CBIndex(pDX,IDC_LIGHT_SPACE,helper);
 	m_lights[m_currentLightIdx].space = (LightSpace)helper;
@@ -77,6 +135,7 @@ BEGIN_MESSAGE_MAP(CLightDialog, CDialog)
     ON_BN_CLICKED(IDC_RADIO_LIGHT6, &CLightDialog::OnBnClickedRadioLight)
     ON_BN_CLICKED(IDC_RADIO_LIGHT7, &CLightDialog::OnBnClickedRadioLight)
     ON_BN_CLICKED(IDC_RADIO_LIGHT8, &CLightDialog::OnBnClickedRadioLight)
+	ON_CBN_SELCHANGE(IDC_LIGHT_TYPE, &CLightDialog::OnCbnSelchangeLightType)
 END_MESSAGE_MAP()
 
 void CLightDialog::SetDialogData( LightID id,const LightParams& light )
@@ -117,4 +176,10 @@ BOOL CLightDialog::OnInitDialog()
 
     return TRUE;  // return TRUE unless you set the focus to a control
     // EXCEPTION: OCX Property Pages should return FALSE
+}
+
+
+void CLightDialog::OnCbnSelchangeLightType()
+{
+	updatePositionDirectionOptions();
 }

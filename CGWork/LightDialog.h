@@ -9,6 +9,9 @@ class CLightDialog : public CDialog
 {
 	DECLARE_DYNAMIC(CLightDialog)
 
+
+	void updatePositionDirectionOptions();
+
 public:
 	CLightDialog(CWnd* pParent = NULL);   // standard constructor
 	virtual ~CLightDialog();
@@ -69,4 +72,6 @@ public:
 	int get_cosn() {
 		return cosn;
 	}
+
+	afx_msg void OnCbnSelchangeLightType();
 };

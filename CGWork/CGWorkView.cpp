@@ -164,7 +164,7 @@ CCGWorkView::CCGWorkView()
 	world.state.m_lights[LIGHT_ID_1].enabled=true;
 	world.state.m_lights[LIGHT_ID_1].posX = 0;
 	world.state.m_lights[LIGHT_ID_1].posY = 0;
-	world.state.m_lights[LIGHT_ID_1].posZ = 100;
+	world.state.m_lights[LIGHT_ID_1].posZ = 10;
 	world.state.m_lights[LIGHT_ID_1].colorR = 100;
 	world.state.m_lights[LIGHT_ID_1].colorG = 100;
 	world.state.m_lights[LIGHT_ID_1].colorB = 100;
@@ -172,6 +172,8 @@ CCGWorkView::CCGWorkView()
 	world.state.m_lights[LIGHT_ID_1].dirX = 0;
 	world.state.m_lights[LIGHT_ID_1].dirY = 0;
 	world.state.m_lights[LIGHT_ID_1].dirZ = -1;
+	world.state.m_lights[LIGHT_ID_1].m_spotlight_angle_degrees = 1.5;
+	world.state.m_lights[LIGHT_ID_1].m_cos_spotlight_angle = cos( (M_PI/180) * 1.5);
 
 
 	// init ambient intensity
@@ -659,6 +661,7 @@ void CCGWorkView::OnUpdateLightShadingPhong(CCmdUI* pCmdUI)
 void CCGWorkView::OnLightConstants() 
 {
 	CLightDialog dlg;
+	double angle_degrees;
 
 	for (int id=LIGHT_ID_1;id<MAX_LIGHT;id++)
 	{	    
@@ -675,6 +678,10 @@ void CCGWorkView::OnLightConstants()
 	    for (int id=LIGHT_ID_1;id<MAX_LIGHT;id++)
 	    {
 			world.state.m_lights[id] = dlg.GetDialogData((LightID)id);
+
+			angle_degrees = world.state.m_lights[id].m_spotlight_angle_degrees;
+
+			world.state.m_lights[id].m_cos_spotlight_angle = cos((M_PI / 180) * angle_degrees);
 	    }
 		world.state.m_ambientLight = dlg.GetDialogData(LIGHT_ID_AMBIENT);
 	}
