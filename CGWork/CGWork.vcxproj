@@ -195,6 +195,7 @@
     <ClCompile Include="IritLight.cpp" />
     <ClCompile Include="IritObjects.cpp" />
     <ClCompile Include="iritSkel.cpp" />
+    <ClCompile Include="IritTexture.cpp" />
     <ClCompile Include="LightDialog.cpp" />
     <ClCompile Include="MainFrm.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
@@ -238,6 +239,7 @@
     <ClInclude Include="IritLight.h" />
     <ClInclude Include="IritObjects.h" />
     <ClInclude Include="iritSkel.h" />
+    <ClInclude Include="IritTexture.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="LightDialog.h" />
     <ClInclude Include="MainFrm.h" />

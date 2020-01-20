@@ -74,6 +74,9 @@ struct IritPoint {
 	Vector normal_irit;
 	Vector normal_calc;
 
+	/* Parametric values (map polygons vertices to [-1, 1]^2 space */
+	float U, V;
+
 	struct IritPoint *next_point;
 };
 
@@ -135,6 +138,10 @@ struct State {
 
 	LightParams m_lights[MAX_LIGHT];	//configurable lights array
 	LightParams m_ambientLight;		//ambient light (only RGB is used)
+
+	// 2D texture
+	PngWrapper *texture_png;
+	double max_u, max_v, min_u, min_v;
 };
 
 struct PolygonList {
@@ -171,6 +178,10 @@ struct IntersectionPoint {
 	/* Light related variables */
 	Vector polygon_shade;
 	Vector point_shade;
+
+	/* 2D Texture related variables */
+	double point_U;
+	double point_V;
 };
 
 /* Represents a 3 dimensional line
@@ -215,11 +226,21 @@ class IritPolygon {
 	/* Transform polygon's normal according to a given transformation */
 	Vector transformPolygonNormal(Matrix &transformation, struct State &state, int &sign);
 
+	void calculate_2d_intersection_texture(struct IntersectionPoint &point, struct State state);
+
+	/* Return the appropriate 2D intensity of a given pixel during scan conversion */
+	Vector get2DPixelTexture(struct IntersectionPoint &intersecting_x1, struct IntersectionPoint &intersecting_x2,
+							 double t, struct State &state);
+
 public:
 	Vector center_of_mass;
 
 	Vector normal_irit;
 	Vector normal_calc;
+
+	/* 2D parametric representation range */
+	float max_U, max_V;
+	float min_U, min_V;
 
 	IritPolygon();
 
@@ -304,6 +325,8 @@ public:
 	*/
 	void draw(int width, int height, State &state,
 			  Matrix &vertex_transform, double figure_alpha, bool global_alpha);
+
+	void getMaxMinUV(double &max_u, double &max_v, double &min_u, double &min_v);
 };
 
 /* This class represents an Irit Figure which is build from many objects, which have many

@@ -111,6 +111,7 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_UPDATE_COMMAND_UI(IDD_STRETCH_IMAGE, OnUpdateStretchPNG)
 	ON_COMMAND(IDD_CANCEL_IMAGE, OnCancelPNG)
 	ON_UPDATE_COMMAND_UI(IDD_CANCEL_IMAGE, OnUpdateCancelPNG)
+	ON_COMMAND(ID_TEXTURE_SELECTTEXTURE, OnChooseTexturePNG)
 	ON_COMMAND(IDD_SHOW_SILHOUETTE, OnShowSilhouette)
 	ON_UPDATE_COMMAND_UI(IDD_SHOW_SILHOUETTE, OnUpdateShowSilhouette)
 	ON_COMMAND(IDD_FOG, OnFog)
@@ -129,6 +130,7 @@ BEGIN_MESSAGE_MAP(CCGWorkView, CView)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONUP()
+	ON_COMMAND(ID_TEXTURE_CLEARTEXTURE, &CCGWorkView::OnTextureCleartexture)
 END_MESSAGE_MAP()
 
 
@@ -1018,6 +1020,36 @@ void CCGWorkView::OnRenderOnScreen() {
 
 void CCGWorkView::OnUpdateRenderOnScreen(CCmdUI* pCmdUI) {
 	pCmdUI->SetCheck(!world.state.save_to_png);
+}
+
+void CCGWorkView::OnChooseTexturePNG() {
+	TCHAR szFilters[] = _T("PNG Files (*.png)|*.png|All Files (*.*)|*.*||");
+
+	CFileDialog dlg(TRUE, _T("png"), _T("*.png"), OFN_FILEMUSTEXIST | OFN_HIDEREADONLY, szFilters);
+
+	if (dlg.DoModal() == IDOK) {
+		PngWrapper *p;
+
+		p = new PngWrapper();
+
+		// CT2A converts CString to const char*
+		p->SetFileName(CT2A(dlg.GetPathName()));
+		p->ReadPng();
+
+		/* free previous texture */
+		delete world.state.texture_png;
+		world.state.texture_png = p;
+
+		Invalidate();
+	}
+}
+
+void CCGWorkView::OnTextureCleartexture()
+{
+	/* free previous texture */
+	delete world.state.texture_png;
+	world.state.texture_png = NULL;
+	Invalidate();
 }
 
 void CCGWorkView::OnChoosePNG() {

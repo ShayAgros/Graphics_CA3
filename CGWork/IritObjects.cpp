@@ -16,7 +16,7 @@ VertexList *object_vertex_list;
 PolygonList *object_polygon_list;
 
 IritPolygon::IritPolygon() : m_point_nr(0), m_points(nullptr), center_of_mass(Vector(0, 0, 0, 1)),
-			normal_irit(Vector(0, 0, 0, 1)), normal_calc(Vector(0,0,0,1)), m_next_polygon(nullptr) {
+			normal_irit(Vector(0, 0, 0, 1)), normal_calc(Vector(0,0,0,1)), m_next_polygon(nullptr), max_U(0), max_V(0) {
 }
 
 IritPolygon::~IritPolygon() {
@@ -64,6 +64,7 @@ bool IritPolygon::addPoint(double &x, double &y, double &z, double &normal_irit_
 
 bool IritPolygon::addPoint(IPVertexStruct *vertex, Vector normal_calc) {
 	IritPoint new_point;
+	float *UV;
 
 	for (int i = 0; i < 3; i++) {
 		new_point.vertex[i] = vertex->Coord[i];
@@ -75,6 +76,23 @@ bool IritPolygon::addPoint(IPVertexStruct *vertex, Vector normal_calc) {
 	new_point.vertex[3] = 1;
 	new_point.normal_irit[3] = 1;
 	new_point.normal_calc[3] = 1;
+
+	/* Get vertex UV information */
+	if ((UV = AttrGetUVAttrib(vertex->Attr, "uvvals")) != NULL) {
+		new_point.U = UV[0];
+		new_point.V = UV[1];
+
+		if (!this->m_point_nr) {
+			this->max_U = this->min_U = UV[0];
+			this->max_V = this->min_V = UV[1];
+		}
+		else {
+			this->max_U = max(this->max_U, UV[0]);
+			this->max_V = max(this->max_V, UV[1]);
+			this->min_U = min(this->min_U, UV[0]);
+			this->min_V = min(this->min_V, UV[1]);
+		}
+	}
 
 	return addPoint(new_point);
 }
@@ -185,6 +203,7 @@ void IritPolygon::paintPolygon(int width, int height, RGBQUAD color, State &stat
 				intersecting_x[intersecting_x_nr].containing_line = &current_line;
 				intersecting_x[intersecting_x_nr].z = current_line.z1;
 				calculate_normals_and_shading(intersecting_x[intersecting_x_nr], state, polygon_normal, p_center_of_mass);
+				this->calculate_2d_intersection_texture(intersecting_x[intersecting_x_nr], state);
 				intersecting_x_nr++;
 				intersecting_x[intersecting_x_nr].x = current_line.x2;
 				intersecting_x[intersecting_x_nr].y = y;
@@ -193,6 +212,7 @@ void IritPolygon::paintPolygon(int width, int height, RGBQUAD color, State &stat
 				intersecting_x[intersecting_x_nr].containing_line = &current_line;
 				intersecting_x[intersecting_x_nr].z = current_line.z2;
 				calculate_normals_and_shading(intersecting_x[intersecting_x_nr], state, polygon_normal, p_center_of_mass);
+				this->calculate_2d_intersection_texture(intersecting_x[intersecting_x_nr], state);
 				intersecting_x_nr++;
 
 				min_x = min(min_x, min(current_line.x1, current_line.x2));
@@ -207,6 +227,7 @@ void IritPolygon::paintPolygon(int width, int height, RGBQUAD color, State &stat
 				intersecting_x[intersecting_x_nr].point_normal = NULL;
 				intersecting_x[intersecting_x_nr].containing_line = &current_line;
 				calculate_normals_and_shading(intersecting_x[intersecting_x_nr], state, polygon_normal, p_center_of_mass);
+				this->calculate_2d_intersection_texture(intersecting_x[intersecting_x_nr], state);
 
 				if (current_line.x2 == current_line.x1) {
 					t = (double)(intersecting_x[intersecting_x_nr].y - current_line.y1) / (double)(current_line.y2 - current_line.y1);
@@ -247,6 +268,16 @@ void IritPolygon::paintPolygon(int width, int height, RGBQUAD color, State &stat
 				t += t_step;
 
 				Vector light_color = calculateLight(intersecting_x[i], intersecting_x[i + 1], t, state);
+
+				// UV 2-D mapping
+				/* Does polygon have UV representation ? */
+				if (this->max_U != 0 || this->max_V != 0) {
+					Vector p_texture = this->get2DPixelTexture(intersecting_x[i], intersecting_x[i + 1], t, state);
+
+					// RGBQUAD format is  <B G R A>
+					light_color += p_texture;
+				}
+
 				unsigned int new_red_c = min(light_color[0], 255);
 				unsigned int new_green_c = min(light_color[1], 255);
 				unsigned int new_blue_c = min(light_color[2], 255);
@@ -261,7 +292,7 @@ void IritPolygon::paintPolygon(int width, int height, RGBQUAD color, State &stat
 				}
 
 				// RGBQUAD format is  <B G R A>
-				new_color = { (BYTE)new_blue_c, (BYTE)new_green_c, (BYTE)new_red_c, 0 };
+				new_color = { (BYTE)new_blue_c, (BYTE)new_green_c, (BYTE)new_red_c, (BYTE)light_color[3] };
 
 				if (state.transparency) {
 					new_node = new PixelNode;
@@ -365,6 +396,11 @@ void IritPolygon::draw(int width, int height, RGBQUAD color, struct State &state
 		line.p1.vertex = current_vertex;
 		line.p2.vertex = next_vertex;
 
+		line.p1.U = current_point->U;
+		line.p1.V = current_point->V;
+		line.p2.U = current_point->next_point->U;
+		line.p2.V = current_point->next_point->V;
+
 		current_vertex = state.screen_mat * current_vertex;
 		next_vertex = state.screen_mat * next_vertex;
 
@@ -455,6 +491,11 @@ pass_this_point:
 
 	line.p1.vertex = current_vertex;
 	line.p2.vertex = next_vertex;
+
+	line.p1.U = current_point->U;
+	line.p1.V = current_point->V;
+	line.p2.U = m_points->U;
+	line.p2.V = m_points->V;
 
 	set_line_normals(line, current_point, m_points, current_vertex, next_vertex,
 					 vertex_transform, sign, state);
@@ -573,6 +614,30 @@ void IritObject::draw(int width, int height, State &state,
 	}
 }
 
+void IritObject::getMaxMinUV(double &max_u, double &max_v, double &min_u, double &min_v)
+{
+	m_iterator = m_polygons;
+	while (m_iterator) {
+		IritPolygon *polygon = m_iterator;
+
+		if (max_u == max_v && max_u == min_u && max_u == min_v && max_u == 0) {
+			max_u = polygon->max_U;
+			max_v = polygon->max_V;
+			min_u = polygon->min_U;
+			min_v = polygon->min_V;
+		}
+		else {
+			max_u = max(polygon->max_U, max_u);
+			max_v = max(polygon->max_V, max_v);
+			min_u = min(polygon->min_U, min_u);
+			min_v = min(polygon->min_V, min_v);
+		}
+
+		m_iterator = m_iterator->getNextPolygon();
+	}
+}
+
+
 IritObject *IritFigure::createObject() {
 	IritObject *new_object = new IritObject();
 	if (!new_object)
@@ -607,6 +672,14 @@ void IritFigure::draw(int width, int height, Matrix transform, State &state) {
 	Matrix shrink = Matrix::createScaleMatrix((double)(1) / 2, (double)(1) / 2, (double)(1) / 2);
 
 	Matrix vertex_transform = transform * shrink * normalization_mat * world_mat * object_mat * fix_ortho_ratio;
+
+	state.max_u = state.max_v = state.min_u = state.min_v = 0;
+
+	for (int i = 0; i < m_objects_nr; i++) {
+		IritObject * object = m_objects_arr[i];
+		
+		object->getMaxMinUV(state.max_u, state.max_v, state.min_u, state.min_v);
+	}
 
 	// Draw all objects
 	for (int i = 0; i < m_objects_nr; i++)
@@ -753,6 +826,7 @@ IritWorld::IritWorld() : m_figures_nr(0), m_figures_arr(nullptr) {
 
 	state.z_buffer = nullptr;
 	motion_blur_bitmap = nullptr;
+
 }
 
 IritWorld::~IritWorld() {

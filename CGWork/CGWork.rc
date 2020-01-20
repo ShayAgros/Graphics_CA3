@@ -313,6 +313,11 @@ BEGIN
         END
         MENUITEM "&Parameters...",              ID_LIGHT_CONSTANTS
     END
+    POPUP "Texture"
+    BEGIN
+        MENUITEM "Select texture",              ID_TEXTURE_SELECTTEXTURE
+        MENUITEM "Clear texture",               ID_TEXTURE_CLEARTEXTURE
+    END
     POPUP "&Render"
     BEGIN
         MENUITEM "Save to PNG",                 IDD_SAVE_TO_PNG

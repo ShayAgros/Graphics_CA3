@@ -66,6 +66,9 @@
     <ClCompile Include="IritLight.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="IritTexture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CGWork.h">
@@ -190,6 +193,9 @@
     </ClInclude>
     <ClInclude Include="Resource.h">
       <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IritTexture.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

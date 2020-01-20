@@ -89,16 +89,18 @@
 #define ID_WORLD_TRANSFORM              32803
 #define ID_OBJECT_TRANSFORM             32804
 #define ID_OBJECT_COLOR                 32805
-#define ID_BG_COLOR                     32806
-#define ID_NORMAL_COLOR                 32807
-#define ID_LIGHT_SHADING_PHONG          32808
+#define ID_TEXTURE_SELECTTEXTURE        32806
+#define ID_TEXTURE_CLEARTEXTURE         32807
+#define ID_NORMAL_COLOR                 32808
+#define ID_LIGHT_SHADING_PHONG          32809
+#define ID_BG_COLOR                     32810
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        155
-#define _APS_NEXT_COMMAND_VALUE         32805
+#define _APS_NEXT_COMMAND_VALUE         32811
 #define _APS_NEXT_CONTROL_VALUE         1055
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
