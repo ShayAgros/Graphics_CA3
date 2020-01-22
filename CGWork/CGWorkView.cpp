@@ -401,9 +401,9 @@ void CCGWorkView::OnDraw(CDC* pDC)
 		current_node->alpha = 1.0;
 		current_node->next = nullptr;
 
-		if (world.state.fog) {
-			current_node->color = *((int*)&world.state.fog_color);
-		} else if (world.state.background_png) {
+		//if (world.state.fog) {
+			//current_node->color = *((int*)&world.state.fog_color);
+		if (world.state.background_png) {
 			PngWrapper *p = world.background;
 
 			int png_width = p->GetWidth(),
@@ -423,6 +423,32 @@ void CCGWorkView::OnDraw(CDC* pDC)
 			// Screen is inverted compared to PNG
 			y = png_height - y - 1;
 			current_node->color = RGBA_TO_ARGB(p->GetValue(x, y));
+
+			Vector bgra = { 0, 0, 0, 0 };
+			Vector fog = { 0, 0, 0, 0 };
+
+			bgra[0] = ((BYTE*)&current_node->color)[0];
+			bgra[1] = ((BYTE*)&current_node->color)[1];
+			bgra[2] = ((BYTE*)&current_node->color)[2];
+			bgra[3] = ((BYTE*)&current_node->color)[3];
+
+
+
+			if (world.state.fog) {
+
+				int fog_c = *((int*)&world.state.fog_color);
+				fog[0] = ((BYTE*)&fog_c)[0];
+				fog[1] = ((BYTE*)&fog_c)[1];
+				fog[2] = ((BYTE*)&fog_c)[2];
+				fog[3] = ((BYTE*)&fog_c)[3];
+
+				BYTE final_color[] = { (BYTE)min(fog[0] + bgra[0], 255), 
+									 (BYTE)min(fog[1] + bgra[1], 255),
+									 (BYTE)min(fog[2] + bgra[2], 255),
+									 (BYTE)min(fog[3] + bgra[3], 255) };
+				current_node->color = *((int*)&final_color);
+
+			}
 		} else {
 			current_node->color = *((int*)&static_background);
 		}

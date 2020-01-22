@@ -107,6 +107,7 @@ void IritPolygon::setNextPolygon(IritPolygon *polygon) {
 
 bool isOutsideClippingBoundries(Vector &vertex)
 {	
+	return vertex[Z_AXIS] > 1 ||vertex[Z_AXIS] < -1;
 	// Dont get too close, but you can be as far as you want, so we can see fog effects and whatnot
 	return vertex[X_AXIS] > 1 || vertex[X_AXIS] < -1 || vertex[Y_AXIS] > 1 || vertex[Y_AXIS] < -1 ||
 		   vertex[Z_AXIS] > 1 /* ||vertex[Z_AXIS] < -1 */;

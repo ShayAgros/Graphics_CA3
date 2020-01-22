@@ -24,7 +24,7 @@
 
 #define DEFAULT_FINENESS 20.0
 
-#define DEFAULT_DEPTH -500.0
+#define DEFAULT_DEPTH -2
 
 #define DEFAULT_MOTION_BLUR 0.25
 
