@@ -2,6 +2,11 @@
 
 // ============================================= 2D texture ======================================================
 
+static double normalize(double val, double max, double min)
+{
+	return (val - min) / (max - min);
+}
+
 // calculate U,V values for the intersection point
 void IritPolygon::calculate_2d_intersection_texture(struct IntersectionPoint &point, struct State state)
 {
@@ -21,6 +26,11 @@ void IritPolygon::calculate_2d_intersection_texture(struct IntersectionPoint &po
 	/* Does polygon have UV representation ? */
 	if (this->max_U != 0 || this->min_U != 0) {
 
+		left_U = normalize(left_U, state.max_u, state.min_u);
+		right_U = normalize(right_U, state.max_u, state.min_u);
+		left_V = normalize(left_V, state.max_v, state.min_v);
+		right_V = normalize(right_V, state.max_v, state.min_v);
+
 		/* We find which axis has more difference between its two boundries, to
 		   get a more fine-grained normal change */
 		if (abs(right_2d_x - left_2d_x) > abs(lower_2d_y - upper_2d_y))
@@ -28,15 +38,11 @@ void IritPolygon::calculate_2d_intersection_texture(struct IntersectionPoint &po
 		else
 			t = (intersecting_2d_y - lower_2d_y) / (upper_2d_y - lower_2d_y);
 
+
 		point.point_U = (left_U * (1 - t)) + (right_U * t);
-		/* normalize U value */
-		point.point_U -= state.min_u;
-		point.point_U /= state.max_u;
 
 		point.point_V = (left_V * (1 - t)) + (right_V * t);
-		/* normalize V value */
-		point.point_V -= state.min_v;
-		point.point_V /= state.max_v;
+
 	}
 }
 
@@ -57,8 +63,11 @@ Vector IritPolygon::get2DPixelTexture(struct IntersectionPoint &intersecting_x1,
 		double right_u = intersecting_x2.point_U;
 		double right_v = intersecting_x2.point_V;
 
-		x = (int)((left_u * (1 - t)) + (right_u * t) * png_width);
-		y = (int)((left_v * (1 - t)) + (right_v * t) * png_height);
+		x = (left_u * (1 - t)) + (right_u * t);
+		y = (left_v * (1 - t)) + (right_v * t);
+
+		x = (int)(x * png_width);
+		y = (int)(y * png_height);
 
 		/* Screen is inverted compared to PNG */
 		y = png_height - y - 1;
