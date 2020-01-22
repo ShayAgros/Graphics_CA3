@@ -15,7 +15,7 @@
 #include "ip_cnvrt.h"
 #include "symb_lib.h"
 
-#define EPSILON 0.005
+#define EPSILON 0.0005
 
 bool CGSkelProcessIritDataFiles(CString &FileNames, int NumFiles);
 void CGSkelDumpOneTraversedObject(IPObjectStruct *PObj, IrtHmgnMatType Mat, void *Data);

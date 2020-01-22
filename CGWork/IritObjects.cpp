@@ -295,6 +295,15 @@ void IritPolygon::paintPolygon(int width, int height, RGBQUAD color, State &stat
 				new_color = { (BYTE)new_blue_c, (BYTE)new_green_c, (BYTE)new_red_c, (BYTE)light_color[3] };
 
 				if (state.transparency) {
+					current_node = state.z_buffer[y * width + x];
+					while (current_node != nullptr) { // Test to see if were painting close to an exisiting node
+						if (abs(current_node->depth - extrapolated_z) < (10 * EPSILON))
+							break;
+						current_node = current_node->next;
+					}
+					if (current_node != nullptr && abs(current_node->depth - extrapolated_z) < (10 * EPSILON))
+						continue; // Skip this pixel
+
 					new_node = new PixelNode;
 					new_node->depth = extrapolated_z;
 					new_node->alpha = alpha;
